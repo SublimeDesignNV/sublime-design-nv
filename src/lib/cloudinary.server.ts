@@ -205,7 +205,17 @@ export async function listProjectSlugs(
 }
 
 export async function listAssetsByProjectSlug(slug: string, maxResults = 200) {
-  return listAssetsByFolder(`${PROJECTS_ROOT_FOLDER}/${slug}`, maxResults);
+  void maxResults;
+  const folder = `${PROJECTS_ROOT_FOLDER}/${slug}`;
+
+  const result = await cloudinary.search
+    .expression(`public_id:${folder}/*`)
+    .sort_by("created_at", "desc")
+    .max_results(100)
+    .execute();
+
+  const resources = (result?.resources ?? []) as CloudinarySearchResource[];
+  return resources.map(mapResource);
 }
 
 export async function listProjects(maxResults = 500): Promise<ProjectGallery[]> {
