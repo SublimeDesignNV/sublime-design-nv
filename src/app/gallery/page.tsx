@@ -1,25 +1,15 @@
-import GalleryClient from "@/components/gallery/GalleryClient";
-import { getPublishedAssets } from "@/lib/portfolio.server";
+import CloudinaryImage from "@/components/CloudinaryImage";
 
-export default async function GalleryPage() {
-  const assets = await getPublishedAssets();
-
+export default function GalleryPage() {
   return (
-    <main className="bg-cream pt-20">
-      <section className="bg-navy py-16 text-white">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="font-ui text-sm uppercase tracking-widest text-red">
-            Portfolio
-          </p>
-          <h1 className="mt-3 text-4xl md:text-5xl">Our Work</h1>
-        </div>
-      </section>
+    <main style={{ padding: "40px" }}>
+      <h1>Gallery</h1>
 
-      <section className="py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <GalleryClient assets={assets} />
-        </div>
-      </section>
+      <CloudinaryImage
+        src="sample"
+        alt="Cloudinary Test Image"
+      />
+
     </main>
   );
 }
