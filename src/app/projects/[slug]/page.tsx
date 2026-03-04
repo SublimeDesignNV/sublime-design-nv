@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { getProjectBySlug } from "@/lib/cloudinary.server";
+import { SERVICES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,12 @@ type Props = {
     slug: string;
   };
 };
+
+function getServiceLabel(slug: string | undefined) {
+  if (!slug) return undefined;
+  const service = SERVICES.find((item) => item.slug === slug);
+  return service?.shortTitle ?? slug;
+}
 
 function getFallbackDescription(project: {
   name: string;
@@ -78,6 +86,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   const description = project.caption || getFallbackDescription(project);
   const imageUrls = project.images.map((image) => image.secure_url);
+  const serviceLabel = getServiceLabel(project.service);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -106,7 +115,17 @@ export default async function ProjectDetailPage({ params }: Props) {
       <h1 style={{ margin: "0 0 8px" }}>{project.name}</h1>
       <p style={{ margin: "0 0 14px", color: "#555" }}>{description}</p>
       <p style={{ margin: "0 0 24px", color: "#666", fontSize: 14 }}>
-        {[project.service, project.city, project.state, project.material, project.year]
+        {[
+          serviceLabel,
+          project.city && project.state
+            ? `${project.city}, ${project.state}`
+            : project.city || project.state,
+          project.year,
+          project.material,
+          project.finish,
+          project.room,
+          project.style,
+        ]
           .filter(Boolean)
           .join(" • ")}
       </p>
@@ -122,9 +141,10 @@ export default async function ProjectDetailPage({ params }: Props) {
           const fallbackAlt = `${project.name} - ${project.service || "custom"} - Sublime Design NV`;
 
           return (
-            <div
+            <Link
               key={image.public_id}
-              style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #ddd" }}
+              href={`/gallery?image=${encodeURIComponent(image.public_id)}`}
+              style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #ddd", display: "block" }}
             >
               <CloudinaryImage
                 src={image.public_id}
@@ -134,7 +154,7 @@ export default async function ProjectDetailPage({ params }: Props) {
                 sizes="(max-width: 768px) 100vw, 33vw"
                 style={{ width: "100%", height: 260, objectFit: "cover" }}
               />
-            </div>
+            </Link>
           );
         })}
       </div>

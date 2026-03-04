@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
@@ -125,6 +126,7 @@ export default function AdminUploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploaded, setUploaded] = useState<UploadedAsset[]>([]);
+  const [lastUploadedProjectSlug, setLastUploadedProjectSlug] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [form, setForm] = useState<UploadFormState>({
@@ -224,6 +226,7 @@ export default function AdminUploadPage() {
 
   async function handleUpload() {
     setError(null);
+    setLastUploadedProjectSlug(null);
 
     if (!canUpload) return;
 
@@ -292,6 +295,7 @@ export default function AdminUploadPage() {
 
       setUploaded((current) => [...uploadedResults, ...current]);
       setFiles([]);
+      setLastUploadedProjectSlug(projectSlug);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -583,6 +587,65 @@ export default function AdminUploadPage() {
         </button>
 
         {error ? <p style={{ color: "#b91c1c", margin: 0 }}>{error}</p> : null}
+
+        {lastUploadedProjectSlug ? (
+          <div
+            style={{
+              border: "1px solid #bbf7d0",
+              background: "#f0fdf4",
+              color: "#166534",
+              borderRadius: 8,
+              padding: 12,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <strong>Project created</strong>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link
+                href={`/projects/${lastUploadedProjectSlug}`}
+                style={{
+                  border: "1px solid #166534",
+                  color: "#166534",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                View Project
+              </Link>
+              <Link
+                href="/gallery"
+                style={{
+                  border: "1px solid #166534",
+                  color: "#166534",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                View Gallery
+              </Link>
+              <button
+                type="button"
+                onClick={() => setLastUploadedProjectSlug(null)}
+                style={{
+                  border: "1px solid #166534",
+                  color: "#166534",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  background: "transparent",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Upload More
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section>
