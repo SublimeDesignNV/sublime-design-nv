@@ -51,8 +51,42 @@ export type ProjectGallery = {
   service?: string;
   city?: string;
   state?: string;
+  material?: string;
+  finish?: string;
+  room?: string;
+  style?: string;
   year?: string;
   images: CloudinaryAsset[];
+};
+
+type ProjectFilterValue = string | undefined;
+export type ProjectFilterParams = {
+  service?: ProjectFilterValue;
+  city?: ProjectFilterValue;
+  material?: ProjectFilterValue;
+  featured?: "true" | undefined;
+  year?: ProjectFilterValue;
+  page?: number;
+  pageSize?: number;
+};
+
+type FacetItem = {
+  value: string;
+  count: number;
+};
+
+type ProjectsWithFacetsResult = {
+  projects: ProjectGallery[];
+  facets: {
+    services: FacetItem[];
+    cities: FacetItem[];
+    materials: FacetItem[];
+    years: FacetItem[];
+  };
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 type CloudinarySearchResource = {
@@ -181,6 +215,10 @@ export async function listProjects(maxResults = 500): Promise<ProjectGallery[]> 
       service: first.context?.service,
       city: first.context?.city,
       state: first.context?.state,
+      material: first.context?.material,
+      finish: first.context?.finish,
+      room: first.context?.room,
+      style: first.context?.style,
       year: first.context?.year,
       images,
     } satisfies ProjectGallery;
@@ -222,11 +260,67 @@ export async function getProjectBySlug(slug: string, maxResults = 200) {
     service: first.context?.service,
     city: first.context?.city,
     state: first.context?.state,
+    material: first.context?.material,
+    finish: first.context?.finish,
+    room: first.context?.room,
+    style: first.context?.style,
     year: first.context?.year,
     images: assets,
   };
 
   return project;
+}
+
+function toFacetItems(values: string[]) {
+  const counts = new Map<string, number>();
+
+  for (const value of values) {
+    const normalized = value.trim();
+    if (!normalized) continue;
+    counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => a.value.localeCompare(b.value));
+}
+
+export async function listProjectsWithFacets(
+  params: ProjectFilterParams = {},
+): Promise<ProjectsWithFacetsResult> {
+  const pageSize = Math.max(1, Math.min(params.pageSize ?? 24, 100));
+  const page = Math.max(1, params.page ?? 1);
+  const projects = await listProjects(1000);
+
+  const facets = {
+    services: toFacetItems(projects.map((project) => project.service ?? "")),
+    cities: toFacetItems(projects.map((project) => project.city ?? "")),
+    materials: toFacetItems(projects.map((project) => project.material ?? "")),
+    years: toFacetItems(projects.map((project) => project.year ?? "")),
+  };
+
+  const filtered = projects.filter((project) => {
+    if (params.service && project.service !== params.service) return false;
+    if (params.city && project.city !== params.city) return false;
+    if (params.material && project.material !== params.material) return false;
+    if (params.year && project.year !== params.year) return false;
+    if (params.featured === "true" && !project.featured) return false;
+    return true;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    projects: filtered.slice(start, start + pageSize),
+    facets,
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+  };
 }
 
 function normalizeContextForCloudinary(context: Record<string, string>) {
