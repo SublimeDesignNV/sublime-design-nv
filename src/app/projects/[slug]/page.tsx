@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import { getProjectBySlug } from "@/lib/cloudinary.server";
+import { getProjectBySlug, getProjectSlugDebugInfo } from "@/lib/cloudinary.server";
 import { SERVICES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,9 @@ export const dynamic = "force-dynamic";
 type Props = {
   params: {
     slug: string;
+  };
+  searchParams?: {
+    debug?: string;
   };
 };
 
@@ -77,10 +80,60 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProjectDetailPage({ params }: Props) {
-  const project = await getProjectBySlug(params.slug);
+export default async function ProjectDetailPage({ params, searchParams }: Props) {
+  const debugMode = searchParams?.debug === "1";
+  const [project, debugInfo] = await Promise.all([
+    getProjectBySlug(params.slug),
+    debugMode ? getProjectSlugDebugInfo(params.slug) : Promise.resolve(null),
+  ]);
+
+  if (debugInfo) {
+    console.error("project-debug", {
+      slug: debugInfo.slug,
+      folder: debugInfo.folder,
+      expression: debugInfo.expression,
+      assetsCount: debugInfo.assetsCount,
+      matchedCount: debugInfo.matchedCount,
+      firstPublicId: debugInfo.firstPublicId,
+      buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
+    });
+  }
 
   if (!project) {
+    if (debugInfo) {
+      return (
+        <main style={{ padding: 40 }}>
+          <h1 style={{ marginTop: 0 }}>Project Debug</h1>
+          <p style={{ color: "#555" }}>
+            No project found for slug <code>{params.slug}</code>.
+          </p>
+          <div
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 10,
+              padding: 14,
+              background: "#fafafa",
+              fontFamily: "monospace",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {JSON.stringify(
+              {
+                slug: debugInfo.slug,
+                folder: debugInfo.folder,
+                expression: debugInfo.expression,
+                assetsCount: debugInfo.assetsCount,
+                matchedCount: debugInfo.matchedCount,
+                firstPublicId: debugInfo.firstPublicId,
+                buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
+              },
+              null,
+              2,
+            )}
+          </div>
+        </main>
+      );
+    }
     notFound();
   }
 
@@ -107,6 +160,34 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   return (
     <main style={{ padding: 40 }}>
+      {debugInfo ? (
+        <div
+          style={{
+            marginBottom: 16,
+            border: "1px solid #ddd",
+            borderRadius: 10,
+            padding: 10,
+            background: "#f8fafc",
+            fontSize: 13,
+            fontFamily: "monospace",
+          }}
+        >
+          {JSON.stringify(
+            {
+              slug: debugInfo.slug,
+              folder: debugInfo.folder,
+              expression: debugInfo.expression,
+              assetsCount: debugInfo.assetsCount,
+              matchedCount: debugInfo.matchedCount,
+              firstPublicId: debugInfo.firstPublicId,
+              buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
+            },
+            null,
+            2,
+          )}
+        </div>
+      ) : null}
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

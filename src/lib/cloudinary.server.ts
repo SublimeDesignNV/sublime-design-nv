@@ -59,6 +59,15 @@ export type ProjectGallery = {
   images: CloudinaryAsset[];
 };
 
+export type ProjectSlugDebugInfo = {
+  slug: string;
+  folder: string;
+  expression: string;
+  assetsCount: number;
+  matchedCount: number;
+  firstPublicId: string | null;
+};
+
 type ProjectFilterValue = string | undefined;
 export type ProjectFilterParams = {
   service?: ProjectFilterValue;
@@ -182,8 +191,7 @@ export async function listAssetsByFolders(folders: string[], maxPerFolder = 60) 
 }
 
 export async function listProjectAssets(maxResults = 500): Promise<CloudinaryAsset[]> {
-  const resources = await searchByExpression(`folder:${PROJECTS_ROOT_FOLDER}/*`, maxResults);
-  return resources.map(mapResource);
+  return listAssetsByPublicIdPrefix(PROJECTS_ROOT_FOLDER, maxResults);
 }
 
 export async function listProjectSlugs(
@@ -205,17 +213,37 @@ export async function listProjectSlugs(
 }
 
 export async function listAssetsByProjectSlug(slug: string, maxResults = 200) {
-  void maxResults;
+  const safeMaxResults = Math.max(1, Math.min(maxResults, 500));
   const folder = `${PROJECTS_ROOT_FOLDER}/${slug}`;
-
-  const result = await cloudinary.search
-    .expression(`public_id:${folder}/*`)
-    .sort_by("created_at", "desc")
-    .max_results(100)
-    .execute();
-
-  const resources = (result?.resources ?? []) as CloudinarySearchResource[];
+  const resources = await searchByExpression(`public_id:${folder}/*`, safeMaxResults);
   return resources.map(mapResource);
+}
+
+function matchesProjectSlug(asset: CloudinaryAsset, slug: string) {
+  const contextSlug = asset.context?.project_slug?.trim();
+  if (contextSlug) {
+    return contextSlug === slug;
+  }
+  return getSlugFromPublicId(asset.public_id) === slug;
+}
+
+export async function getProjectSlugDebugInfo(
+  slug: string,
+  maxResults = 200,
+): Promise<ProjectSlugDebugInfo> {
+  const folder = `${PROJECTS_ROOT_FOLDER}/${slug}`;
+  const expression = `public_id:${folder}/*`;
+  const assets = await listAssetsByProjectSlug(slug, maxResults);
+  const matched = assets.filter((asset) => matchesProjectSlug(asset, slug));
+
+  return {
+    slug,
+    folder,
+    expression,
+    assetsCount: assets.length,
+    matchedCount: matched.length,
+    firstPublicId: assets[0]?.public_id ?? null,
+  };
 }
 
 export async function listProjects(maxResults = 500): Promise<ProjectGallery[]> {
@@ -271,7 +299,7 @@ export async function listProjects(maxResults = 500): Promise<ProjectGallery[]> 
 
 export async function getProjectBySlug(slug: string, maxResults = 200) {
   const assetsInFolder = await listAssetsByProjectSlug(slug, maxResults);
-  const assets = assetsInFolder.filter((asset) => asset.context?.project_slug === slug);
+  const assets = assetsInFolder.filter((asset) => matchesProjectSlug(asset, slug));
   if (!assets.length) return null;
 
   assets.sort((a, b) => {

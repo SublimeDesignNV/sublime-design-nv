@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Montserrat, Raleway } from "next/font/google";
 import Navbar from "@/components/layout/Navbar";
+import BuildDebugBadge from "@/components/layout/BuildDebugBadge";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default function RootLayout({
       <body className="antialiased">
         <Navbar />
         {children}
+        <BuildDebugBadge />
         <Footer />
       </body>
     </html>
