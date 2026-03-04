@@ -23,3 +23,7 @@ export const ROOMS = [
   { label: "Laundry", slug: "laundry" },
   { label: "Closet", slug: "closet" },
 ] as const;
+
+export type FacetCitySlug = (typeof CITIES)[number]["slug"];
+export type FacetMaterialSlug = (typeof MATERIALS)[number]["slug"];
+export type FacetRoomSlug = (typeof ROOMS)[number]["slug"];

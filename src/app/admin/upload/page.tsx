@@ -4,6 +4,14 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
+import { MATERIALS, ROOMS } from "@/lib/facets.config";
+import {
+  cityLabelFromSlug,
+  normalizeFacetSlug,
+  roomLabelFromSlug,
+  materialLabelFromSlug,
+  toFacetTag,
+} from "@/lib/seo";
 
 type SignedUploadConfig = {
   timestamp: number;
@@ -41,9 +49,9 @@ const ADMIN_TOKEN_STORAGE_KEY = "sublime_admin_upload_token";
 const MAX_FILES = 20;
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 const ACCEPTED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MATERIAL_OPTIONS = ["Maple", "Oak", "Walnut", "Plywood", "MDF", "Mixed"];
+const MATERIAL_OPTIONS = MATERIALS.map((item) => item.slug);
 const FINISH_OPTIONS = ["Natural", "Stained", "Painted", "Matte", "Satin", "Gloss"];
-const ROOM_OPTIONS = ["Kitchen", "Pantry", "Living Room", "Bedroom", "Office", "Garage", "Other"];
+const ROOM_OPTIONS = ROOMS.map((item) => item.slug);
 const STYLE_OPTIONS = ["Modern", "Transitional", "Traditional", "Farmhouse", "Contemporary", "Custom"];
 
 function slugToTitle(slug: string) {
@@ -175,7 +183,7 @@ export default function AdminUploadPage() {
     const parts = [
       form.projectName.trim(),
       selectedService?.shortTitle,
-      form.room,
+      roomLabelFromSlug(form.room),
       form.city.trim(),
       form.state.trim(),
     ].filter(Boolean);
@@ -208,11 +216,7 @@ export default function AdminUploadPage() {
   }
 
   function addTag(rawTag: string) {
-    const normalized = rawTag
-      .toLowerCase()
-      .replace(/[^a-z0-9-\s]/g, "")
-      .trim()
-      .replace(/\s+/g, "-");
+    const normalized = normalizeFacetSlug(rawTag).replace(/:/g, "-");
 
     if (!normalized) return;
 
@@ -258,11 +262,11 @@ export default function AdminUploadPage() {
       project_name: form.projectName.trim(),
       project_slug: projectSlug,
       service: form.service,
-      city: form.city.trim(),
+      city: cityLabelFromSlug(normalizeFacetSlug(form.city)) || form.city.trim(),
       state: form.state.trim() || "NV",
-      material: form.material,
+      material: materialLabelFromSlug(form.material),
       finish: form.finish,
-      room: form.room,
+      room: roomLabelFromSlug(form.room),
       style: form.style,
       year: form.year.trim(),
       featured: form.featured ? "true" : "false",
@@ -272,8 +276,27 @@ export default function AdminUploadPage() {
       gps_lng: form.gpsLng.trim(),
     };
 
+    const citySlug = normalizeFacetSlug(form.city);
+    const serviceSlug = normalizeFacetSlug(form.service);
+    const materialSlug = normalizeFacetSlug(form.material);
+    const roomSlug = normalizeFacetSlug(form.room);
+
+    const normalizedFreeTags = tags
+      .map((tag) => normalizeFacetSlug(tag).replace(/:/g, "-"))
+      .filter(Boolean);
+
     const uploadTags = Array.from(
-      new Set([projectSlug, form.service, form.city.trim().toLowerCase(), ...tags].filter(Boolean)),
+      new Set(
+        [
+          projectSlug,
+          `project:${projectSlug}`,
+          toFacetTag("service", serviceSlug),
+          toFacetTag("city", citySlug),
+          toFacetTag("material", materialSlug),
+          toFacetTag("room", roomSlug),
+          ...normalizedFreeTags,
+        ].filter(Boolean),
+      ),
     );
 
     setIsUploading(true);
@@ -392,7 +415,7 @@ export default function AdminUploadPage() {
             >
               {MATERIAL_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {materialLabelFromSlug(option)}
                 </option>
               ))}
             </select>
@@ -422,7 +445,7 @@ export default function AdminUploadPage() {
             >
               {ROOM_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {roomLabelFromSlug(option)}
                 </option>
               ))}
             </select>

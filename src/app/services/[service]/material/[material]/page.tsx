@@ -2,16 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
+import FacetBreadcrumbs from "@/components/seo/FacetBreadcrumbs";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
+import RelatedFacetLinks from "@/components/seo/RelatedFacetLinks";
 import { listProjectsIndex } from "@/lib/cloudinary.server";
-import { MATERIALS } from "@/lib/facets.config";
+import { MATERIALS, ROOMS } from "@/lib/facets.config";
 import { SERVICES } from "@/lib/services.config";
 import {
   buildFacetCanonical,
   buildFacetDescription,
   buildFacetTitle,
   buildProjectImageAlt,
-  titleCaseFromSlug,
+  roomLabelFromSlug,
+  serviceLabelFromSlug,
 } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +32,7 @@ function resolveLabels(service: string, material: string) {
   if (!serviceOk || !materialItem) return null;
 
   return {
-    serviceLabel: titleCaseFromSlug(service),
+    serviceLabel: serviceLabelFromSlug(service),
     materialLabel: materialItem.label,
   };
 }
@@ -57,20 +60,54 @@ export default async function ServiceMaterialPage({ params }: Props) {
   const labels = resolveLabels(params.service, params.material);
   if (!labels) notFound();
 
-  const projects = (await listProjectsIndex(400)).filter(
-    (project) =>
-      project.serviceSlug === params.service && project.materialSlug === params.material,
-  );
+  const allProjects = await listProjectsIndex(500);
+  const serviceProjects = allProjects.filter((project) => project.serviceSlug === params.service);
+  const projects = serviceProjects.filter((project) => project.materialSlug === params.material);
 
   if (!projects.length) {
     notFound();
   }
 
+  const otherMaterialLinks = MATERIALS.filter((material) => material.slug !== params.material)
+    .map((material) => {
+      const matches = serviceProjects.filter((project) => project.materialSlug === material.slug).length;
+      return {
+        label: `${material.label} (${matches})`,
+        href: `/services/${params.service}/material/${material.slug}`,
+        matches,
+      };
+    })
+    .filter((item) => item.matches > 0)
+    .map(({ label, href }) => ({ label, href }));
+
+  const roomLinks = ROOMS.map((room) => {
+    const matches = projects.filter((project) => project.roomSlug === room.slug).length;
+    return {
+      label: `${room.label} (${matches})`,
+      href: `/services/${params.service}/room/${room.slug}`,
+      matches,
+    };
+  })
+    .filter((item) => item.matches > 0)
+    .map(({ label, href }) => ({ label, href }));
+
   return (
     <main style={{ padding: 40 }}>
       <LocalBusinessSchema />
+      <FacetBreadcrumbs
+        crumbs={[
+          { label: "Home", href: "/" },
+          { label: "Services", href: "/services" },
+          { label: labels.serviceLabel, href: `/services/${params.service}` },
+          { label: labels.materialLabel, href: `/services/${params.service}/material/${params.material}` },
+        ]}
+      />
+
       <h1>{`${labels.materialLabel} ${labels.serviceLabel}`}</h1>
       <p style={{ color: "#555" }}>{buildFacetDescription(labels)}</p>
+
+      <RelatedFacetLinks title="Other Materials" links={otherMaterialLinks} />
+      <RelatedFacetLinks title="Rooms" links={roomLinks} />
 
       <div
         style={{
@@ -110,7 +147,7 @@ export default async function ServiceMaterialPage({ params }: Props) {
                 </Link>
               </h2>
               <p style={{ margin: 0, color: "#666", fontSize: 13 }}>
-                {[project.cityLabel, project.state, project.roomLabel, project.year]
+                {[project.cityLabel, project.state, roomLabelFromSlug(project.roomSlug || ""), project.year]
                   .filter(Boolean)
                   .join(" • ")}
               </p>

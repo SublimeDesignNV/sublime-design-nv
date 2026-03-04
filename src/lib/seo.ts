@@ -22,6 +22,14 @@ export function titleCaseFromSlug(slug: string) {
 
 export const titleFromSlug = titleCaseFromSlug;
 
+export function toFacetTag(prefix: string, slug: string) {
+  return `${prefix}:${normalizeFacetSlug(slug)}`;
+}
+
+export function normalizeFacetSlug(value: string) {
+  return slugify(value);
+}
+
 export function citySlugToName(citySlug: string) {
   return citySlug
     .split("-")
@@ -32,6 +40,22 @@ export function citySlugToName(citySlug: string) {
 
 export function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
+}
+
+export function cityLabelFromSlug(slug: string) {
+  return CITIES.find((item) => item.slug === slug)?.label || titleCaseFromSlug(slug);
+}
+
+export function materialLabelFromSlug(slug: string) {
+  return MATERIALS.find((item) => item.slug === slug)?.label || titleCaseFromSlug(slug);
+}
+
+export function roomLabelFromSlug(slug: string) {
+  return ROOMS.find((item) => item.slug === slug)?.label || titleCaseFromSlug(slug);
+}
+
+export function serviceLabelFromSlug(slug: string) {
+  return titleCaseFromSlug(slug);
 }
 
 export function buildFacetTitle({
@@ -96,13 +120,19 @@ function toCanonicalSlug(
 export function normalizeProjectFields(
   project: Pick<
     ProjectGallery,
-    "service" | "city" | "material" | "room" | "name" | "caption" | "state"
+    "service" | "city" | "material" | "room" | "name" | "caption" | "state" | "images"
   >,
 ) {
-  const serviceSlug = project.service ? slugify(project.service) : undefined;
-  const citySlug = toCanonicalSlug(project.city, CITIES);
-  const materialSlug = toCanonicalSlug(project.material, MATERIALS);
-  const roomSlug = toCanonicalSlug(project.room, ROOMS);
+  const tags = project.images[0]?.tags ?? [];
+  const taggedService = tags.find((tag) => tag.startsWith("service:"))?.split(":")[1];
+  const taggedCity = tags.find((tag) => tag.startsWith("city:"))?.split(":")[1];
+  const taggedMaterial = tags.find((tag) => tag.startsWith("material:"))?.split(":")[1];
+  const taggedRoom = tags.find((tag) => tag.startsWith("room:"))?.split(":")[1];
+
+  const serviceSlug = taggedService || (project.service ? slugify(project.service) : undefined);
+  const citySlug = taggedCity || toCanonicalSlug(project.city, CITIES);
+  const materialSlug = taggedMaterial || toCanonicalSlug(project.material, MATERIALS);
+  const roomSlug = taggedRoom || toCanonicalSlug(project.room, ROOMS);
 
   return {
     serviceSlug,

@@ -267,6 +267,12 @@ function toCanonicalLabel(
   return options.find((option) => option.slug === slug)?.label;
 }
 
+function getFacetValueFromTags(tags: string[] | undefined, prefix: string) {
+  if (!tags?.length) return undefined;
+  const match = tags.find((tag) => tag.startsWith(`${prefix}:`));
+  return match ? match.slice(prefix.length + 1).trim() : undefined;
+}
+
 export async function getProjectSlugDebugInfo(
   slug: string,
   maxResults = 200,
@@ -354,12 +360,17 @@ export async function listProjectsIndex(maxProjects = 200): Promise<ProjectIndex
       });
 
       const first = matching[0];
-      const serviceSlug = first.context?.service
-        ? slugify(first.context.service)
-        : undefined;
-      const citySlug = toCanonicalSlug(first.context?.city, CITIES);
-      const materialSlug = toCanonicalSlug(first.context?.material, MATERIALS);
-      const roomSlug = toCanonicalSlug(first.context?.room, ROOMS);
+      const serviceTag = getFacetValueFromTags(first.tags, "service");
+      const cityTag = getFacetValueFromTags(first.tags, "city");
+      const materialTag = getFacetValueFromTags(first.tags, "material");
+      const roomTag = getFacetValueFromTags(first.tags, "room");
+
+      const serviceSlug =
+        serviceTag ||
+        (first.context?.service ? slugify(first.context.service) : undefined);
+      const citySlug = cityTag || toCanonicalSlug(first.context?.city, CITIES);
+      const materialSlug = materialTag || toCanonicalSlug(first.context?.material, MATERIALS);
+      const roomSlug = roomTag || toCanonicalSlug(first.context?.room, ROOMS);
 
       const item: ProjectIndexItem = {
         slug,
