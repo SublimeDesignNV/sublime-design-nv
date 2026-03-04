@@ -3,25 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-red: #CC2027;
+  --color-red-dark: #A01820;
+  --color-navy: #1B2A6B;
+  --color-steel: #4A6FA5;
+  --color-cream: #FAF8F5;
+  --color-gray-warm: #F0EDE8;
+  --color-gray-mid: #8C8880;
+  --color-charcoal: #1A1A1A;
+  --color-white: #FFFFFF;
+  --font-display: sans-serif;
+  --font-body: sans-serif;
+  --font-ui: sans-serif;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-gray-mid);
+  font-family: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-ui {
+    font-family: var(--font-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 }

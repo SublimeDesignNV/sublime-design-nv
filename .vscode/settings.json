@@ -1,0 +1,16 @@
+{
+  "window.title": "Sublime Design NV",
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#CC2027",
+    "titleBar.activeForeground": "#FFFFFF",
+    "activityBar.background": "#A01820",
+    "statusBar.background": "#CC2027",
+    "statusBar.foreground": "#FFFFFF",
+    "editor.background": "#120A0A",
+    "sideBar.background": "#160C0C",
+    "panel.background": "#120A0A",
+    "editorGroupHeader.tabsBackground": "#120A0A",
+    "tab.activeBackground": "#1A0E0E",
+    "tab.inactiveBackground": "#120A0A"
+  }
+}

@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssetKind {
+  IMAGE
+  VIDEO
+}
+
+model ServiceType {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  title     String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  AssetTags AssetTag[]
+}
+
+model Asset {
+  id        String    @id @default(cuid())
+  kind      AssetKind
+  publicId  String    @unique
+  secureUrl String
+  width     Int?
+  height    Int?
+  duration  Float?
+  format    String?
+  bytes     Int?
+  alt       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  published Boolean   @default(false)
+  tags      AssetTag[]
+}
+
+model AssetTag {
+  assetId       String
+  serviceTypeId String
+  asset         Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, serviceTypeId])
+}
