@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Cloudinary Gallery
+
+The `/gallery` page pulls images from Cloudinary folders using the Admin API on the server.
+
+Folder convention:
+- `sublime/gallery/floating-shelves`
+- `sublime/gallery/pantry`
+- `sublime/gallery/built-ins`
+- `sublime/gallery/custom-cabinetry`
+- `sublime/gallery/mantels`
+
+To add a new gallery section:
+1. Create and upload images to the Cloudinary folder.
+2. Add a new entry in `src/lib/gallery.config.ts` with `title`, `slug`, and `folder`.
+3. Refresh `/gallery`.
+
+Security reminder:
+- Never expose `CLOUDINARY_API_SECRET` to the client.
+- Keep Cloudinary Admin API calls server-side only (see `src/lib/cloudinary.server.ts`).
