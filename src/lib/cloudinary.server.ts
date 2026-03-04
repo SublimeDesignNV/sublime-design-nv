@@ -34,22 +34,32 @@ export async function listAssetsByFolder(
   folder: string,
   maxResults = 60,
 ): Promise<CloudinaryAsset[]> {
-  // Cloudinary "folder" in Admin API is the prefix for public_id
-  const res = await cloudinary.search
-    .expression(`folder:${folder}`)
-    .sort_by("created_at", "desc")
-    .max_results(maxResults)
-    .execute();
+  try {
+    // Cloudinary "folder" in Admin API is the prefix for public_id
+    const res = await cloudinary.search
+      .expression(`folder:${folder}`)
+      .sort_by("created_at", "desc")
+      .max_results(maxResults)
+      .execute();
 
-  const resources = (res?.resources ?? []) as CloudinarySearchResource[];
-  return resources.map((r) => ({
-    public_id: r.public_id,
-    secure_url: r.secure_url,
-    width: r.width,
-    height: r.height,
-    format: r.format,
-    created_at: r.created_at,
-  }));
+    const resources = (res?.resources ?? []) as CloudinarySearchResource[];
+    return resources.map((r) => ({
+      public_id: r.public_id,
+      secure_url: r.secure_url,
+      width: r.width,
+      height: r.height,
+      format: r.format,
+      created_at: r.created_at,
+    }));
+  } catch (error) {
+    const details =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "http_code" in error
+          ? `http_code=${String((error as { http_code?: number }).http_code)}`
+          : "unknown error";
+    throw new Error(`Cloudinary folder query failed for "${folder}": ${details}`);
+  }
 }
 
 export async function listAssetsByFolders(folders: string[], maxPerFolder = 60) {
