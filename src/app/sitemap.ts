@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { listProjects } from "@/lib/cloudinary.server";
+import { SERVICES } from "@/lib/services.config";
+import { slugify } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -16,7 +18,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/`, lastModified: now },
     { url: `${siteUrl}/gallery`, lastModified: now },
     { url: `${siteUrl}/projects`, lastModified: now },
+    { url: `${siteUrl}/services`, lastModified: now },
   ];
+
+  const serviceRoutes: MetadataRoute.Sitemap = SERVICES.map((service) => ({
+    url: `${siteUrl}/services/${service}`,
+    lastModified: now,
+  }));
 
   const projectRoutes: MetadataRoute.Sitemap = projects.map((project) => ({
     url: `${siteUrl}/projects/${project.slug}`,
@@ -25,5 +33,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : now,
   }));
 
-  return [...staticRoutes, ...projectRoutes];
+  const locationRoutes: MetadataRoute.Sitemap = Array.from(
+    new Set(
+      projects
+        .filter((project) => project.city && project.service)
+        .map((project) => `/${slugify(project.city as string)}-${project.service as string}`),
+    ),
+  ).map((path) => ({
+    url: `${siteUrl}${path}`,
+    lastModified: now,
+  }));
+
+  return [...staticRoutes, ...serviceRoutes, ...projectRoutes, ...locationRoutes];
 }

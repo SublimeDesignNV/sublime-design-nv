@@ -4,6 +4,12 @@ import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { getProjectBySlug, getProjectSlugDebugInfo } from "@/lib/cloudinary.server";
 import { SERVICES } from "@/lib/constants";
+import ProjectSchema from "@/components/seo/ProjectSchema";
+import {
+  buildProjectImageAlt,
+  buildProjectMetadataDescription,
+  buildProjectMetadataTitle,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -55,8 +61,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const first = project.images[0];
-  const title = `${project.name} | Sublime Design NV`;
-  const description = project.caption || getFallbackDescription(project);
+  const title = buildProjectMetadataTitle(project);
+  const description = project.caption || buildProjectMetadataDescription(project);
 
   return {
     title,
@@ -138,25 +144,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
   }
 
   const description = project.caption || getFallbackDescription(project);
-  const imageUrls = project.images.map((image) => image.secure_url);
   const serviceLabel = getServiceLabel(project.service);
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    name: project.name,
-    description,
-    image: imageUrls,
-    creator: {
-      "@type": "Organization",
-      name: "Sublime Design NV",
-    },
-    brand: {
-      "@type": "Brand",
-      name: "Sublime Design NV",
-    },
-    areaServed: "NV",
-  };
 
   return (
     <main style={{ padding: 40 }}>
@@ -188,10 +176,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
         </div>
       ) : null}
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <ProjectSchema project={project} />
 
       <h1 style={{ margin: "0 0 8px" }}>{project.name}</h1>
       <p style={{ margin: "0 0 14px", color: "#555" }}>{description}</p>
@@ -219,7 +204,7 @@ export default async function ProjectDetailPage({ params, searchParams }: Props)
         }}
       >
         {project.images.map((image) => {
-          const fallbackAlt = `${project.name} - ${project.service || "custom"} - Sublime Design NV`;
+          const fallbackAlt = buildProjectImageAlt(project);
 
           return (
             <Link
