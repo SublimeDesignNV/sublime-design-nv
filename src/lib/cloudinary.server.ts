@@ -40,6 +40,7 @@ export type CloudinaryAsset = {
   format?: string;
   created_at?: string;
   context?: ProjectContext;
+  tags?: string[];
 };
 
 export type ProjectGallery = {
@@ -61,6 +62,7 @@ type CloudinarySearchResource = {
   height?: number;
   format?: string;
   created_at?: string;
+  tags?: string[];
   context?: {
     custom?: ProjectContext;
   };
@@ -83,6 +85,7 @@ function mapResource(resource: CloudinarySearchResource): CloudinaryAsset {
     format: resource.format,
     created_at: resource.created_at,
     context: resource.context?.custom,
+    tags: resource.tags ?? [],
   };
 }
 
@@ -122,6 +125,14 @@ export async function listAssetsByFolder(
   maxResults = 60,
 ): Promise<CloudinaryAsset[]> {
   const resources = await searchByExpression(`folder:${folder}`, maxResults);
+  return resources.map(mapResource);
+}
+
+export async function listAssetsByPublicIdPrefix(
+  folderPrefix: string,
+  maxResults = 200,
+): Promise<CloudinaryAsset[]> {
+  const resources = await searchByExpression(`public_id:${folderPrefix}/*`, maxResults);
   return resources.map(mapResource);
 }
 
@@ -216,4 +227,61 @@ export async function getProjectBySlug(slug: string, maxResults = 200) {
   };
 
   return project;
+}
+
+function normalizeContextForCloudinary(context: Record<string, string>) {
+  const pairs = Object.entries(context)
+    .map(([key, value]) => [key.trim(), value.trim()] as const)
+    .filter(([key, value]) => key.length > 0 && value.length > 0)
+    .map(([key, value]) => `${key}=${value.replace(/[|=]/g, " ")}`);
+
+  return pairs.join("|");
+}
+
+export async function updateAssetContext(publicId: string, context: Record<string, string>) {
+  const contextString = normalizeContextForCloudinary(context);
+  if (!contextString) return;
+
+  try {
+    await cloudinary.api.update(publicId, {
+      resource_type: "image",
+      type: "upload",
+      context: contextString,
+    });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "unknown error";
+    throw new Error(`Failed to update context for "${publicId}": ${details}`);
+  }
+}
+
+export async function addAssetTags(publicId: string, tags: string[]) {
+  const cleanTags = Array.from(
+    new Set(
+      tags
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .map((tag) => tag.replace(/,/g, "-")),
+    ),
+  );
+
+  if (!cleanTags.length) return;
+
+  try {
+    const resource = (await cloudinary.api.resource(publicId, {
+      resource_type: "image",
+      type: "upload",
+      tags: true,
+    })) as { tags?: string[] };
+
+    const mergedTags = Array.from(new Set([...(resource.tags ?? []), ...cleanTags]));
+
+    await cloudinary.api.update(publicId, {
+      resource_type: "image",
+      type: "upload",
+      tags: mergedTags,
+    });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "unknown error";
+    throw new Error(`Failed to add tags for "${publicId}": ${details}`);
+  }
 }
