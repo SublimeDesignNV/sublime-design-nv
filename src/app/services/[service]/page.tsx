@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
-import { listProjects } from "@/lib/cloudinary.server";
-import { buildProjectImageAlt, titleFromSlug } from "@/lib/seo";
+import { listProjectsIndex } from "@/lib/cloudinary.server";
+import { MATERIALS, ROOMS } from "@/lib/facets.config";
+import { SERVICES } from "@/lib/services.config";
+import {
+  buildProjectImageAlt,
+  buildFacetCanonical,
+  titleCaseFromSlug,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +22,13 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const service = params.service;
-  const serviceLabel = titleFromSlug(service);
+  const serviceLabel = titleCaseFromSlug(service);
 
   return {
     title: `${serviceLabel} Projects | Sublime Design NV`,
     description: `Browse custom ${serviceLabel.toLowerCase()} projects completed by Sublime Design NV in Nevada.`,
     alternates: {
-      canonical: `/services/${service}`,
+      canonical: buildFacetCanonical(`/services/${service}`),
     },
   };
 }
@@ -29,8 +36,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ServiceDetailPage({ params }: Props) {
   const service = params.service;
 
-  const serviceLabel = titleFromSlug(service);
-  const projects = (await listProjects(1000)).filter((project) => project.service === service);
+  if (!SERVICES.includes(service as (typeof SERVICES)[number])) {
+    notFound();
+  }
+
+  const serviceLabel = titleCaseFromSlug(service);
+  const projects = (await listProjectsIndex(500)).filter((project) => project.serviceSlug === service);
+
+  if (!projects.length) {
+    notFound();
+  }
+
+  const materialCounts = MATERIALS.map((material) => ({
+    ...material,
+    count: projects.filter((project) => project.materialSlug === material.slug).length,
+  })).filter((item) => item.count > 0);
+
+  const roomCounts = ROOMS.map((room) => ({
+    ...room,
+    count: projects.filter((project) => project.roomSlug === room.slug).length,
+  })).filter((item) => item.count > 0);
 
   return (
     <main style={{ padding: 40 }}>
@@ -38,51 +63,87 @@ export default async function ServiceDetailPage({ params }: Props) {
       <h1>{serviceLabel}</h1>
       <p style={{ color: "#555" }}>Projects tagged as {serviceLabel.toLowerCase()}.</p>
 
-      {projects.length === 0 ? (
-        <p style={{ marginTop: 16 }}>No projects found yet.</p>
-      ) : (
-        <div
-          style={{
-            marginTop: 18,
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {projects.map((project) => {
-            const cover = project.images[0];
-            if (!cover) return null;
-
-            return (
-              <article
-                key={project.slug}
-                style={{ border: "1px solid #ddd", borderRadius: 10, overflow: "hidden" }}
+      {materialCounts.length > 0 ? (
+        <section style={{ marginTop: 18 }}>
+          <h2 style={{ marginBottom: 8 }}>Browse by Material</h2>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {materialCounts.map((item) => (
+              <Link
+                key={item.slug}
+                href={`/services/${service}/material/${item.slug}`}
+                style={{ border: "1px solid #ddd", borderRadius: 999, padding: "6px 10px" }}
               >
-                <Link href={`/projects/${project.slug}`} style={{ color: "inherit", textDecoration: "none" }}>
-                  <CloudinaryImage
-                    src={cover.public_id}
-                    alt={cover.context?.alt || buildProjectImageAlt(project)}
-                    width={1200}
-                    height={800}
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    style={{ width: "100%", height: 220, objectFit: "cover" }}
-                  />
+                {item.label} ({item.count})
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {roomCounts.length > 0 ? (
+        <section style={{ marginTop: 14 }}>
+          <h2 style={{ marginBottom: 8 }}>Browse by Room</h2>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {roomCounts.map((item) => (
+              <Link
+                key={item.slug}
+                href={`/services/${service}/room/${item.slug}`}
+                style={{ border: "1px solid #ddd", borderRadius: 999, padding: "6px 10px" }}
+              >
+                {item.label} ({item.count})
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div
+        style={{
+          marginTop: 18,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 14,
+        }}
+      >
+        {projects.map((project) => (
+          <article
+            key={project.slug}
+            style={{ border: "1px solid #ddd", borderRadius: 10, overflow: "hidden" }}
+          >
+            {project.heroPublicId ? (
+              <Link href={`/projects/${project.slug}`} style={{ color: "inherit", textDecoration: "none" }}>
+                <CloudinaryImage
+                  src={project.heroPublicId}
+                  alt={
+                    project.heroAlt ||
+                    buildProjectImageAlt({
+                      service: project.serviceSlug,
+                      city: project.cityLabel,
+                      state: project.state,
+                      room: project.roomLabel,
+                      material: project.materialLabel,
+                    })
+                  }
+                  width={1200}
+                  height={800}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  style={{ width: "100%", height: 220, objectFit: "cover" }}
+                />
+              </Link>
+            ) : null}
+            <div style={{ padding: 12 }}>
+              <h2 style={{ margin: "0 0 6px", fontSize: 18 }}>
+                <Link href={`/projects/${project.slug}`} style={{ color: "inherit" }}>
+                  {project.name}
                 </Link>
-                <div style={{ padding: 12 }}>
-                  <h2 style={{ margin: "0 0 6px", fontSize: 18 }}>
-                    <Link href={`/projects/${project.slug}`} style={{ color: "inherit" }}>
-                      {project.name}
-                    </Link>
-                  </h2>
-                  <p style={{ margin: 0, color: "#666", fontSize: 13 }}>
-                    {[project.city, project.state, project.year].filter(Boolean).join(" • ")}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+              </h2>
+              <p style={{ margin: 0, color: "#666", fontSize: 13 }}>
+                {[project.cityLabel, project.state, project.year].filter(Boolean).join(" • ")}
+              </p>
+            </div>
+          </article>
+        ))}
+      </div>
     </main>
   );
 }

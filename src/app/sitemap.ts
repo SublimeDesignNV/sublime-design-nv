@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next";
-import { listProjects } from "@/lib/cloudinary.server";
+import { listProjects, listProjectsIndex } from "@/lib/cloudinary.server";
 import { SERVICES } from "@/lib/services.config";
 import { slugify } from "@/lib/seo";
+import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
 
 export const revalidate = 3600;
 
@@ -13,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
   const projects = await listProjects(1000).catch(() => []);
+  const projectsIndex = await listProjectsIndex(500).catch(() => []);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/`, lastModified: now },
@@ -44,5 +46,80 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: now,
   }));
 
-  return [...staticRoutes, ...serviceRoutes, ...projectRoutes, ...locationRoutes];
+  const serviceMaterialFacetRoutes: MetadataRoute.Sitemap = [];
+  const serviceRoomFacetRoutes: MetadataRoute.Sitemap = [];
+  const cityServiceMaterialFacetRoutes: MetadataRoute.Sitemap = [];
+  const cityServiceRoomFacetRoutes: MetadataRoute.Sitemap = [];
+
+  for (const service of SERVICES) {
+    for (const material of MATERIALS) {
+      const match = projectsIndex.some(
+        (project) =>
+          project.serviceSlug === service && project.materialSlug === material.slug,
+      );
+      if (match) {
+        serviceMaterialFacetRoutes.push({
+          url: `${siteUrl}/services/${service}/material/${material.slug}`,
+          lastModified: now,
+        });
+      }
+    }
+
+    for (const room of ROOMS) {
+      const match = projectsIndex.some(
+        (project) => project.serviceSlug === service && project.roomSlug === room.slug,
+      );
+      if (match) {
+        serviceRoomFacetRoutes.push({
+          url: `${siteUrl}/services/${service}/room/${room.slug}`,
+          lastModified: now,
+        });
+      }
+    }
+  }
+
+  for (const city of CITIES) {
+    for (const service of SERVICES) {
+      for (const material of MATERIALS) {
+        const match = projectsIndex.some(
+          (project) =>
+            project.citySlug === city.slug &&
+            project.serviceSlug === service &&
+            project.materialSlug === material.slug,
+        );
+        if (match) {
+          cityServiceMaterialFacetRoutes.push({
+            url: `${siteUrl}/${city.slug}-${service}/material/${material.slug}`,
+            lastModified: now,
+          });
+        }
+      }
+
+      for (const room of ROOMS) {
+        const match = projectsIndex.some(
+          (project) =>
+            project.citySlug === city.slug &&
+            project.serviceSlug === service &&
+            project.roomSlug === room.slug,
+        );
+        if (match) {
+          cityServiceRoomFacetRoutes.push({
+            url: `${siteUrl}/${city.slug}-${service}/room/${room.slug}`,
+            lastModified: now,
+          });
+        }
+      }
+    }
+  }
+
+  return [
+    ...staticRoutes,
+    ...serviceRoutes,
+    ...projectRoutes,
+    ...locationRoutes,
+    ...serviceMaterialFacetRoutes,
+    ...serviceRoomFacetRoutes,
+    ...cityServiceMaterialFacetRoutes,
+    ...cityServiceRoomFacetRoutes,
+  ];
 }

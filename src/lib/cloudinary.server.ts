@@ -1,5 +1,8 @@
 import "server-only";
 import { v2 as cloudinary } from "cloudinary";
+import { SERVICES } from "@/lib/services.config";
+import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
+import { slugify, titleCaseFromSlug } from "@/lib/seo";
 
 function required(name: string, value: string | undefined) {
   if (!value) throw new Error(`Missing env var: ${name}`);
@@ -66,6 +69,26 @@ export type ProjectSlugDebugInfo = {
   assetsCount: number;
   matchedCount: number;
   firstPublicId: string | null;
+};
+
+export type ProjectIndexItem = {
+  slug: string;
+  name: string;
+  citySlug?: string;
+  cityLabel?: string;
+  state?: string;
+  serviceSlug?: string;
+  serviceLabel?: string;
+  materialSlug?: string;
+  materialLabel?: string;
+  roomSlug?: string;
+  roomLabel?: string;
+  style?: string;
+  year?: string;
+  featured?: boolean;
+  heroPublicId?: string;
+  heroAlt?: string;
+  updatedAt?: string;
 };
 
 type ProjectFilterValue = string | undefined;
@@ -227,6 +250,23 @@ function matchesProjectSlug(asset: CloudinaryAsset, slug: string) {
   return getSlugFromPublicId(asset.public_id) === slug;
 }
 
+function toCanonicalSlug(
+  value: string | undefined,
+  options: ReadonlyArray<{ slug: string; label: string }>,
+) {
+  if (!value) return undefined;
+  const normalized = slugify(value);
+  return options.some((option) => option.slug === normalized) ? normalized : undefined;
+}
+
+function toCanonicalLabel(
+  slug: string | undefined,
+  options: ReadonlyArray<{ slug: string; label: string }>,
+) {
+  if (!slug) return undefined;
+  return options.find((option) => option.slug === slug)?.label;
+}
+
 export async function getProjectSlugDebugInfo(
   slug: string,
   maxResults = 200,
@@ -295,6 +335,63 @@ export async function listProjects(maxResults = 500): Promise<ProjectGallery[]> 
   });
 
   return projects;
+}
+
+export async function listProjectsIndex(maxProjects = 200): Promise<ProjectIndexItem[]> {
+  const slugs = await listProjectSlugs(PROJECTS_ROOT_FOLDER, Math.min(maxProjects * 3, 500));
+  const selectedSlugs = slugs.slice(0, maxProjects);
+
+  const entries = await Promise.all(
+    selectedSlugs.map(async (slug) => {
+      const assets = await listAssetsByProjectSlug(slug, 120);
+      const matching = assets.filter((asset) => matchesProjectSlug(asset, slug));
+      if (!matching.length) return null;
+
+      matching.sort((a, b) => {
+        const aTime = a.created_at ? Date.parse(a.created_at) : 0;
+        const bTime = b.created_at ? Date.parse(b.created_at) : 0;
+        return bTime - aTime;
+      });
+
+      const first = matching[0];
+      const serviceSlug = first.context?.service
+        ? slugify(first.context.service)
+        : undefined;
+      const citySlug = toCanonicalSlug(first.context?.city, CITIES);
+      const materialSlug = toCanonicalSlug(first.context?.material, MATERIALS);
+      const roomSlug = toCanonicalSlug(first.context?.room, ROOMS);
+
+      const item: ProjectIndexItem = {
+        slug,
+        name: normalizeProjectName(slug, first),
+        citySlug,
+        cityLabel: citySlug ? toCanonicalLabel(citySlug, CITIES) : first.context?.city,
+        state: first.context?.state || "NV",
+        serviceSlug,
+        serviceLabel: serviceSlug
+          ? SERVICES.includes(serviceSlug as (typeof SERVICES)[number])
+            ? titleCaseFromSlug(serviceSlug)
+            : titleCaseFromSlug(serviceSlug)
+          : first.context?.service,
+        materialSlug,
+        materialLabel: materialSlug
+          ? toCanonicalLabel(materialSlug, MATERIALS)
+          : first.context?.material,
+        roomSlug,
+        roomLabel: roomSlug ? toCanonicalLabel(roomSlug, ROOMS) : first.context?.room,
+        style: first.context?.style,
+        year: first.context?.year,
+        featured: isFeatured(first.context?.featured),
+        heroPublicId: first.public_id,
+        heroAlt: first.context?.alt,
+        updatedAt: first.created_at,
+      };
+
+      return item;
+    }),
+  );
+
+  return entries.filter((entry): entry is ProjectIndexItem => Boolean(entry));
 }
 
 export async function getProjectBySlug(slug: string, maxResults = 200) {
