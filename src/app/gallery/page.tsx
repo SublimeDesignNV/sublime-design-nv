@@ -24,6 +24,7 @@ export default async function GalleryPage() {
           {projects.map((project) => {
             const cover = project.images[0];
             if (!cover) return null;
+            const fallbackAlt = `${project.name} - ${project.service || "custom"} - Sublime Design NV`;
 
             return (
               <Link
@@ -40,7 +41,7 @@ export default async function GalleryPage() {
               >
                 <CloudinaryImage
                   src={cover.public_id}
-                  alt={cover.context?.alt || `${project.name} cover image`}
+                  alt={cover.context?.alt || fallbackAlt}
                   width={1200}
                   height={800}
                   sizes="(max-width: 768px) 100vw, 33vw"
