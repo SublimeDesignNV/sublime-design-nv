@@ -1,0 +1,5 @@
+# Email Env Keys
+
+- RESEND_API_KEY
+- LEADS_FROM_EMAIL
+- LEADS_CC_EMAIL
