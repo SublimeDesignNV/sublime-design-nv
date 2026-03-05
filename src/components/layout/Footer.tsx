@@ -33,7 +33,7 @@ export default function Footer() {
             Ready to transform your space?
           </p>
           <Link
-            href="/get-a-quote"
+            href="/quote"
             className="font-ui inline-flex w-fit rounded-sm bg-white px-4 py-2 text-sm font-semibold text-red transition-opacity hover:opacity-90"
           >
             GET A FREE QUOTE

@@ -129,7 +129,7 @@ export default function Navbar() {
             {SITE.phone}
           </a>
           <Link
-            href="/get-a-quote"
+            href="/quote"
             className="font-ui rounded-sm bg-[#CC2027] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#A01820]"
           >
             GET A FREE QUOTE
@@ -200,7 +200,7 @@ export default function Navbar() {
                 {SITE.phone}
               </a>
               <Link
-                href="/get-a-quote"
+                href="/quote"
                 className="font-ui inline-flex w-fit rounded-sm bg-[#CC2027] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#A01820]"
                 onClick={closeMenus}
               >

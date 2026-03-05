@@ -1,9 +1,13 @@
 import Link from "next/link";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import HeroCarousel from "@/components/home/HeroCarousel";
+import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
+import HeroProject from "@/components/home/HeroProject";
+import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
+import TrustSignals from "@/components/home/TrustSignals";
 import { listProjectsIndex } from "@/lib/cloudinary.server";
 import { SITE } from "@/lib/constants";
+import { getHeroAsset } from "@/lib/portfolio.server";
 import { buildProjectImageAlt } from "@/lib/seo";
 
 const PROCESS_STEPS = [
@@ -21,17 +25,14 @@ const PROCESS_STEPS = [
   },
 ] as const;
 
-const TRUST_ITEMS = [
-  "Free Estimates",
-  "14+ Years Experience",
-  "Las Vegas Valley Service",
-  "Clean, Professional Installs",
-] as const;
-
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const allProjects = await listProjectsIndex(120).catch(() => []);
+  const [allProjects, heroAsset] = await Promise.all([
+    listProjectsIndex(120).catch(() => []),
+    getHeroAsset(),
+  ]);
+
   const featuredProjects = allProjects.filter((project) => project.featured);
 
   const recentProjects = [...allProjects].sort((a, b) => {
@@ -41,20 +42,12 @@ export default async function HomePage() {
   });
 
   const projectCards = (featuredProjects.length ? featuredProjects : recentProjects).slice(0, 3);
+  const storyProjects = (featuredProjects.length ? featuredProjects : recentProjects).slice(0, 3);
 
   return (
     <main className="bg-white">
-      <HeroCarousel />
-
-      <section className="bg-navy py-5">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-2 px-4 sm:grid-cols-2 md:px-8 lg:grid-cols-4">
-          {TRUST_ITEMS.map((item) => (
-            <p key={item} className="font-ui text-center text-xs uppercase tracking-[0.18em] text-white/85">
-              {item}
-            </p>
-          ))}
-        </div>
-      </section>
+      <HeroProject heroAsset={heroAsset} />
+      <TrustSignals />
 
       <section className="bg-cream py-20">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
@@ -64,7 +57,6 @@ export default async function HomePage() {
             We build and install custom finish carpentry across Las Vegas, Henderson, Summerlin,
             and the surrounding valley.
           </p>
-
           <ServiceCards />
         </div>
       </section>
@@ -73,14 +65,14 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-ui text-sm uppercase tracking-widest text-red">Portfolio</p>
-              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Featured Work</h2>
+              <p className="font-ui text-sm uppercase tracking-widest text-red">Featured Work</p>
+              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Recent Projects</h2>
             </div>
             <Link
               href="/projects"
               className="font-ui text-sm font-semibold text-navy transition-colors hover:text-red"
             >
-              See All Projects →
+              View All Projects →
             </Link>
           </div>
 
@@ -122,7 +114,6 @@ export default async function HomePage() {
                       />
                     </Link>
                   ) : null}
-
                   <div className="p-5">
                     <h3 className="text-2xl text-charcoal">
                       <Link href={`/projects/${project.slug}`} className="hover:text-red">
@@ -142,11 +133,13 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <ProjectStories projects={storyProjects} />
+      <BeforeAfterSlider />
+
       <section className="bg-navy py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <p className="font-ui text-sm uppercase tracking-widest text-red">How It Works</p>
           <h2 className="mt-3 text-4xl md:text-5xl">Simple Process. Clean Results.</h2>
-
           <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
             {PROCESS_STEPS.map((step, index) => (
               <article key={step.title} className="rounded-xl border border-white/15 bg-white/5 p-6">
@@ -163,12 +156,11 @@ export default async function HomePage() {
         <div className="mx-auto max-w-4xl px-4 text-center md:px-8">
           <h2 className="text-4xl md:text-5xl">Ready to transform your space?</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/90">
-            Get a detailed quote for your project in Las Vegas Valley. Clear scope, real timeline,
-            and no guesswork.
+            Tell us about your project and we will send a detailed quote with timeline and scope.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/get-a-quote"
+              href="/quote"
               className="font-ui rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red transition-colors hover:opacity-90"
             >
               Get a Free Quote

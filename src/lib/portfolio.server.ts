@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { listProjectAssets } from "@/lib/cloudinary.server";
 import type { PortfolioTag, PublishedAsset } from "@/lib/portfolio.types";
 
 function mapPublishedAsset(asset: {
@@ -100,4 +101,40 @@ export async function getPublishedAssetsByServiceSlug(
   } catch {
     return [];
   }
+}
+
+export type HeroAsset = {
+  secureUrl: string;
+  alt: string;
+  publicId: string;
+};
+
+function assetHasTag(assetTags: string[] | undefined, tag: string) {
+  if (!assetTags?.length) return false;
+  return assetTags.some((assetTag) => assetTag.toLowerCase() === tag.toLowerCase());
+}
+
+function assetIsFeatured(asset: {
+  tags?: string[];
+  context?: { featured?: string };
+}) {
+  if (assetHasTag(asset.tags, "featured")) return true;
+  return asset.context?.featured?.toLowerCase() === "true";
+}
+
+export async function getHeroAsset(): Promise<HeroAsset | null> {
+  const assets = await listProjectAssets(300).catch(() => []);
+  if (!assets.length) return null;
+
+  const heroAsset = assets.find((asset) => assetHasTag(asset.tags, "hero"));
+  const featuredAsset = assets.find((asset) => assetIsFeatured(asset));
+  const selected = heroAsset ?? featuredAsset ?? assets[0];
+
+  if (!selected?.secure_url) return null;
+
+  return {
+    secureUrl: selected.secure_url,
+    alt: selected.context?.alt || "Custom finish carpentry project in Las Vegas Valley",
+    publicId: selected.public_id,
+  };
 }

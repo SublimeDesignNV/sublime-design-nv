@@ -55,7 +55,7 @@ const SERVICE_CARDS: ServiceCard[] = [
     slug: "pantry-pullouts",
     title: "Pantry Pullouts",
     description: "Space-saving pullouts and utility storage.",
-    href: "/services/pantry",
+    href: "/services/pantry-pullouts",
     imageSrc: "https://images.unsplash.com/photo-1556910602-38f53e68e15d?auto=format&fit=crop&w=1400&q=80",
     imageAlt: "Pantry pullout storage and shelving system",
   },

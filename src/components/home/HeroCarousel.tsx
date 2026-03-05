@@ -81,7 +81,7 @@ export default function HeroCarousel() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/get-a-quote"
+              href="/quote"
               className="font-ui rounded-sm bg-red px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-dark"
             >
               Get a Free Quote
