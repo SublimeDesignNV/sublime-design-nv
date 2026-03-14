@@ -1,7 +1,9 @@
 import "server-only";
 
 import { SERVICE_LIST, ACTIVE_SERVICES } from "@/content/services";
-import { FLAGSHIP_PROJECTS, FEATURED_PROJECTS, PROJECT_LIST } from "@/content/projects";
+import { FLAGSHIP_PROJECTS, FEATURED_PROJECTS, PROJECT_LIST, type ProjectDef } from "@/content/projects";
+import { getRelatedReviews } from "@/content/reviews";
+import { findTestimonial } from "@/content/testimonials";
 import { listAssetsByServiceTag } from "@/lib/cloudinary.server";
 import {
   getContentCompletion,
@@ -10,6 +12,7 @@ import {
   type ContentCoverageStatus,
 } from "@/lib/contentTargets";
 import { getRepoImageCount } from "@/lib/portfolioContent.server";
+import { getProjectCardPreviewAsset } from "@/lib/portfolio.server";
 import { getSeedImageCount } from "@/lib/seedImages.server";
 
 export type ServiceContentAuditRow = {
@@ -43,6 +46,19 @@ export type LaunchReadinessSummary = {
     hasThreeFlagshipOrFeaturedProjects: boolean;
     hasOneHeroCandidate: boolean;
   };
+};
+
+export type FlagshipProjectAuditRow = {
+  slug: string;
+  title: string;
+  serviceSlug: string;
+  location: string;
+  hasHeroImage: boolean;
+  hasReviewOrTestimonial: boolean;
+  hasLocation: boolean;
+  hasProjectSummary: boolean;
+  hasRichContent: boolean;
+  hasShareReadyMetadataInputs: boolean;
 };
 
 function isFeaturedAsset(asset: {
@@ -127,4 +143,49 @@ export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummar
       hasOneHeroCandidate: rows.some((row) => row.hasHeroCandidate),
     },
   };
+}
+
+function hasRichProjectContent(project: ProjectDef) {
+  return Boolean(project.intro && project.problem && project.approach && project.result);
+}
+
+function hasShareReadyMetadataInputs(project: ProjectDef, hasHeroImage: boolean) {
+  return Boolean(
+    project.seoTitle &&
+      project.seoDescription &&
+      (project.heroAlt || project.galleryAltPrefix || hasHeroImage),
+  );
+}
+
+export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAuditRow[]> {
+  return Promise.all(
+    FLAGSHIP_PROJECTS.map(async (project) => {
+      const preview = await getProjectCardPreviewAsset(
+        project.slug,
+        project.galleryServiceSlug ?? project.serviceSlug,
+      ).catch(() => null);
+      const review = getRelatedReviews({
+        projectSlug: project.slug,
+        serviceSlug: project.serviceSlug,
+        limit: 1,
+      })[0];
+      const testimonial = project.testimonialSlug
+        ? findTestimonial(project.testimonialSlug)
+        : undefined;
+      const hasHeroImage = Boolean(preview);
+
+      return {
+        slug: project.slug,
+        title: project.title,
+        serviceSlug: project.serviceSlug,
+        location: `${project.location.cityLabel}, ${project.location.state}`,
+        hasHeroImage,
+        hasReviewOrTestimonial: Boolean(review || testimonial),
+        hasLocation: Boolean(project.location.cityLabel && project.location.state),
+        hasProjectSummary: Boolean(project.summary),
+        hasRichContent: hasRichProjectContent(project),
+        hasShareReadyMetadataInputs: hasShareReadyMetadataInputs(project, hasHeroImage),
+      };
+    }),
+  );
 }

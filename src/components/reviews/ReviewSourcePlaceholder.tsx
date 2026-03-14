@@ -1,4 +1,4 @@
-import Link from "next/link";
+import TrackedLink from "@/components/analytics/TrackedLink";
 import type { ReviewDef } from "@/content/reviews";
 import { REVIEW_SOURCE } from "@/lib/reviews.config";
 
@@ -12,6 +12,8 @@ type ReviewSourcePlaceholderProps = {
   emptyBehavior?: "hide" | "placeholder";
   ctaHref?: string;
   ctaLabel?: string;
+  pageType?: "home" | "service" | "project";
+  eventContext?: string;
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -65,6 +67,8 @@ export default function ReviewSourcePlaceholder({
   emptyBehavior = "placeholder",
   ctaHref = "/quote",
   ctaLabel = "Start with a Quote",
+  pageType = "home",
+  eventContext = "reviews_section",
 }: ReviewSourcePlaceholderProps) {
   if (!reviews.length && emptyBehavior === "hide") {
     return null;
@@ -98,12 +102,17 @@ export default function ReviewSourcePlaceholder({
           </p>
         </div>
         {!compact ? (
-          <Link
+          <TrackedLink
             href={ctaHref}
+            eventName="proof_cta_click"
+            eventParams={{
+              page_type: pageType,
+              cta_location: eventContext,
+            }}
             className="font-ui text-sm font-semibold text-navy transition-colors hover:text-red"
           >
             {ctaLabel}
-          </Link>
+          </TrackedLink>
         ) : null}
       </div>
 

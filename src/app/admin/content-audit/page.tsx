@@ -1,7 +1,10 @@
 import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
 import AdminNav from "@/components/admin/AdminNav";
 import { isAdminSession } from "@/lib/adminAuth";
-import { getServiceContentAuditRows } from "@/lib/contentAudit.server";
+import {
+  getFlagshipProjectAuditRows,
+  getServiceContentAuditRows,
+} from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +71,7 @@ export default async function ContentAuditPage() {
   }
 
   const rows = await getServiceContentAuditRows();
+  const flagshipRows = await getFlagshipProjectAuditRows();
   const totalCloudinary = rows.reduce((sum, row) => sum + row.cloudinaryCount, 0);
   const totalSeed = rows.reduce((sum, row) => sum + row.seedCount, 0);
   const readyServices = rows.filter((row) => row.actualImageCount > 0).length;
@@ -201,6 +205,55 @@ export default async function ContentAuditPage() {
           Run <code className="rounded bg-gray-100 px-1">npm run portfolio:upload</code> to push
           repo images to Cloudinary.
         </p>
+
+        <div className="mt-10 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-xl text-charcoal">Flagship Content Readiness</h2>
+            <p className="mt-1 text-sm text-gray-mid">
+              Quick quality check for the top proof pages that should carry rankings and quote intent.
+            </p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                {[
+                  "Project",
+                  "Location",
+                  "Has Location",
+                  "Hero",
+                  "Proof",
+                  "Summary",
+                  "Rich Content",
+                  "Share Ready",
+                ].map((heading) => (
+                  <th
+                    key={heading}
+                    className="px-4 py-3 font-ui text-xs uppercase tracking-widest text-gray-mid"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {flagshipRows.map((row) => (
+                <tr key={row.slug} className="border-b border-gray-100 last:border-0">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-charcoal">{row.title}</p>
+                    <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
+                  </td>
+                  <td className="px-4 py-3 text-charcoal">{row.location}</td>
+                  <td className="px-4 py-3"><Badge ok={row.hasLocation} label={row.hasLocation ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasHeroImage} label={row.hasHeroImage ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasReviewOrTestimonial} label={row.hasReviewOrTestimonial ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasProjectSummary} label={row.hasProjectSummary ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasRichContent} label={row.hasRichContent ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasShareReadyMetadataInputs} label={row.hasShareReadyMetadataInputs ? "yes" : "no"} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   );

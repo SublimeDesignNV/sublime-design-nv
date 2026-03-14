@@ -4,7 +4,10 @@ import Link from "next/link";
 import { isAdminSession } from "@/lib/adminAuth";
 import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
-import { getLaunchReadinessSummary } from "@/lib/contentAudit.server";
+import {
+  getFlagshipProjectAuditRows,
+  getLaunchReadinessSummary,
+} from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +78,7 @@ export default async function LaunchAuditPage() {
   const hasSiteUrl = Boolean(process.env.NEXT_PUBLIC_SITE_URL);
   const hasFromEmail = Boolean(process.env.LEADS_FROM_EMAIL);
   const summary = await getLaunchReadinessSummary();
+  const flagshipRows = await getFlagshipProjectAuditRows();
   const hasCloudinaryConfigured =
     hasCloudinaryCloud &&
     hasCloudinaryPreset &&
@@ -209,6 +213,23 @@ export default async function LaunchAuditPage() {
               label="At least 1 hero candidate"
               detail={`${summary.servicesWithHeroCandidate} hero-ready services`}
             />
+          </Section>
+
+          <Section title="Flagship Content Readiness">
+            {flagshipRows.map((row) => (
+              <div key={row.slug} className="py-3">
+                <p className="text-sm font-medium text-charcoal">{row.title}</p>
+                <p className="mt-1 text-xs text-gray-mid">{row.location}</p>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-mid sm:grid-cols-3">
+                  <span>Hero: {row.hasHeroImage ? "yes" : "no"}</span>
+                  <span>Proof: {row.hasReviewOrTestimonial ? "yes" : "no"}</span>
+                  <span>Summary: {row.hasProjectSummary ? "yes" : "no"}</span>
+                  <span>Rich content: {row.hasRichContent ? "yes" : "no"}</span>
+                  <span>Share ready: {row.hasShareReadyMetadataInputs ? "yes" : "no"}</span>
+                  <span>Location: {row.hasLocation ? "yes" : "no"}</span>
+                </div>
+              </div>
+            ))}
           </Section>
 
           {/* Quick links */}

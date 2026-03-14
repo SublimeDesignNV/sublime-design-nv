@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
@@ -245,7 +246,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         ) : hasRegistryProjects ? (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {registryProjects.slice(0, 3).map((project) => (
-              <ProjectCard key={project.slug} project={project} />
+              <ProjectCard key={project.slug} project={project} pageType="service" />
             ))}
           </div>
         ) : (
@@ -338,6 +339,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             title={`${service.shortTitle} Reviews`}
             subheading={`Recent homeowner feedback on ${service.shortTitle.toLowerCase()} projects completed across Las Vegas, Henderson, and Summerlin.`}
             emptyBehavior="hide"
+            pageType="service"
           />
         </section>
       ) : null}
@@ -373,12 +375,18 @@ export default async function ServiceDetailPage({ params }: Props) {
           <p className="mt-3 max-w-2xl text-white/90">
             Send your details and we will reply with next steps, timeline, and quote options.
           </p>
-          <Link
+          <TrackedLink
             href="/quote"
+            eventName="proof_cta_click"
+            eventParams={{
+              page_type: "service",
+              service_slug: service.slug,
+              cta_location: "service_quote_cta",
+            }}
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
             Start with a Quote
-          </Link>
+          </TrackedLink>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (
               <span key={item} className="font-ui text-xs text-white/70">{item}</span>

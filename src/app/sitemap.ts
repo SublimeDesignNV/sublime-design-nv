@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { listProjects, listProjectsIndex } from "@/lib/cloudinary.server";
 import { ACTIVE_SERVICES } from "@/content/services";
 import { PROJECT_LIST } from "@/content/projects";
+import { getProjectCardPreviewAsset, getServiceCardPreviewAsset } from "@/lib/portfolio.server";
 import { slugify } from "@/lib/seo";
 import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
 
@@ -26,16 +27,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   // Canonical service routes from the content registry
-  const serviceRoutes: MetadataRoute.Sitemap = ACTIVE_SERVICES.map((service) => ({
-    url: `${siteUrl}/services/${service.slug}`,
-    lastModified: now,
-  }));
+  const serviceRoutes: MetadataRoute.Sitemap = await Promise.all(
+    ACTIVE_SERVICES.map(async (service) => {
+      const preview = await getServiceCardPreviewAsset(service.slug).catch(() => null);
+      return {
+        url: `${siteUrl}/services/${service.slug}`,
+        lastModified: now,
+        ...(preview?.secureUrl ? { images: [preview.secureUrl] } : {}),
+      };
+    }),
+  );
 
   // Canonical project routes from the content registry (case-study pages)
-  const canonicalProjectRoutes: MetadataRoute.Sitemap = PROJECT_LIST.map((project) => ({
-    url: `${siteUrl}/projects/${project.slug}`,
-    lastModified: now,
-  }));
+  const canonicalProjectRoutes: MetadataRoute.Sitemap = await Promise.all(
+    PROJECT_LIST.map(async (project) => {
+      const preview = await getProjectCardPreviewAsset(
+        project.slug,
+        project.galleryServiceSlug ?? project.serviceSlug,
+      ).catch(() => null);
+
+      return {
+        url: `${siteUrl}/projects/${project.slug}`,
+        lastModified: now,
+        ...(preview?.secureUrl ? { images: [preview.secureUrl] } : {}),
+      };
+    }),
+  );
 
   // Cloudinary-backed project routes (dynamic portfolio)
   const cloudinaryProjectRoutes: MetadataRoute.Sitemap = projects
@@ -45,6 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: project.images[0]?.created_at
         ? new Date(project.images[0].created_at)
         : now,
+      ...(project.images[0]?.secure_url ? { images: [project.images[0].secure_url] } : {}),
     }));
 
   const projectRoutes = [...canonicalProjectRoutes, ...cloudinaryProjectRoutes];

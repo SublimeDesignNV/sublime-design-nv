@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
@@ -12,7 +13,7 @@ import { getRelatedReviews } from "@/content/reviews";
 import { findService } from "@/content/services";
 import type { TestimonialDef } from "@/content/testimonials";
 import { findTestimonial, getTestimonialsByProject } from "@/content/testimonials";
-import { getProjectImages } from "@/lib/portfolio.server";
+import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
 
@@ -33,11 +34,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const service = findService(project.serviceSlug);
+  const heroAsset = await getProjectCardPreviewAsset(
+    project.slug,
+    project.galleryServiceSlug ?? project.serviceSlug,
+  ).catch(() => null);
+  const openGraphTitle = `${project.title} | ${service?.shortTitle ?? "Project"} in ${project.location.cityLabel}`;
+  const openGraphDescription = project.intro ?? project.seoDescription;
+
   return {
     title: project.seoTitle,
     description: project.seoDescription,
     alternates: {
       canonical: buildFacetCanonical(`/projects/${project.slug}`),
+    },
+    openGraph: {
+      title: openGraphTitle,
+      description: openGraphDescription,
+      url: buildFacetCanonical(`/projects/${project.slug}`),
+      images: heroAsset?.secureUrl
+        ? [
+            {
+              url: heroAsset.secureUrl,
+              alt: heroAsset.alt,
+            },
+          ]
+        : undefined,
     },
   };
 }
@@ -207,7 +229,9 @@ export default async function ProjectDetailPage({ params }: Props) {
   const serviceLabel =
     serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ");
   const projectCtaHeading = `Planning similar ${serviceLabel.toLowerCase()} in ${project.location.cityLabel}?`;
-  const projectCtaCopy = `Tell us about the space and we will reply with the next step for ${serviceLabel.toLowerCase()}, schedule, and quote guidance.`;
+  const projectCtaCopy =
+    project.ctaLine ??
+    `Tell us about the space and we will reply with the next step for ${serviceLabel.toLowerCase()}, schedule, and quote guidance.`;
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -254,7 +278,9 @@ export default async function ProjectDetailPage({ params }: Props) {
 
       {/* ── 2. Summary ───────────────────────────────────────────────── */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
-        <p className="max-w-3xl text-lg leading-8 text-charcoal/90">{project.summary}</p>
+        <p className="max-w-3xl text-lg leading-8 text-charcoal/90">
+          {project.flagship ? project.intro ?? project.summary : project.summary}
+        </p>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
           Need similar {serviceLabel.toLowerCase()} in{" "}
           {project.location.cityLabel}? Visit the{" "}
@@ -269,25 +295,54 @@ export default async function ProjectDetailPage({ params }: Props) {
         </p>
       </section>
 
-      {/* ── 3. Challenge ─────────────────────────────────────────────── */}
-      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div>
-            <p className="font-ui text-xs uppercase tracking-widest text-red">The Challenge</p>
-            <p className="mt-3 text-base leading-7 text-charcoal/80">{project.challenge}</p>
+      {/* ── 3. Case study content ───────────────────────────────────── */}
+      {project.flagship ? (
+        <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Problem</p>
+              <p className="mt-3 text-base leading-7 text-charcoal/80">
+                {project.problem ?? project.challenge}
+              </p>
+            </article>
+            <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Approach</p>
+              <p className="mt-3 text-base leading-7 text-charcoal/80">
+                {project.approach ?? project.solution}
+              </p>
+            </article>
+            <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Result</p>
+              <p className="mt-3 text-base leading-7 text-charcoal/80">
+                {project.result ?? project.summary}
+              </p>
+            </article>
           </div>
-
-          {/* ── 4. Solution ── */}
-          <div>
-            <p className="font-ui text-xs uppercase tracking-widest text-red">Our Solution</p>
-            <p className="mt-3 text-base leading-7 text-charcoal/80">{project.solution}</p>
+        </section>
+      ) : (
+        <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div>
+              <p className="font-ui text-xs uppercase tracking-widest text-red">The Challenge</p>
+              <p className="mt-3 text-base leading-7 text-charcoal/80">{project.challenge}</p>
+            </div>
+            <div>
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Our Solution</p>
+              <p className="mt-3 text-base leading-7 text-charcoal/80">{project.solution}</p>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── 5. Materials + Timeline ──────────────────────────────────── */}
+      {/* ── 4. Scope + Materials + Timeline ─────────────────────────── */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {project.clientType ? (
+            <div className="rounded-xl border border-gray-200 bg-cream p-5">
+              <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Client</p>
+              <p className="mt-2 text-base font-medium text-charcoal">{project.clientType}</p>
+            </div>
+          ) : null}
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
             <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Service</p>
             <p className="mt-2 text-base font-medium text-charcoal">
@@ -302,17 +357,36 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
             <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Timeline</p>
-            <p className="mt-2 text-base font-medium text-charcoal">{project.timeline}</p>
+            <p className="mt-2 text-base font-medium text-charcoal">
+              {project.timelineDetail ?? project.timeline}
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr]">
+          <div className="rounded-xl border border-gray-200 bg-cream p-5">
+            <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Materials</p>
+            <p className="mt-2 text-base text-charcoal">
+              {project.materialsDetail ?? project.materials}
+            </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
             <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Year</p>
             <p className="mt-2 text-base font-medium text-charcoal">{project.year}</p>
           </div>
         </div>
-        <div className="mt-4 rounded-xl border border-gray-200 bg-cream p-5">
-          <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Materials</p>
-          <p className="mt-2 text-base text-charcoal">{project.materials}</p>
-        </div>
+        {project.scopeItems?.length ? (
+          <div className="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="font-ui text-xs uppercase tracking-widest text-red">Project Scope</p>
+            <ul className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              {project.scopeItems.map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm text-charcoal">
+                  <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {/* ── 6. Gallery ───────────────────────────────────────────────── */}
@@ -334,6 +408,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             title={`Proof from ${project.location.cityLabel}`}
             subheading={`A recent homeowner review related to ${serviceLabel.toLowerCase()} work like this project.`}
             emptyBehavior="hide"
+            pageType="project"
           />
         </section>
       ) : null}
@@ -397,25 +472,32 @@ export default async function ProjectDetailPage({ params }: Props) {
                 key={related.slug}
                 project={related}
                 priorityLabel={related.flagship ? "Flagship" : undefined}
+                pageType="projects"
               />
             ))}
           </div>
         </section>
       ) : null}
 
-      {/* ── 10. Quote CTA ────────────────────────────────────────────── */}
+      {/* ── 9. Quote CTA ─────────────────────────────────────────────── */}
       <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
           <h2 className="text-3xl md:text-4xl">{projectCtaHeading}</h2>
           <p className="mt-3 max-w-2xl text-white/90">
             {projectCtaCopy}
           </p>
-          <Link
+          <TrackedLink
             href="/quote"
+            eventName="proof_cta_click"
+            eventParams={{
+              page_type: "project",
+              project_slug: project.slug,
+              cta_location: "project_quote_cta",
+            }}
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
             Start with a {serviceLabel} Quote
-          </Link>
+          </TrackedLink>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (
               <span key={item} className="font-ui text-xs text-white/70">{item}</span>

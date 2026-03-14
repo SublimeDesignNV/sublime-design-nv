@@ -1,4 +1,5 @@
 import "server-only";
+import { getProjectImageAltBySlug, getServiceImageAlt } from "@/lib/imageAlt";
 import { db } from "@/lib/db";
 import { listProjectAssets, listAssetsByServiceTag, getProjectBySlug } from "@/lib/cloudinary.server";
 import {
@@ -138,7 +139,7 @@ export async function getHeroAsset(): Promise<HeroAsset | null> {
     if (selected?.secure_url) {
       return {
         secureUrl: selected.secure_url,
-        alt: selected.context?.alt || "Custom finish carpentry project in Las Vegas Valley",
+        alt: selected.context?.alt || "Custom finish carpentry installation by Sublime Design NV in Las Vegas Valley",
         publicId: selected.public_id,
       };
     }
@@ -181,7 +182,10 @@ export async function getServiceCardPreviewAsset(
     return {
       publicId: asset.public_id,
       secureUrl: asset.secure_url,
-      alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} in Las Vegas`,
+      alt: getServiceImageAlt({
+        serviceSlug: slug,
+        explicitAlt: asset.context?.alt,
+      }),
       source: "cloudinary",
     };
   }
@@ -190,7 +194,10 @@ export async function getServiceCardPreviewAsset(
   if (seed) {
     return {
       secureUrl: seed.src,
-      alt: seed.alt,
+      alt: getServiceImageAlt({
+        serviceSlug: slug,
+        explicitAlt: seed.alt,
+      }),
       source: "seed",
     };
   }
@@ -217,7 +224,10 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
     return assets.map((asset) => ({
       publicId: asset.public_id,
       secureUrl: asset.secure_url,
-      alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} project in Las Vegas`,
+      alt: getServiceImageAlt({
+        serviceSlug: slug,
+        explicitAlt: asset.context?.alt,
+      }),
       isFeatured: assetIsFeatured(asset),
       source: "cloudinary" as const,
     }));
@@ -226,7 +236,10 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
   const seedImages = getSeedImages(slug);
   return seedImages.map((img, index) => ({
     secureUrl: img.src,
-    alt: img.alt,
+    alt: getServiceImageAlt({
+      serviceSlug: slug,
+      explicitAlt: img.alt,
+    }),
     isFeatured: index === 0,
     source: "seed" as const,
   }));
@@ -252,10 +265,16 @@ export async function getProjectImages(
   // 1. Dedicated project folder in Cloudinary
   const cloudinaryProject = await getProjectBySlug(projectSlug).catch(() => null);
   if (cloudinaryProject?.images.length) {
-    return cloudinaryProject.images.map((img) => ({
+    return cloudinaryProject.images.map((img, index) => ({
       publicId: img.public_id,
       secureUrl: img.secure_url,
-      alt: img.context?.alt ?? `Custom finish carpentry in Las Vegas Valley`,
+      alt: getProjectImageAltBySlug({
+        projectSlug,
+        serviceSlug,
+        explicitAlt: img.context?.alt,
+        index,
+        variant: index === 0 ? "hero" : "gallery",
+      }),
       source: "cloudinary" as const,
     }));
   }
@@ -263,19 +282,31 @@ export async function getProjectImages(
   // 2. Service-tagged Cloudinary assets
   const serviceAssets = await listAssetsByServiceTag(serviceSlug, 6).catch(() => []);
   if (serviceAssets.length) {
-    return serviceAssets.map((asset) => ({
+    return serviceAssets.map((asset, index) => ({
       publicId: asset.public_id,
       secureUrl: asset.secure_url,
-      alt: asset.context?.alt ?? `Custom ${serviceSlug.replace(/-/g, " ")} in Las Vegas`,
+      alt: getProjectImageAltBySlug({
+        projectSlug,
+        serviceSlug,
+        explicitAlt: asset.context?.alt,
+        index,
+        variant: index === 0 ? "hero" : "gallery",
+      }),
       source: "cloudinary" as const,
     }));
   }
 
   // 3. Seed images
   const seeds = getSeedImages(serviceSlug);
-  return seeds.map((img) => ({
+  return seeds.map((img, index) => ({
     secureUrl: img.src,
-    alt: img.alt,
+    alt: getProjectImageAltBySlug({
+      projectSlug,
+      serviceSlug,
+      explicitAlt: img.alt,
+      index,
+      variant: index === 0 ? "hero" : "gallery",
+    }),
     source: "seed" as const,
   }));
 }
@@ -311,7 +342,7 @@ export async function getHomepageFeaturedAssets(max = 6): Promise<ServicePreview
       result.push({
         publicId: asset.public_id,
         secureUrl: asset.secure_url,
-        alt: asset.context?.alt ?? "Custom finish carpentry project in Las Vegas",
+        alt: asset.context?.alt ?? "Custom finish carpentry project by Sublime Design NV in Las Vegas Valley",
         source: "cloudinary",
       });
       if (result.length >= max) break;

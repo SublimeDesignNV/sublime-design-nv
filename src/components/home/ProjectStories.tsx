@@ -33,7 +33,7 @@ export default async function ProjectStories({ projects }: ProjectStoriesProps) 
 
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {projects.slice(0, 3).map((project) => (
-            <ProjectCard key={project.slug} project={project} />
+            <ProjectCard key={project.slug} project={project} pageType="home" />
           ))}
         </div>
       </div>

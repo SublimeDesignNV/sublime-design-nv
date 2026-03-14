@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import type { ProjectDef } from "@/content/projects";
 import { findService } from "@/content/services";
@@ -9,6 +9,7 @@ import { getProjectCardPreviewAsset } from "@/lib/portfolio.server";
 type ProjectCardProps = {
   project: ProjectDef;
   priorityLabel?: string;
+  pageType?: "home" | "projects" | "service";
 };
 
 function clampStyle(lines: number) {
@@ -64,6 +65,7 @@ function ProjectPreview({
 export default async function ProjectCard({
   project,
   priorityLabel,
+  pageType = "projects",
 }: ProjectCardProps) {
   const preview = await getProjectCardPreviewAsset(
     project.slug,
@@ -77,8 +79,18 @@ export default async function ProjectCard({
   const label = priorityLabel ?? (project.flagship ? "Flagship" : undefined);
 
   return (
-    <Link
+    <TrackedLink
       href={`/projects/${project.slug}`}
+      eventName={project.flagship ? "proof_cta_click" : undefined}
+      eventParams={
+        project.flagship
+          ? {
+              page_type: pageType,
+              project_slug: project.slug,
+              cta_location: "flagship_project_card",
+            }
+          : undefined
+      }
       className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-cream">
@@ -121,6 +133,6 @@ export default async function ProjectCard({
           View Project
         </span>
       </div>
-    </Link>
+    </TrackedLink>
   );
 }

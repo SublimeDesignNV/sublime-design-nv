@@ -109,6 +109,7 @@ export default async function HomePage() {
                     key={project.slug}
                     project={project}
                     priorityLabel={index === 0 ? "Flagship" : undefined}
+                    pageType="home"
                   />
                 ))}
               </div>
@@ -146,6 +147,8 @@ export default async function HomePage() {
             subheading="A few recent homeowner reviews tied to real built-ins, floating shelves, closet systems, and cabinetry work around Las Vegas, Henderson, and Summerlin."
             ctaHref="/quote"
             ctaLabel="Start with a Quote"
+            pageType="home"
+            eventContext="reviews_quote_cta"
           />
         </div>
       </section>
