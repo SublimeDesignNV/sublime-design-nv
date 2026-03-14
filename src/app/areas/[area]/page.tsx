@@ -8,7 +8,7 @@ import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholde
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { findArea, getAreaProjects, getAreaReviews, getAreaServices } from "@/content/areas";
-import { getAreaContentAuditRowBySlug } from "@/lib/contentAudit.server";
+import { getAreaContentAuditRowBySlug, getProjectContentAuditRows } from "@/lib/contentAudit.server";
 import { getServiceCardPreviewAsset, type ServicePreviewAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical } from "@/lib/seo";
 
@@ -126,7 +126,16 @@ export default async function AreaDetailPage({ params }: Props) {
   if (!area || (area.status ?? "active") !== "active") notFound();
 
   const areaServices = getAreaServices(area.slug).slice(0, 6);
-  const areaProjects = getAreaProjects(area.slug).slice(0, 3);
+  const projectReadinessRows = await getProjectContentAuditRows();
+  const areaProjects = getAreaProjects(area.slug)
+    .sort((a, b) => {
+      const aReady = projectReadinessRows.find((row) => row.slug === a.slug)?.promotionReady ? 1 : 0;
+      const bReady = projectReadinessRows.find((row) => row.slug === b.slug)?.promotionReady ? 1 : 0;
+      if (aReady !== bReady) return bReady - aReady;
+      if (Boolean(a.flagship) !== Boolean(b.flagship)) return a.flagship ? -1 : 1;
+      return 0;
+    })
+    .slice(0, 3);
   const areaReviews = getAreaReviews(area.slug).slice(0, 3);
   const leadProject = areaProjects[0];
   const nearbyAreas = area.nearbyAreas

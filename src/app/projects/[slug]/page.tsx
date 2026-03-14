@@ -121,7 +121,9 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
             <ProjectImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
           </div>
           {first.caption ? (
-            <figcaption className="mt-3 text-sm leading-6 text-gray-mid">{first.caption}</figcaption>
+            <figcaption className="mt-3 rounded-xl border border-gray-200 bg-cream px-4 py-3 text-sm leading-6 text-charcoal/80">
+              {first.caption}
+            </figcaption>
           ) : null}
         </figure>
         <div className="flex flex-col gap-4">
@@ -133,9 +135,6 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
               >
                 <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
               </div>
-              {asset.caption ? (
-                <figcaption className="mt-2 text-sm leading-6 text-gray-mid">{asset.caption}</figcaption>
-              ) : null}
             </figure>
           ))}
         </div>
@@ -153,8 +152,10 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
           >
             <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
           </div>
-          {asset.caption ? (
-            <figcaption className="mt-2 text-sm leading-6 text-gray-mid">{asset.caption}</figcaption>
+          {i === 0 && asset.caption ? (
+            <figcaption className="mt-3 rounded-xl border border-gray-200 bg-cream px-4 py-3 text-sm leading-6 text-charcoal/80">
+              {asset.caption}
+            </figcaption>
           ) : null}
         </figure>
       ))}
@@ -257,6 +258,11 @@ export default async function ProjectDetailPage({ params }: Props) {
   const projectCtaCopy =
     project.ctaLine ??
     `Tell us about the space and we will reply with the next step for ${serviceLabel.toLowerCase()}, schedule, and quote guidance.`;
+  const proofBadgeLabel = linkedTestimonial
+    ? linkedTestimonial.sourceLabel ?? "Client Testimonial"
+    : proofReview
+      ? proofReview.sourceLabel
+      : undefined;
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -313,6 +319,42 @@ export default async function ProjectDetailPage({ params }: Props) {
         <p className="max-w-3xl text-lg leading-8 text-charcoal/90">
           {project.flagship ? project.intro ?? project.summary : project.summary}
         </p>
+        {project.flagship &&
+        (project.homeownerGoal || project.designStyle || proofBadgeLabel) ? (
+          <div className="mt-6 max-w-5xl rounded-xl border border-gray-200 bg-cream p-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
+                {serviceLabel}
+              </span>
+              <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                {project.location.cityLabel}, {project.location.state}
+              </span>
+              {proofBadgeLabel ? (
+                <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                  {proofBadgeLabel}
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+              {project.homeownerGoal ? (
+                <div>
+                  <p className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Homeowner Goal</p>
+                  <p className="mt-1 text-sm leading-6 text-charcoal/80">{project.homeownerGoal}</p>
+                </div>
+              ) : null}
+              <div>
+                <p className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Service</p>
+                <p className="mt-1 text-sm leading-6 text-charcoal/80">{serviceLabel}</p>
+              </div>
+              {project.designStyle ? (
+                <div>
+                  <p className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Design Style</p>
+                  <p className="mt-1 text-sm leading-6 text-charcoal/80">{project.designStyle}</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
           Need similar {serviceLabel.toLowerCase()} in{" "}
           {project.location.cityLabel}? Visit the{" "}

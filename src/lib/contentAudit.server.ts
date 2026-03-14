@@ -43,6 +43,9 @@ export type ServiceContentAuditRow = {
   readinessStatus: ReadinessStatus;
   promotionReady: boolean;
   shouldNoindex: boolean;
+  missingHeroImage: boolean;
+  missingGalleryDepth: boolean;
+  suggestedNextAction: string;
   notes: string[];
 };
 
@@ -115,6 +118,8 @@ export type FlagshipProjectAuditRow = {
   serviceSlug: string;
   location: string;
   imageCount: number;
+  cloudinaryImageCount: number;
+  seedImageCount: number;
   targetImageCount: number;
   galleryStatus: ContentCoverageStatus;
   hasHeroImage: boolean;
@@ -131,12 +136,29 @@ export type FlagshipProjectAuditRow = {
   hasRealWorldContent: boolean;
   hasShareReadyMetadataInputs: boolean;
   hasOgReadyMetadata: boolean;
+  missingHeroImage: boolean;
+  missingGalleryDepth: boolean;
+  suggestedNextAction: string;
 };
 
 export type PromotionReadySummary = {
   services: ServiceContentAuditRow[];
   projects: ProjectContentAuditRow[];
   areas: AreaContentAuditRow[];
+};
+
+export type PromotionReadyItem = {
+  title: string;
+  href: string;
+  readinessStatus: ReadinessStatus;
+  whyReady: string;
+  note: string;
+};
+
+export type PromotionReadyPanel = {
+  flagshipProjects: PromotionReadyItem[];
+  services: PromotionReadyItem[];
+  areas: PromotionReadyItem[];
 };
 
 function isFeaturedAsset(asset: {
@@ -161,6 +183,44 @@ function getReadinessStatus(score: number, maxScore: number): ReadinessStatus {
 
 function getProjectTargetImageCount(project: ProjectDef) {
   return project.flagship ? getFlagshipProjectTarget(project.slug) : 4;
+}
+
+function getServiceSuggestedAction({
+  hasHeroCandidate,
+  actualImageCount,
+  targetImageCount,
+  usingSeedFallback,
+}: {
+  hasHeroCandidate: boolean;
+  actualImageCount: number;
+  targetImageCount: number;
+  usingSeedFallback: boolean;
+}) {
+  if (!hasHeroCandidate) return "Upload hero image";
+  if (usingSeedFallback) return "Replace seed fallback with real project photos";
+  if (actualImageCount < targetImageCount) {
+    return `Upload ${targetImageCount - actualImageCount} more gallery images`;
+  }
+  return "Coverage looks healthy";
+}
+
+function getFlagshipSuggestedAction({
+  hasHeroImage,
+  imageCount,
+  targetImageCount,
+  usingSeedFallback,
+}: {
+  hasHeroImage: boolean;
+  imageCount: number;
+  targetImageCount: number;
+  usingSeedFallback: boolean;
+}) {
+  if (!hasHeroImage) return "Upload hero image";
+  if (usingSeedFallback) return "Replace seed fallback with real project photos";
+  if (imageCount < targetImageCount) {
+    return `Upload ${targetImageCount - imageCount} more gallery images`;
+  }
+  return "Coverage looks healthy";
 }
 
 export async function getServiceContentAuditRows(): Promise<ServiceContentAuditRow[]> {
@@ -216,6 +276,8 @@ export async function getServiceContentAuditRows(): Promise<ServiceContentAuditR
         readinessStatus === "launch-ready" &&
         !usingSeedFallback &&
         hasEnoughProofDensity;
+      const missingHeroImage = !hasHeroCandidate;
+      const missingGalleryDepth = actualImageCount < targetImageCount;
       const notes: string[] = [];
 
       if (!hasHeroCandidate) notes.push("No hero candidate");
@@ -251,6 +313,14 @@ export async function getServiceContentAuditRows(): Promise<ServiceContentAuditR
           actualImageCount <= 1 &&
           linkedProjectCount === 0 &&
           linkedReviewCount === 0,
+        missingHeroImage,
+        missingGalleryDepth,
+        suggestedNextAction: getServiceSuggestedAction({
+          hasHeroCandidate,
+          actualImageCount,
+          targetImageCount,
+          usingSeedFallback,
+        }),
         notes,
       } satisfies ServiceContentAuditRow;
     }),
@@ -468,8 +538,12 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
       const hasHeroImage = Boolean(preview);
       const targetImageCount = getFlagshipProjectTarget(project.slug);
       const imageCount = images.length;
+      const cloudinaryImageCount = images.filter((image) => image.source === "cloudinary").length;
+      const seedImageCount = images.filter((image) => image.source === "seed").length;
       const galleryStatus = getContentCoverageStatus(imageCount, targetImageCount);
       const shareReadyMetadataInputs = projectHasShareReadyMetadataInputs(project, hasHeroImage);
+      const missingHeroImage = !hasHeroImage;
+      const missingGalleryDepth = imageCount < targetImageCount;
 
       return {
         slug: project.slug,
@@ -477,6 +551,8 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         serviceSlug: project.serviceSlug,
         location: `${project.location.cityLabel}, ${project.location.state}`,
         imageCount,
+        cloudinaryImageCount,
+        seedImageCount,
         targetImageCount,
         galleryStatus,
         hasHeroImage,
@@ -493,6 +569,14 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         hasRealWorldContent: hasRealWorldProjectContent(project),
         hasShareReadyMetadataInputs: shareReadyMetadataInputs,
         hasOgReadyMetadata: Boolean(project.seoTitle && project.seoDescription && hasHeroImage),
+        missingHeroImage,
+        missingGalleryDepth,
+        suggestedNextAction: getFlagshipSuggestedAction({
+          hasHeroImage,
+          imageCount,
+          targetImageCount,
+          usingSeedFallback: images.length > 0 && images.some((image) => image.source === "seed"),
+        }),
       };
     }),
   );
@@ -509,5 +593,33 @@ export async function getPromotionReadySummary(): Promise<PromotionReadySummary>
     services: services.filter((row) => row.promotionReady),
     projects: projects.filter((row) => row.promotionReady && row.isFlagship),
     areas: areas.filter((row) => row.promotionReady),
+  };
+}
+
+export async function getPromotionReadyPanel(): Promise<PromotionReadyPanel> {
+  const summary = await getPromotionReadySummary();
+
+  return {
+    flagshipProjects: summary.projects.map((row) => ({
+      title: row.title,
+      href: `/projects/${row.slug}`,
+      readinessStatus: row.readinessStatus,
+      whyReady: "Enough real media, proof, and share-ready metadata.",
+      note: "Good for Google Business post",
+    })),
+    services: summary.services.map((row) => ({
+      title: row.title,
+      href: `/services/${row.slug}`,
+      readinessStatus: row.readinessStatus,
+      whyReady: "Service proof density is strong enough for local search traffic.",
+      note: "Ready for direct ad/test traffic",
+    })),
+    areas: summary.areas.map((row) => ({
+      title: row.name,
+      href: `/areas/${row.slug}`,
+      readinessStatus: row.readinessStatus,
+      whyReady: "Area page has local projects, proof, and supporting service coverage.",
+      note: "Ready for social share",
+    })),
   };
 }

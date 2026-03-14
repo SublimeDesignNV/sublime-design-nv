@@ -193,6 +193,11 @@ export default async function ContentAuditPage() {
                     {row.notes.length ? (
                       <p className="mt-1 font-ui text-xs text-red">{row.notes.join(" · ")}</p>
                     ) : null}
+                    {row.readinessStatus !== "launch-ready" ? (
+                      <p className="mt-1 font-ui text-xs text-gray-mid">
+                        Next: {row.suggestedNextAction}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={row.status} />
@@ -379,6 +384,8 @@ export default async function ContentAuditPage() {
                   "Project",
                   "Location",
                   "Images",
+                  "Cloud",
+                  "Seed",
                   "Target",
                   "Gallery",
                   "Source",
@@ -410,9 +417,16 @@ export default async function ContentAuditPage() {
                   <td className="px-4 py-3">
                     <p className="font-medium text-charcoal">{row.title}</p>
                     <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
+                    {row.galleryStatus !== "healthy" || row.missingHeroImage ? (
+                      <p className="mt-1 font-ui text-xs text-gray-mid">
+                        Next: {row.suggestedNextAction}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-charcoal">{row.location}</td>
                   <td className="px-4 py-3 font-mono text-charcoal">{row.imageCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.cloudinaryImageCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.seedImageCount}</td>
                   <td className="px-4 py-3 font-mono text-charcoal">{row.targetImageCount}</td>
                   <td className="px-4 py-3"><CoverageBadge status={row.galleryStatus} /></td>
                   <td className="px-4 py-3">
@@ -429,7 +443,7 @@ export default async function ContentAuditPage() {
                     />
                   </td>
                   <td className="px-4 py-3"><Badge ok={row.hasLocation} label={row.hasLocation ? "yes" : "no"} /></td>
-                  <td className="px-4 py-3"><Badge ok={row.hasHeroImage} label={row.hasHeroImage ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={!row.missingHeroImage} label={row.hasHeroImage ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.heroFromCloudinary} label={row.heroFromCloudinary ? "cloud" : "seed"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasLinkedReview} label={row.hasLinkedReview ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasReviewOrTestimonial} label={row.hasReviewOrTestimonial ? "yes" : "no"} /></td>

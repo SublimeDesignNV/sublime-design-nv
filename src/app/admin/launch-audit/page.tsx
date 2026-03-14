@@ -9,6 +9,7 @@ import {
   getFlagshipProjectAuditRows,
   getLaunchReadinessSummary,
   getProjectContentAuditRows,
+  getPromotionReadyPanel,
   getPromotionReadySummary,
   getServiceContentAuditRows,
 } from "@/lib/contentAudit.server";
@@ -87,6 +88,7 @@ export default async function LaunchAuditPage() {
   const projectRows = await getProjectContentAuditRows();
   const serviceRows = await getServiceContentAuditRows();
   const promotionReady = await getPromotionReadySummary();
+  const promotionPanel = await getPromotionReadyPanel();
   const hasCloudinaryConfigured =
     hasCloudinaryCloud &&
     hasCloudinaryPreset &&
@@ -278,6 +280,51 @@ export default async function LaunchAuditPage() {
                   ? promotionReady.areas.map((row) => row.name).join(" · ")
                   : "No area pages are fully promotion-ready yet."}
               </p>
+            </div>
+          </Section>
+
+          <Section title="Promote Now">
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Flagship project pages</p>
+              <div className="mt-3 space-y-3 text-xs text-gray-mid">
+                {promotionPanel.flagshipProjects.length ? promotionPanel.flagshipProjects.map((item) => (
+                  <div key={item.href}>
+                    <p className="text-sm font-medium text-charcoal">{item.title}</p>
+                    <p>Status: {item.readinessStatus}</p>
+                    <p>{item.whyReady}</p>
+                    <p>{item.note}</p>
+                    <p className="font-mono">{item.href}</p>
+                  </div>
+                )) : <p>No flagship project pages are ready to push yet.</p>}
+              </div>
+            </div>
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Services</p>
+              <div className="mt-3 space-y-3 text-xs text-gray-mid">
+                {promotionPanel.services.length ? promotionPanel.services.map((item) => (
+                  <div key={item.href}>
+                    <p className="text-sm font-medium text-charcoal">{item.title}</p>
+                    <p>Status: {item.readinessStatus}</p>
+                    <p>{item.whyReady}</p>
+                    <p>{item.note}</p>
+                    <p className="font-mono">{item.href}</p>
+                  </div>
+                )) : <p>No service pages are ready to push yet.</p>}
+              </div>
+            </div>
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Area pages</p>
+              <div className="mt-3 space-y-3 text-xs text-gray-mid">
+                {promotionPanel.areas.length ? promotionPanel.areas.map((item) => (
+                  <div key={item.href}>
+                    <p className="text-sm font-medium text-charcoal">{item.title}</p>
+                    <p>Status: {item.readinessStatus}</p>
+                    <p>{item.whyReady}</p>
+                    <p>{item.note}</p>
+                    <p className="font-mono">{item.href}</p>
+                  </div>
+                )) : <p>No area pages are ready to push yet.</p>}
+              </div>
             </div>
           </Section>
 
