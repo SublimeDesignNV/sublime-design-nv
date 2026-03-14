@@ -10,6 +10,10 @@ export const REVIEW_SOURCE = {
   platformLabel: "Client Reviews",
   enabled: true,
   futureProvider: "google-business-profile",
+  googleBusinessProfileUrl:
+    "https://www.google.com/search?q=Sublime+Design+NV+Las+Vegas+reviews",
+  googleBusinessPlaceId: "",
+  reviewSourceLabel: "Google Reviews",
   publicProfileLabel: "Google Business Profile",
   publicProfileUrl: "",
   readMoreCtaLabel: "Read more reviews",
@@ -22,9 +26,11 @@ export const REVIEW_SOURCE = {
 
 export const BUSINESS_PROFILE = {
   businessName: "Sublime Design NV",
-  reviewProviderLabel: REVIEW_SOURCE.publicProfileLabel,
-  reviewProfileUrl: REVIEW_SOURCE.publicProfileUrl,
-  reviewCtaLabel: REVIEW_SOURCE.readMoreCtaLabel,
+  reviewProviderLabel: REVIEW_SOURCE.reviewSourceLabel,
+  reviewProfileUrl:
+    REVIEW_SOURCE.googleBusinessProfileUrl || REVIEW_SOURCE.publicProfileUrl,
+  reviewCtaLabel: "Read more reviews on Google",
+  googleBusinessPlaceId: REVIEW_SOURCE.googleBusinessPlaceId,
 } as const;
 
 export function getExternalPublicReviewSource(): ExternalPublicReviewSource | null {

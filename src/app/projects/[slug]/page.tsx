@@ -40,11 +40,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     project.galleryServiceSlug ?? project.serviceSlug,
   ).catch(() => null);
   const openGraphTitle = `${project.title} | ${service?.shortTitle ?? "Project"} in ${project.location.cityLabel}`;
-  const openGraphDescription = project.intro ?? project.seoDescription;
+  const openGraphDescription =
+    project.intro ??
+    `${project.summary} Completed in ${project.location.cityLabel}, ${project.location.state}.`;
 
   return {
     title: project.seoTitle,
-    description: project.seoDescription,
+    description: `${project.summary} Completed in ${project.location.cityLabel}, ${project.location.state}.`,
     alternates: {
       canonical: buildFacetCanonical(`/projects/${project.slug}`),
     },

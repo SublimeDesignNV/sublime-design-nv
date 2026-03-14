@@ -82,6 +82,9 @@ export default async function ProjectsIndexPage({
           Every project is measured, shop-built, and installed to fit the exact space. Browse
           recent work from around the Las Vegas Valley.
         </p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
+          Recent custom carpentry projects across Las Vegas, Henderson, and Summerlin, with case studies that show how each space was measured, built, and installed.
+        </p>
       </section>
 
       {/* Filter bar */}

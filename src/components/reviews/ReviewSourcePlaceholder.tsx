@@ -155,6 +155,7 @@ export default function ReviewSourcePlaceholder({
               rel="noreferrer"
               className="font-ui text-sm font-semibold text-navy hover:text-red"
             >
+              <span aria-hidden="true">★ </span>
               {BUSINESS_PROFILE.reviewCtaLabel} ↗
             </a>
           ) : null}

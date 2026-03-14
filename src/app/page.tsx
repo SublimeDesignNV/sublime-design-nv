@@ -210,6 +210,14 @@ export default async function HomePage() {
               </span>
             ))}
           </div>
+          <div className="mt-8 rounded-xl border border-white/15 bg-white/5 p-5 text-left">
+            <p className="font-ui text-xs uppercase tracking-[0.18em] text-white/70">
+              Service Area
+            </p>
+            <p className="mt-2 text-sm text-white/85">
+              Serving the Las Vegas Valley including Las Vegas, Henderson, Summerlin, and surrounding communities.
+            </p>
+          </div>
         </div>
       </section>
     </main>

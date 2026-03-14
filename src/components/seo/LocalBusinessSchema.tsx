@@ -11,7 +11,8 @@ export default function LocalBusinessSchema() {
       addressRegion: "NV",
       addressCountry: "US",
     },
-    areaServed: [
+    areaServed: "Las Vegas Valley",
+    serviceArea: [
       {
         "@type": "City",
         name: "Las Vegas",
@@ -25,14 +26,14 @@ export default function LocalBusinessSchema() {
         name: "Summerlin",
       },
       {
-        "@type": "AdministrativeArea",
-        name: "Las Vegas Valley",
+        "@type": "City",
+        name: "Paradise",
+      },
+      {
+        "@type": "City",
+        name: "Spring Valley",
       },
     ],
-    serviceArea: {
-      "@type": "AdministrativeArea",
-      name: "Las Vegas Valley",
-    },
   };
 
   return (
