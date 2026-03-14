@@ -97,9 +97,14 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
 
   if (images.length === 1) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
-        <ProjectImage asset={images[0]} sizes="100vw" />
-      </div>
+      <figure>
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+          <ProjectImage asset={images[0]} sizes="100vw" />
+        </div>
+        {images[0].caption ? (
+          <figcaption className="mt-3 text-sm leading-6 text-gray-mid">{images[0].caption}</figcaption>
+        ) : null}
+      </figure>
     );
   }
 
@@ -107,18 +112,27 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
     const [first, ...rest] = images;
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ minHeight: "340px" }}>
-          <ProjectImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
-        </div>
+        <figure>
+          <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ minHeight: "340px" }}>
+            <ProjectImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
+          </div>
+          {first.caption ? (
+            <figcaption className="mt-3 text-sm leading-6 text-gray-mid">{first.caption}</figcaption>
+          ) : null}
+        </figure>
         <div className="flex flex-col gap-4">
           {rest.map((asset, i) => (
-            <div
-              key={asset.secureUrl + i}
-              className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-              style={{ minHeight: "160px" }}
-            >
-              <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
-            </div>
+            <figure key={asset.secureUrl + i}>
+              <div
+                className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+                style={{ minHeight: "160px" }}
+              >
+                <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+              </div>
+              {asset.caption ? (
+                <figcaption className="mt-2 text-sm leading-6 text-gray-mid">{asset.caption}</figcaption>
+              ) : null}
+            </figure>
           ))}
         </div>
       </div>
@@ -128,13 +142,17 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {images.map((asset, i) => (
-        <div
-          key={asset.secureUrl + i}
-          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-          style={{ height: "260px" }}
-        >
-          <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-        </div>
+        <figure key={asset.secureUrl + i}>
+          <div
+            className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+            style={{ height: "260px" }}
+          >
+            <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+          </div>
+          {asset.caption ? (
+            <figcaption className="mt-2 text-sm leading-6 text-gray-mid">{asset.caption}</figcaption>
+          ) : null}
+        </figure>
       ))}
     </div>
   );
@@ -272,9 +290,16 @@ export default async function ProjectDetailPage({ params }: Props) {
         </p>
 
         {heroImage ? (
-          <div className="mt-8 relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
-            <ProjectImage asset={heroImage} sizes="100vw" />
-          </div>
+          <figure className="mt-8">
+            <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+              <ProjectImage asset={heroImage} sizes="100vw" />
+            </div>
+            {heroImage.caption ? (
+              <figcaption className="mt-3 max-w-3xl text-sm leading-6 text-gray-mid">
+                {heroImage.caption}
+              </figcaption>
+            ) : null}
+          </figure>
         ) : null}
       </section>
 
@@ -336,6 +361,25 @@ export default async function ProjectDetailPage({ params }: Props) {
         </section>
       )}
 
+      {project.flagship && (project.beforeSummary || project.afterSummary) ? (
+        <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {project.beforeSummary ? (
+              <article className="rounded-xl border border-gray-200 bg-cream p-6">
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Before</p>
+                <p className="mt-3 text-base leading-7 text-charcoal/80">{project.beforeSummary}</p>
+              </article>
+            ) : null}
+            {project.afterSummary ? (
+              <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p className="font-ui text-xs uppercase tracking-widest text-red">After</p>
+                <p className="mt-3 text-base leading-7 text-charcoal/80">{project.afterSummary}</p>
+              </article>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {/* ── 4. Scope + Materials + Timeline ─────────────────────────── */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -364,6 +408,31 @@ export default async function ProjectDetailPage({ params }: Props) {
             </p>
           </div>
         </div>
+        {project.flagship &&
+        (project.homeownerGoal || project.spaceType || project.designStyle) ? (
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {project.homeownerGoal ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Homeowner Goal</p>
+                <p className="mt-2 text-base leading-7 text-charcoal/80">{project.homeownerGoal}</p>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {project.spaceType ? (
+                <div className="rounded-xl border border-gray-200 bg-cream p-5">
+                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Space Type</p>
+                  <p className="mt-2 text-base font-medium text-charcoal">{project.spaceType}</p>
+                </div>
+              ) : null}
+              {project.designStyle ? (
+                <div className="rounded-xl border border-gray-200 bg-cream p-5">
+                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Design Style</p>
+                  <p className="mt-2 text-base font-medium text-charcoal">{project.designStyle}</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr]">
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
             <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Materials</p>
@@ -376,6 +445,12 @@ export default async function ProjectDetailPage({ params }: Props) {
             <p className="mt-2 text-base font-medium text-charcoal">{project.year}</p>
           </div>
         </div>
+        {project.flagship && project.installationNotes ? (
+          <div className="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="font-ui text-xs uppercase tracking-widest text-red">Installation Notes</p>
+            <p className="mt-2 text-base leading-7 text-charcoal/80">{project.installationNotes}</p>
+          </div>
+        ) : null}
         {project.scopeItems?.length ? (
           <div className="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="font-ui text-xs uppercase tracking-widest text-red">Project Scope</p>

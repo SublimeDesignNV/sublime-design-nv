@@ -41,6 +41,15 @@ export type ProjectDef = {
   ctaLine?: string;
   heroAlt?: string;
   galleryAltPrefix?: string;
+  beforeSummary?: string;
+  afterSummary?: string;
+  homeownerGoal?: string;
+  spaceType?: string;
+  designStyle?: string;
+  installationNotes?: string;
+  heroCaption?: string;
+  galleryCaptions?: string[];
+  preferredGalleryPublicIds?: string[];
   relatedServices: string[];
   seoTitle: string;
   seoDescription: string;
@@ -89,6 +98,22 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Henderson built-in library wall with integrated desk, display niche, and full-height shelving",
     galleryAltPrefix:
       "Henderson built-in library wall detail showing custom shelving and desk installation",
+    beforeSummary:
+      "The office had a long blank wall and no built-in storage, which left the room relying on loose furniture and open clutter.",
+    afterSummary:
+      "The finished wall now works as library, desk, display storage, and focal point in one continuous built-in run.",
+    homeownerGoal:
+      "Create a home office wall that feels built with the room, adds real storage, and replaces mismatched furniture.",
+    spaceType: "Home office",
+    designStyle: "Transitional built-in millwork",
+    installationNotes:
+      "Shop-built sections were installed in sequence and scribed on site so the desk, display niche, and face frames read as one finished wall.",
+    heroCaption:
+      "Full-height built-in library wall with integrated desk and display niche installed in a Henderson home office.",
+    galleryCaptions: [
+      "Desk and drawer base aligned to the center section for a cleaner work zone.",
+      "Adjustable shelving laid out for books, framed pieces, and closed lower storage.",
+    ],
     fitBullets: [
       "You want wall-to-wall storage that looks built with the room.",
       "The space needs display, work surface, and concealed storage in one run.",
@@ -147,6 +172,22 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Summerlin floating shelves in walnut with concealed steel support on a living room accent wall",
     galleryAltPrefix:
       "Summerlin floating shelves detail showing walnut finish and concealed bracket installation",
+    beforeSummary:
+      "The wall had no visual anchor and the homeowner did not want bracket shelving that would read as an add-on.",
+    afterSummary:
+      "The finished shelf layout now warms up the room, adds usable display space, and looks built into the wall instead of mounted onto it.",
+    homeownerGoal:
+      "Add open shelving that feels architectural, carries real weight, and stays visually clean from across the room.",
+    spaceType: "Living room accent wall",
+    designStyle: "Warm modern walnut shelving",
+    installationNotes:
+      "Concealed support points were set into framing first, then each shelf was fitted and leveled to account for slight wall variation.",
+    heroCaption:
+      "Custom walnut floating shelves with concealed steel support installed on a Summerlin living room accent wall.",
+    galleryCaptions: [
+      "Shelf spacing was planned around the room layout so the composition reads clean from multiple angles.",
+      "Concealed bracket hardware lets the walnut shelves carry books and decor without visible support.",
+    ],
     fitBullets: [
       "You want open shelving without visible brackets or sagging lines.",
       "The wall needs a cleaner focal point without a full built-in run.",
@@ -205,6 +246,22 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Las Vegas kitchen pantry pullout system with custom full-extension shelves and organizer inserts",
     galleryAltPrefix:
       "Las Vegas pantry pullout detail showing custom shelving and full-extension storage hardware",
+    beforeSummary:
+      "Deep pantry shelves were forcing the homeowner to stack items out of sight, which made the cabinets hard to use and harder to keep organized.",
+    afterSummary:
+      "Each cabinet now pulls fully into view, giving the kitchen more usable storage without replacing the existing pantry boxes.",
+    homeownerGoal:
+      "Keep the existing kitchen but make pantry storage easier to reach, easier to organize, and more useful day to day.",
+    spaceType: "Kitchen pantry cabinetry",
+    designStyle: "Clean functional cabinet retrofit",
+    installationNotes:
+      "Every opening was measured independently so the pullouts, organizer inserts, and slide hardware fit the existing cabinet boxes cleanly.",
+    heroCaption:
+      "Custom pantry pullout retrofit with full-extension storage and organizer inserts in a Las Vegas kitchen.",
+    galleryCaptions: [
+      "Full-extension pullouts sized to each pantry opening for cleaner daily access.",
+      "Organizer inserts help separate spices, trays, and appliance storage without replacing the cabinet boxes.",
+    ],
     fitBullets: [
       "Your pantry has depth but poor access.",
       "You want better storage without replacing cabinet boxes.",

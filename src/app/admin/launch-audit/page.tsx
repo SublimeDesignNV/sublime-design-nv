@@ -230,6 +230,8 @@ export default async function LaunchAuditPage() {
                   <span>Proof: {row.hasReviewOrTestimonial ? "yes" : "no"}</span>
                   <span>CTA line: {row.hasStrongCtaLine ? "yes" : "no"}</span>
                   <span>Summary: {row.hasProjectSummary ? "yes" : "no"}</span>
+                  <span>Before/after: {row.hasBeforeAfterContent ? "yes" : "no"}</span>
+                  <span>Real-world: {row.hasRealWorldContent ? "yes" : "no"}</span>
                   <span>Rich content: {row.hasRichContent ? "yes" : "no"}</span>
                   <span>OG ready: {row.hasOgReadyMetadata ? "yes" : "no"}</span>
                   <span>Share ready: {row.hasShareReadyMetadataInputs ? "yes" : "no"}</span>

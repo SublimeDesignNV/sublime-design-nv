@@ -11,12 +11,13 @@ export const REVIEW_SOURCE = {
   enabled: true,
   futureProvider: "google-business-profile",
   googleBusinessProfileUrl:
+    process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_PROFILE_URL ||
     "https://www.google.com/search?q=Sublime+Design+NV+Las+Vegas+reviews",
-  googleBusinessPlaceId: "",
+  googleBusinessPlaceId: process.env.NEXT_PUBLIC_GOOGLE_BUSINESS_PLACE_ID || "",
   reviewSourceLabel: "Google Reviews",
   publicProfileLabel: "Google Business Profile",
   publicProfileUrl: "",
-  readMoreCtaLabel: "Read more reviews",
+  readMoreCtaLabel: "Read more reviews on Google",
   heading: "Client Reviews",
   subheading:
     "Recent homeowner feedback tied to real finish carpentry work in Las Vegas, Henderson, and Summerlin.",
@@ -29,7 +30,7 @@ export const BUSINESS_PROFILE = {
   reviewProviderLabel: REVIEW_SOURCE.reviewSourceLabel,
   reviewProfileUrl:
     REVIEW_SOURCE.googleBusinessProfileUrl || REVIEW_SOURCE.publicProfileUrl,
-  reviewCtaLabel: "Read more reviews on Google",
+  reviewCtaLabel: REVIEW_SOURCE.readMoreCtaLabel,
   googleBusinessPlaceId: REVIEW_SOURCE.googleBusinessPlaceId,
 } as const;
 

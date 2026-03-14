@@ -252,6 +252,7 @@ export type ProjectImageAsset = {
   secureUrl: string;
   alt: string;
   source: AssetSource;
+  caption?: string;
 };
 
 export type ProjectPreviewAsset = ProjectImageAsset;
@@ -264,14 +265,18 @@ function orderProjectAssetsByPreference(
   if (!project || !assets.length) return assets;
 
   const heroId = project.preferredHeroPublicId;
-  const galleryId = project.preferredGalleryFirstPublicId;
+  const galleryIds = [
+    ...(project.preferredGalleryPublicIds ?? []),
+    ...(project.preferredGalleryFirstPublicId ? [project.preferredGalleryFirstPublicId] : []),
+  ];
   const ordered = [...assets];
 
   ordered.sort((a, b) => {
     const rank = (asset: CloudinaryAsset) => {
       if (heroId && asset.public_id === heroId) return 0;
-      if (galleryId && asset.public_id === galleryId) return 1;
-      return 2;
+      const galleryIndex = galleryIds.findIndex((id) => id === asset.public_id);
+      if (galleryIndex !== -1) return galleryIndex + 1;
+      return galleryIds.length + 1;
     };
 
     const rankDiff = rank(a) - rank(b);
@@ -291,6 +296,8 @@ export async function getProjectImages(
   projectSlug: string,
   serviceSlug: string,
 ): Promise<ProjectImageAsset[]> {
+  const project = findProject(projectSlug);
+
   // 1. Dedicated project folder in Cloudinary
   const cloudinaryProject = await getProjectBySlug(projectSlug).catch(() => null);
   if (cloudinaryProject?.images.length) {
@@ -305,6 +312,10 @@ export async function getProjectImages(
         variant: index === 0 ? "hero" : "gallery",
       }),
       source: "cloudinary" as const,
+      caption:
+        index === 0
+          ? project?.heroCaption
+          : project?.galleryCaptions?.[index - 1],
     }));
   }
 
@@ -322,6 +333,10 @@ export async function getProjectImages(
         variant: index === 0 ? "hero" : "gallery",
       }),
       source: "cloudinary" as const,
+      caption:
+        index === 0
+          ? project?.heroCaption
+          : project?.galleryCaptions?.[index - 1],
     }));
   }
 
@@ -337,6 +352,10 @@ export async function getProjectImages(
       variant: index === 0 ? "hero" : "gallery",
     }),
     source: "seed" as const,
+    caption:
+      index === 0
+        ? project?.heroCaption
+        : project?.galleryCaptions?.[index - 1],
   }));
 }
 

@@ -243,6 +243,8 @@ export default async function ContentAuditPage() {
                   "Proof",
                   "CTA",
                   "Summary",
+                  "Before/After",
+                  "Real-World",
                   "Rich Content",
                   "OG Ready",
                   "Share Ready",
@@ -287,6 +289,8 @@ export default async function ContentAuditPage() {
                   <td className="px-4 py-3"><Badge ok={row.hasReviewOrTestimonial} label={row.hasReviewOrTestimonial ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasStrongCtaLine} label={row.hasStrongCtaLine ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasProjectSummary} label={row.hasProjectSummary ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasBeforeAfterContent} label={row.hasBeforeAfterContent ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasRealWorldContent} label={row.hasRealWorldContent ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasRichContent} label={row.hasRichContent ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasOgReadyMetadata} label={row.hasOgReadyMetadata ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasShareReadyMetadataInputs} label={row.hasShareReadyMetadataInputs ? "yes" : "no"} /></td>
@@ -295,6 +299,11 @@ export default async function ContentAuditPage() {
             </tbody>
           </table>
         </div>
+
+        <p className="mt-4 font-mono text-xs text-gray-mid">
+          Flagship rows highlight where real proof is still thin: image totals, gallery health,
+          hero source, seed fallback usage, linked review coverage, and richer before/after content.
+        </p>
       </div>
     </main>
   );

@@ -58,6 +58,7 @@ export type FlagshipProjectAuditRow = {
   targetImageCount: number;
   galleryStatus: ContentCoverageStatus;
   hasHeroImage: boolean;
+  heroSource: "cloudinary" | "seed" | "missing";
   heroFromCloudinary: boolean;
   usingSeedFallback: boolean;
   hasLinkedReview: boolean;
@@ -66,6 +67,8 @@ export type FlagshipProjectAuditRow = {
   hasProjectSummary: boolean;
   hasRichContent: boolean;
   hasStrongCtaLine: boolean;
+  hasBeforeAfterContent: boolean;
+  hasRealWorldContent: boolean;
   hasShareReadyMetadataInputs: boolean;
   hasOgReadyMetadata: boolean;
 };
@@ -158,6 +161,16 @@ function hasRichProjectContent(project: ProjectDef) {
   return Boolean(project.intro && project.problem && project.approach && project.result);
 }
 
+function hasRealWorldProjectContent(project: ProjectDef) {
+  return Boolean(
+    project.beforeSummary &&
+      project.afterSummary &&
+      project.homeownerGoal &&
+      project.spaceType &&
+      project.designStyle,
+  );
+}
+
 function projectHasShareReadyMetadataInputs(project: ProjectDef, hasHeroImage: boolean) {
   return Boolean(
     project.seoTitle &&
@@ -200,6 +213,7 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         targetImageCount,
         galleryStatus,
         hasHeroImage,
+        heroSource: preview?.source ?? "missing",
         heroFromCloudinary: preview?.source === "cloudinary",
         usingSeedFallback: images.length > 0 && images.some((image) => image.source === "seed"),
         hasLinkedReview: Boolean(review),
@@ -208,6 +222,8 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         hasProjectSummary: Boolean(project.summary),
         hasRichContent: hasRichProjectContent(project),
         hasStrongCtaLine: Boolean(project.ctaLine),
+        hasBeforeAfterContent: Boolean(project.beforeSummary && project.afterSummary),
+        hasRealWorldContent: hasRealWorldProjectContent(project),
         hasShareReadyMetadataInputs: shareReadyMetadataInputs,
         hasOgReadyMetadata: Boolean(project.seoTitle && project.seoDescription && hasHeroImage),
       };
