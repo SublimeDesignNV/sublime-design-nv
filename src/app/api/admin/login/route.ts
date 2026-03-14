@@ -1,19 +1,36 @@
 import { NextResponse } from "next/server";
-import { isAdminTokenValid, setAdminCookie } from "@/lib/adminAuth";
+import {
+  isAdminAuthConfigured,
+  normalizeAdminNextPath,
+  setAdminCookie,
+  verifyAdminPassword,
+} from "@/lib/adminAuth";
 
 type LoginRequestBody = {
-  token?: string;
+  password?: string;
+  nextPath?: string;
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as LoginRequestBody;
-  const token = body.token;
-
-  if (!isAdminTokenValid(token)) {
-    return NextResponse.json({ ok: false }, { status: 401 });
+  if (!isAdminAuthConfigured()) {
+    return NextResponse.json(
+      { ok: false, error: "Admin auth is not configured." },
+      { status: 503 },
+    );
   }
 
-  const response = NextResponse.json({ ok: true });
-  setAdminCookie(response, token as string);
+  const body = (await request.json().catch(() => ({}))) as LoginRequestBody;
+  const password = body.password?.trim() || "";
+  const nextPath = normalizeAdminNextPath(body.nextPath);
+
+  if (!verifyAdminPassword(password)) {
+    return NextResponse.json(
+      { ok: false, error: "Invalid admin password." },
+      { status: 401 },
+    );
+  }
+
+  const response = NextResponse.json({ ok: true, redirectTo: nextPath });
+  setAdminCookie(response);
   return response;
 }

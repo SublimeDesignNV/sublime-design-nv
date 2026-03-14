@@ -1,21 +1,12 @@
 import AdminNav from "@/components/admin/AdminNav";
-import AdminLogin from "@/components/admin/AdminLogin";
 import AssetTable from "@/components/admin/AssetTable";
 import AssetUploader from "@/components/admin/AssetUploader";
-import { isAdminSession } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminPage() {
-  const isAuthed = isAdminSession();
-
-  if (!isAuthed) {
-    return (
-      <main className="min-h-screen bg-cream px-4 pb-16 pt-20 md:px-8">
-        <AdminLogin />
-      </main>
-    );
-  }
+  requireAdmin("/admin");
 
   return (
     <main className="bg-cream px-4 pb-16 pt-20 md:px-8">

@@ -8,7 +8,7 @@ type AdminAccessRequiredProps = {
 
 export default function AdminAccessRequired({
   title = "Admin access required",
-  description = "Use the admin token to unlock launch audit, content audit, and lead monitoring routes.",
+  description = "Use the admin password login to unlock launch audit, content audit, and lead monitoring routes.",
 }: AdminAccessRequiredProps) {
   return (
     <main className="min-h-screen bg-cream px-4 pb-16 pt-20 md:px-8">
@@ -18,14 +18,14 @@ export default function AdminAccessRequired({
           <h1 className="mt-2 text-3xl text-charcoal">{title}</h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-gray-mid">{description}</p>
           <p className="mt-3 text-sm text-gray-mid">
-            If the token is valid, sign in once at{" "}
-            <Link href="/admin" className="font-semibold text-red hover:underline">
-              /admin
+            Sign in once at{" "}
+            <Link href="/admin/login" className="font-semibold text-red hover:underline">
+              /admin/login
             </Link>
-            {" "}and the session cookie will unlock protected admin pages.
+            {" "}and the secure session cookie will unlock protected admin pages.
           </p>
         </div>
-        <AdminLogin />
+        <AdminLogin nextPath="/admin" />
       </div>
     </main>
   );

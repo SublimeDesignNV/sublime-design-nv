@@ -1,7 +1,6 @@
-import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
 import AdminNav from "@/components/admin/AdminNav";
 import Link from "next/link";
-import { isAdminSession } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/adminAuth";
 import { getRecentLeads } from "@/lib/leads";
 import { ACTIVE_SERVICES } from "@/content/services";
 
@@ -38,9 +37,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function AdminLeadsPage() {
-  if (!isAdminSession()) {
-    return <AdminAccessRequired title="Lead inbox access required" />;
-  }
+  requireAdmin("/admin/leads");
 
   const leads = await getRecentLeads(50);
   const hasDb = Boolean(process.env.DATABASE_URL);

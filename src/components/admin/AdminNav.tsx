@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Upload" },
@@ -19,6 +20,7 @@ export default function AdminNav() {
           {link.label}
         </Link>
       ))}
+      <AdminLogoutButton />
     </div>
   );
 }

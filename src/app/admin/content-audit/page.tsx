@@ -1,6 +1,5 @@
-import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
 import AdminNav from "@/components/admin/AdminNav";
-import { isAdminSession } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/adminAuth";
 import {
   getAreaContentAuditRows,
   getFlagshipProjectAuditRows,
@@ -96,11 +95,7 @@ function SourceBadge({ source }: { source: "cloudinary" | "seed" | "mixed" | "em
 }
 
 export default async function ContentAuditPage() {
-  const isAuthed = isAdminSession();
-
-  if (!isAuthed) {
-    return <AdminAccessRequired title="Content audit access required" />;
-  }
+  requireAdmin("/admin/content-audit");
 
   const rows = await getServiceContentAuditRows();
   const projectRows = await getProjectContentAuditRows();
