@@ -1,6 +1,11 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { listProjectAssets, listAssetsByServiceTag } from "@/lib/cloudinary.server";
+import {
+  getSeedPreviewAsset,
+  getSeedImages,
+  getFirstSeedAssetFromServices,
+} from "@/lib/seedImages.server";
 import type { PortfolioTag, PublishedAsset } from "@/lib/portfolio.types";
 
 function mapPublishedAsset(asset: {
@@ -106,7 +111,7 @@ export async function getPublishedAssetsByServiceSlug(
 export type HeroAsset = {
   secureUrl: string;
   alt: string;
-  publicId: string;
+  publicId?: string;
 };
 
 function assetHasTag(assetTags: string[] | undefined, tag: string) {
@@ -124,94 +129,152 @@ function assetIsFeatured(asset: {
 
 export async function getHeroAsset(): Promise<HeroAsset | null> {
   const assets = await listProjectAssets(300).catch(() => []);
-  if (!assets.length) return null;
 
-  const heroAsset = assets.find((asset) => assetHasTag(asset.tags, "hero"));
-  const featuredAsset = assets.find((asset) => assetIsFeatured(asset));
-  const selected = heroAsset ?? featuredAsset ?? assets[0];
+  if (assets.length) {
+    const heroAsset = assets.find((asset) => assetHasTag(asset.tags, "hero"));
+    const featuredAsset = assets.find((asset) => assetIsFeatured(asset));
+    const selected = heroAsset ?? featuredAsset ?? assets[0];
 
-  if (!selected?.secure_url) return null;
+    if (selected?.secure_url) {
+      return {
+        secureUrl: selected.secure_url,
+        alt: selected.context?.alt || "Custom finish carpentry project in Las Vegas Valley",
+        publicId: selected.public_id,
+      };
+    }
+  }
 
-  return {
-    secureUrl: selected.secure_url,
-    alt: selected.context?.alt || "Custom finish carpentry project in Las Vegas Valley",
-    publicId: selected.public_id,
-  };
+  // Seed fallback — prefer floating-shelves, then built-ins
+  const seedHero = getFirstSeedAssetFromServices(["floating-shelves", "built-ins"]);
+  if (seedHero) {
+    return {
+      secureUrl: seedHero.src,
+      alt: seedHero.alt,
+    };
+  }
+
+  return null;
 }
 
+/** Source discriminator carried through all asset types. */
+export type AssetSource = "cloudinary" | "seed";
+
 export type ServicePreviewAsset = {
-  publicId: string;
+  /** Present for cloudinary assets; absent for seed images. */
+  publicId?: string;
   secureUrl: string;
   alt: string;
+  source: AssetSource;
 };
 
 /**
  * Returns the best preview image for a service card.
- * Priority: Cloudinary service-tagged asset → null (show placeholder).
- *
- * Repo content paths are not publicly served, so we rely on Cloudinary.
+ * Priority: Cloudinary service-tagged asset → seed image → null (text placeholder).
  */
 export async function getServiceCardPreviewAsset(
   slug: string,
 ): Promise<ServicePreviewAsset | null> {
   const assets = await listAssetsByServiceTag(slug, 1).catch(() => []);
   const asset = assets[0];
-  if (!asset?.secure_url) return null;
-  return {
-    publicId: asset.public_id,
-    secureUrl: asset.secure_url,
-    alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} in Las Vegas`,
-  };
+
+  if (asset?.secure_url) {
+    return {
+      publicId: asset.public_id,
+      secureUrl: asset.secure_url,
+      alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} in Las Vegas`,
+      source: "cloudinary",
+    };
+  }
+
+  const seed = getSeedPreviewAsset(slug);
+  if (seed) {
+    return {
+      secureUrl: seed.src,
+      alt: seed.alt,
+      source: "seed",
+    };
+  }
+
+  return null;
 }
 
 export type ServiceGalleryAsset = {
-  publicId: string;
+  publicId?: string;
   secureUrl: string;
   alt: string;
   isFeatured: boolean;
+  source: AssetSource;
 };
 
 /**
  * Returns gallery assets for a service page.
- * Priority: Cloudinary service-tagged assets → empty array.
+ * Priority: Cloudinary service-tagged assets → seed images → empty array.
  */
 export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsset[]> {
   const assets = await listAssetsByServiceTag(slug, 50).catch(() => []);
-  return assets.map((asset) => ({
-    publicId: asset.public_id,
-    secureUrl: asset.secure_url,
-    alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} project in Las Vegas`,
-    isFeatured: assetIsFeatured(asset),
+
+  if (assets.length) {
+    return assets.map((asset) => ({
+      publicId: asset.public_id,
+      secureUrl: asset.secure_url,
+      alt: asset.context?.alt ?? `Custom ${slug.replace(/-/g, " ")} project in Las Vegas`,
+      isFeatured: assetIsFeatured(asset),
+      source: "cloudinary" as const,
+    }));
+  }
+
+  const seedImages = getSeedImages(slug);
+  return seedImages.map((img, index) => ({
+    secureUrl: img.src,
+    alt: img.alt,
+    isFeatured: index === 0,
+    source: "seed" as const,
   }));
 }
 
 /**
  * Returns featured assets suitable for a homepage section.
- * Priority: hero-tagged → featured-tagged → newest.
+ * Priority: hero-tagged → featured-tagged → newest Cloudinary → seed images.
  * Deduplicates across services.
  */
 export async function getHomepageFeaturedAssets(max = 6): Promise<ServicePreviewAsset[]> {
   const assets = await listProjectAssets(300).catch(() => []);
-  if (!assets.length) return [];
 
-  const hero = assets.filter((a) => assetHasTag(a.tags, "hero"));
-  const featured = assets.filter((a) => assetIsFeatured(a) && !assetHasTag(a.tags, "hero"));
-  const rest = assets.filter((a) => !assetIsFeatured(a) && !assetHasTag(a.tags, "hero"));
+  if (assets.length) {
+    const hero = assets.filter((a) => assetHasTag(a.tags, "hero"));
+    const featured = assets.filter((a) => assetIsFeatured(a) && !assetHasTag(a.tags, "hero"));
+    const rest = assets.filter((a) => !assetIsFeatured(a) && !assetHasTag(a.tags, "hero"));
 
-  const ordered = [...hero, ...featured, ...rest];
-  const seen = new Set<string>();
-  const result: ServicePreviewAsset[] = [];
+    const ordered = [...hero, ...featured, ...rest];
+    const seen = new Set<string>();
+    const result: ServicePreviewAsset[] = [];
 
-  for (const asset of ordered) {
-    if (!asset.secure_url || seen.has(asset.public_id)) continue;
-    seen.add(asset.public_id);
-    result.push({
-      publicId: asset.public_id,
-      secureUrl: asset.secure_url,
-      alt: asset.context?.alt ?? "Custom finish carpentry project in Las Vegas",
-    });
-    if (result.length >= max) break;
+    for (const asset of ordered) {
+      if (!asset.secure_url || seen.has(asset.public_id)) continue;
+      seen.add(asset.public_id);
+      result.push({
+        publicId: asset.public_id,
+        secureUrl: asset.secure_url,
+        alt: asset.context?.alt ?? "Custom finish carpentry project in Las Vegas",
+        source: "cloudinary",
+      });
+      if (result.length >= max) break;
+    }
+
+    if (result.length) return result;
   }
 
-  return result;
+  // Seed fallback — pull from primary services in order
+  const seedSlugOrder = ["floating-shelves", "built-ins", "custom-cabinetry", "mantels"];
+  const seedResult: ServicePreviewAsset[] = [];
+
+  for (const slug of seedSlugOrder) {
+    const seed = getSeedPreviewAsset(slug);
+    if (seed) {
+      seedResult.push({ secureUrl: seed.src, alt: seed.alt, source: "seed" });
+    }
+    if (seedResult.length >= max) break;
+  }
+
+  return seedResult;
 }

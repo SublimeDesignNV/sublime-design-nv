@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -5,6 +6,7 @@ import CloudinaryImage from "@/components/CloudinaryImage";
 import { findService } from "@/content/services";
 import { listProjectsIndex } from "@/lib/cloudinary.server";
 import { getServiceAssets } from "@/lib/portfolio.server";
+import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical, buildProjectImageAlt } from "@/lib/seo";
 
 type Props = {
@@ -31,6 +33,99 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/** Render a single gallery asset using the right image component for its source. */
+function GalleryImage({
+  asset,
+  sizes,
+  className,
+}: {
+  asset: ServiceGalleryAsset;
+  sizes: string;
+  className?: string;
+}) {
+  if (asset.source === "cloudinary" && asset.publicId) {
+    return (
+      <CloudinaryImage
+        src={asset.publicId}
+        alt={asset.alt}
+        width={1200}
+        height={800}
+        sizes={sizes}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    );
+  }
+  // Seed image
+  return (
+    <Image
+      src={asset.secureUrl}
+      alt={asset.alt}
+      fill
+      sizes={sizes}
+      className={`object-cover ${className ?? ""}`}
+    />
+  );
+}
+
+/** 1-image: full-width hero layout */
+function HeroGallery({ asset }: { asset: ServiceGalleryAsset }) {
+  return (
+    <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="relative h-[420px] w-full sm:h-[520px]">
+        <GalleryImage asset={asset} sizes="100vw" />
+      </div>
+    </div>
+  );
+}
+
+/** 2–4 images: featured-first masonry grid */
+function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
+  const [first, ...rest] = assets;
+  return (
+    <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* First image spans full height on the left */}
+      <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ minHeight: "320px" }}>
+        <GalleryImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
+      </div>
+      {/* Remaining images stacked on the right */}
+      <div className="flex flex-col gap-4">
+        {rest.map((asset) => (
+          <div
+            key={asset.secureUrl}
+            className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+            style={{ minHeight: "148px" }}
+          >
+            <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** 5+ images: standard 3-column grid */
+function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
+  return (
+    <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {assets.map((asset) => (
+        <div
+          key={asset.secureUrl}
+          className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+          style={{ height: "260px" }}
+        >
+          <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ServiceGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
+  if (assets.length === 1) return <HeroGallery asset={assets[0]} />;
+  if (assets.length <= 4) return <MasonryGallery assets={assets} />;
+  return <FullGallery assets={assets} />;
+}
+
 export default async function ServiceDetailPage({ params }: Props) {
   const service = findService(params.service);
   if (!service) notFound();
@@ -44,7 +139,7 @@ export default async function ServiceDetailPage({ params }: Props) {
     (p) => p.serviceSlug && matchSlugs.includes(p.serviceSlug),
   );
 
-  // Service-tagged direct assets (from upload script or manual tagging)
+  // Service assets — Cloudinary first, seed fallback built-in via getServiceAssets
   const serviceAssets = await getServiceAssets(service.slug).catch(() => []);
 
   const hasProjects = projects.length > 0;
@@ -72,7 +167,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
-      {/* Gallery — project cards (Cloudinary projects tagged with service) */}
+      {/* Gallery */}
       <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl text-charcoal">Project Gallery</h2>
@@ -82,6 +177,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
 
         {!hasContent ? (
+          /* 0 images — polished empty state */
           <div className="mt-6 rounded-xl border border-gray-200 bg-cream p-8">
             <p className="text-gray-mid">
               We are adding more {service.shortTitle.toLowerCase()} projects now. In the meantime,
@@ -95,6 +191,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             </Link>
           </div>
         ) : hasProjects ? (
+          /* Cloudinary project cards */
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <article
@@ -138,30 +235,12 @@ export default async function ServiceDetailPage({ params }: Props) {
             ))}
           </div>
         ) : (
-          /* Service-tagged direct assets (no project metadata) */
-          <div
-            className={`mt-8 grid grid-cols-1 gap-6 ${serviceAssets.length === 1 ? "" : "sm:grid-cols-2 lg:grid-cols-3"}`}
-          >
-            {serviceAssets.map((asset) => (
-              <div
-                key={asset.publicId}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <CloudinaryImage
-                  src={asset.publicId}
-                  alt={asset.alt}
-                  width={1200}
-                  height={800}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  style={{ width: "100%", height: "260px", objectFit: "cover" }}
-                />
-              </div>
-            ))}
-          </div>
+          /* Tiered service asset gallery — Cloudinary or seed */
+          <ServiceGallery assets={serviceAssets} />
         )}
       </section>
 
-      {/* Related services */}
+      {/* Back link */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         <Link href="/services" className="font-ui text-sm font-semibold text-red">
           ← All Services
@@ -171,9 +250,7 @@ export default async function ServiceDetailPage({ params }: Props) {
       {/* Quote CTA */}
       <section className="mx-auto mt-10 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
-          <h2 className="text-3xl md:text-4xl">
-            {service.ctaLabel}
-          </h2>
+          <h2 className="text-3xl md:text-4xl">{service.ctaLabel}</h2>
           <p className="mt-3 max-w-2xl text-white/90">
             Send your details and we will reply with next steps, timeline, and quote options.
           </p>

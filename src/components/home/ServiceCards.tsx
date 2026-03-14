@@ -1,7 +1,41 @@
+import Image from "next/image";
 import Link from "next/link";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { ACTIVE_SERVICES } from "@/content/services";
 import { getServiceCardPreviewAsset } from "@/lib/portfolio.server";
+import type { ServicePreviewAsset } from "@/lib/portfolio.server";
+
+function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; title: string }) {
+  if (!preview) {
+    return (
+      <div className="flex h-full items-center justify-center bg-cream">
+        <span className="font-ui text-sm uppercase tracking-widest text-gray-mid">{title}</span>
+      </div>
+    );
+  }
+  if (preview.source === "cloudinary" && preview.publicId) {
+    return (
+      <CloudinaryImage
+        src={preview.publicId}
+        alt={preview.alt}
+        width={800}
+        height={520}
+        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    );
+  }
+  // Seed image — static file served from public/seed-images/
+  return (
+    <Image
+      src={preview.secureUrl}
+      alt={preview.alt}
+      fill
+      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+      className="object-cover transition duration-500 group-hover:scale-105"
+    />
+  );
+}
 
 async function ServiceCard({
   slug,
@@ -20,22 +54,7 @@ async function ServiceCard({
       className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="relative h-52 overflow-hidden bg-cream">
-        {preview ? (
-          <CloudinaryImage
-            src={preview.publicId}
-            alt={preview.alt}
-            width={800}
-            height={520}
-            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center bg-cream">
-            <span className="font-ui text-sm uppercase tracking-widest text-gray-mid">
-              {shortTitle}
-            </span>
-          </div>
-        )}
+        <CardImage preview={preview} title={shortTitle} />
       </div>
       <div className="p-5">
         <h3 className="text-2xl text-charcoal">{shortTitle}</h3>
