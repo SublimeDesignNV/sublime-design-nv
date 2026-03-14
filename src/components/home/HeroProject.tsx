@@ -42,7 +42,7 @@ export default function HeroProject({ heroAsset }: HeroProjectProps) {
               href="/quote"
               className="font-ui rounded-sm bg-red px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-dark"
             >
-              Get a Free Quote
+              Start with a Quote
             </Link>
             <Link
               href="/projects"

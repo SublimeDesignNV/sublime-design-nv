@@ -6,9 +6,10 @@ import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
-import { FEATURED_PROJECTS, PROJECT_LIST } from "@/content/projects";
+import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
+import { getPriorityProjects } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
-import { findService } from "@/content/services";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
 
@@ -49,9 +50,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const heroAsset = await getHeroAsset();
-
-  const projectCards = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
-  const storyProjects = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
+  const priorityProjects = getPriorityProjects(3).slice(0, 3);
 
   return (
     <main className="bg-white">
@@ -81,44 +80,29 @@ export default async function HomePage() {
               href="/projects"
               className="font-ui text-sm font-semibold text-navy transition-colors hover:text-red"
             >
-              View All Projects →
+              View All Projects
             </Link>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {projectCards.map((project) => {
-              const serviceDef = findService(project.serviceSlug);
-              return (
-                <article
-                  key={project.slug}
-                  className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-                >
-                  <div className="p-5">
-                    <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
-                      {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")} &middot;{" "}
-                      {project.location.cityLabel}, {project.location.state}
-                    </p>
-                    <h3 className="mt-2 text-2xl text-charcoal">
-                      <Link href={`/projects/${project.slug}`} className="hover:text-red">
-                        {project.title}
-                      </Link>
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
-                    <Link
-                      href={`/projects/${project.slug}`}
-                      className="font-ui mt-4 inline-block text-sm font-semibold text-red"
-                    >
-                      View Project →
-                    </Link>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="mt-10">
+            {priorityProjects.length ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {priorityProjects.map((project, index) => (
+                  <ProjectCard
+                    key={project.slug}
+                    project={project}
+                    priorityLabel={index === 0 ? "Flagship" : undefined}
+                  />
+                ))}
+              </div>
+            ) : (
+              <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples that fit the job." />
+            )}
           </div>
         </div>
       </section>
 
-      <ProjectStories projects={storyProjects} />
+      <ProjectStories projects={priorityProjects} />
       <BeforeAfterSlider />
 
       <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />
@@ -151,7 +135,7 @@ export default async function HomePage() {
               href="/quote"
               className="font-ui rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red transition-colors hover:opacity-90"
             >
-              Get a Free Quote
+              Start with a Quote
             </Link>
             <a
               href={SITE.phoneHref}

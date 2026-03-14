@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PROJECT_LIST, FEATURED_PROJECTS } from "@/content/projects";
+import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
+import {
+  FLAGSHIP_PROJECTS,
+  PROJECT_LIST,
+  getPriorityProjects,
+  sortProjectsForDisplay,
+} from "@/content/projects";
 import { findService } from "@/content/services";
-import { findTestimonial } from "@/content/testimonials";
 import { buildFacetCanonical } from "@/lib/seo";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 
@@ -34,12 +40,19 @@ export default async function ProjectsIndexPage({
 }) {
   const serviceFilter = readParam(searchParams, "service");
   const locationFilter = readParam(searchParams, "location");
+  const hasFilters = Boolean(serviceFilter || locationFilter);
 
   const filtered = PROJECT_LIST.filter((project) => {
     if (serviceFilter && project.serviceSlug !== serviceFilter) return false;
     if (locationFilter && project.location.city !== locationFilter) return false;
     return true;
   });
+  const sortedFiltered = sortProjectsForDisplay(filtered);
+  const priorityProjects = getPriorityProjects(3).slice(0, 3);
+  const priorityProjectSlugs = new Set(priorityProjects.map((project) => project.slug));
+  const gridProjects = hasFilters
+    ? sortedFiltered
+    : sortedFiltered.filter((project) => !priorityProjectSlugs.has(project.slug));
 
   // Collect unique values for filter chips
   const allServices = Array.from(new Set(PROJECT_LIST.map((p) => p.serviceSlug))).sort();
@@ -55,7 +68,7 @@ export default async function ProjectsIndexPage({
     return PROJECT_LIST.find((p) => p.location.city === city)?.location.cityLabel ?? city;
   }
 
-  const hasFilters = Boolean(serviceFilter || locationFilter);
+  const priorityHeading = FLAGSHIP_PROJECTS.length > 0 ? "Flagship Projects" : "Featured";
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -130,31 +143,23 @@ export default async function ProjectsIndexPage({
       </section>
 
       {/* Featured banner (only when no filters active) */}
-      {!hasFilters && FEATURED_PROJECTS.length > 0 ? (
+      {!hasFilters ? (
         <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
-          <p className="font-ui text-xs uppercase tracking-widest text-red">Featured</p>
-          <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURED_PROJECTS.map((project) => (
-              <Link
-                key={project.slug}
-                href={`/projects/${project.slug}`}
-                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <div className="bg-cream px-5 pt-5 pb-1">
-                  <span className="font-ui text-[10px] uppercase tracking-widest text-red">Featured</span>
-                </div>
-                <div className="p-5 pt-2">
-                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
-                    {serviceLabel(project.serviceSlug)} &middot; {project.location.cityLabel}, {project.location.state}
-                  </p>
-                  <h2 className="mt-2 text-xl text-charcoal group-hover:text-red">{project.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
-                  <span className="font-ui mt-4 inline-block text-sm font-semibold text-red">
-                    View Project →
-                  </span>
-                </div>
-              </Link>
-            ))}
+          <p className="font-ui text-xs uppercase tracking-widest text-red">{priorityHeading}</p>
+          <div className="mt-4">
+            {priorityProjects.length ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {priorityProjects.map((project) => (
+                  <ProjectCard
+                    key={project.slug}
+                    project={project}
+                    priorityLabel={project.flagship ? "Flagship" : "Featured"}
+                  />
+                ))}
+              </div>
+            ) : (
+              <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples directly." />
+            )}
           </div>
         </section>
       ) : null}
@@ -165,7 +170,7 @@ export default async function ProjectsIndexPage({
           <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">All Projects</p>
         ) : null}
 
-        {filtered.length === 0 ? (
+        {gridProjects.length === 0 ? (
           <div className="mt-6 rounded-xl border border-gray-200 bg-cream p-8">
             <p className="text-gray-mid">No projects match the selected filters.</p>
             <Link
@@ -177,37 +182,8 @@ export default async function ProjectsIndexPage({
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((project) => (
-              <article
-                key={project.slug}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <div className="p-5">
-                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
-                    {serviceLabel(project.serviceSlug)} &middot; {project.location.cityLabel}, {project.location.state} &middot; {project.year}
-                  </p>
-                  <h2 className="mt-2 text-xl text-charcoal">
-                    <Link href={`/projects/${project.slug}`} className="hover:text-red">
-                      {project.title}
-                    </Link>
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
-                  {project.testimonialSlug ? (() => {
-                    const t = findTestimonial(project.testimonialSlug);
-                    return t ? (
-                      <p className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid">
-                        &ldquo;{t.quote.slice(0, 80)}&hellip;&rdquo;
-                      </p>
-                    ) : null;
-                  })() : null}
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    className="font-ui mt-4 inline-block text-sm font-semibold text-red"
-                  >
-                    View Project →
-                  </Link>
-                </div>
-              </article>
+            {gridProjects.map((project) => (
+              <ProjectCard key={project.slug} project={project} />
             ))}
           </div>
         )}
@@ -225,7 +201,7 @@ export default async function ProjectsIndexPage({
             href="/quote"
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Get a Free Quote
+            Start with a Quote
           </Link>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {(["Free quote", "Local install", "Built to fit", "Clear next steps"] as const).map((item) => (

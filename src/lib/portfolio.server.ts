@@ -239,6 +239,8 @@ export type ProjectImageAsset = {
   source: AssetSource;
 };
 
+export type ProjectPreviewAsset = ProjectImageAsset;
+
 /**
  * Returns gallery images for a project page.
  * Priority: Cloudinary project folder → service-tagged Cloudinary → seed images → [].
@@ -276,6 +278,14 @@ export async function getProjectImages(
     alt: img.alt,
     source: "seed" as const,
   }));
+}
+
+export async function getProjectCardPreviewAsset(
+  projectSlug: string,
+  serviceSlug: string,
+): Promise<ProjectPreviewAsset | null> {
+  const images = await getProjectImages(projectSlug, serviceSlug);
+  return images[0] ?? null;
 }
 
 /**

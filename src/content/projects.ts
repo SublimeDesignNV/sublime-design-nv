@@ -16,6 +16,10 @@ export type ProjectDef = {
   timeline: string;
   year: string;
   featured: boolean;
+  /** Top-tier projects surfaced first on homepage and projects index */
+  flagship?: boolean;
+  /** Lower numbers surface first among flagship projects */
+  flagshipOrder?: number;
   /** Explicit Cloudinary public IDs — highest-priority image source */
   galleryImagePublicIds?: string[];
   /** Cloudinary tag to search when no explicit IDs — defaults to serviceSlug */
@@ -34,6 +38,8 @@ export const PROJECT_LIST: ProjectDef[] = [
     serviceSlug: "built-ins",
     location: { city: "henderson", cityLabel: "Henderson", state: "NV" },
     featured: true,
+    flagship: true,
+    flagshipOrder: 1,
     year: "2024",
     summary:
       "Floor-to-ceiling library wall with integrated desk and display niches for a Henderson home office.",
@@ -55,6 +61,8 @@ export const PROJECT_LIST: ProjectDef[] = [
     serviceSlug: "floating-shelves",
     location: { city: "summerlin", cityLabel: "Summerlin", state: "NV" },
     featured: true,
+    flagship: true,
+    flagshipOrder: 2,
     year: "2024",
     summary:
       "Staggered walnut floating shelves with invisible steel bracket mounts in a Summerlin great room.",
@@ -97,6 +105,8 @@ export const PROJECT_LIST: ProjectDef[] = [
     serviceSlug: "closet-systems",
     location: { city: "henderson", cityLabel: "Henderson", state: "NV" },
     featured: true,
+    flagship: true,
+    flagshipOrder: 3,
     year: "2024",
     summary:
       "Custom double-hang sections, floor-to-ceiling drawers, and open shoe display in a Henderson primary walk-in closet.",
@@ -156,14 +166,67 @@ export const PROJECT_LIST: ProjectDef[] = [
   },
 ];
 
-export const FEATURED_PROJECTS = PROJECT_LIST.filter((p) => p.featured);
+function getFlagshipSortValue(project: ProjectDef) {
+  return project.flagshipOrder ?? Number.MAX_SAFE_INTEGER;
+}
+
+export function sortProjectsForDisplay(projects: ProjectDef[]): ProjectDef[] {
+  return [...projects].sort((a, b) => {
+    if (Boolean(a.flagship) !== Boolean(b.flagship)) {
+      return a.flagship ? -1 : 1;
+    }
+
+    if (a.flagship && b.flagship && getFlagshipSortValue(a) !== getFlagshipSortValue(b)) {
+      return getFlagshipSortValue(a) - getFlagshipSortValue(b);
+    }
+
+    if (a.featured !== b.featured) {
+      return a.featured ? -1 : 1;
+    }
+
+    return PROJECT_LIST.findIndex((project) => project.slug === a.slug) -
+      PROJECT_LIST.findIndex((project) => project.slug === b.slug);
+  });
+}
+
+export const FEATURED_PROJECTS = sortProjectsForDisplay(
+  PROJECT_LIST.filter((p) => p.featured),
+);
+export const FLAGSHIP_PROJECTS = sortProjectsForDisplay(
+  PROJECT_LIST.filter((p) => p.flagship),
+);
+
+export function getPriorityProjects(minimum = 3): ProjectDef[] {
+  const ranked = sortProjectsForDisplay(PROJECT_LIST);
+  const selected: ProjectDef[] = [];
+  const seen = new Set<string>();
+
+  for (const project of ranked) {
+    if (!project.flagship) continue;
+    selected.push(project);
+    seen.add(project.slug);
+  }
+
+  if (selected.length < minimum) {
+    for (const project of ranked) {
+      if (!project.featured || seen.has(project.slug)) continue;
+      selected.push(project);
+      seen.add(project.slug);
+      if (selected.length >= minimum) break;
+    }
+  }
+
+  return selected;
+}
 
 export function findProject(slug: string): ProjectDef | undefined {
   return PROJECT_LIST.find((p) => p.slug === slug);
 }
 
 export function getProjectsByService(serviceSlug: string): ProjectDef[] {
-  return PROJECT_LIST.filter((p) => p.serviceSlug === serviceSlug);
+  return sortProjectsForDisplay(
+    PROJECT_LIST.filter((p) => p.serviceSlug === serviceSlug),
+  );
 }
 
 export function getAllProjectSlugs(): string[] {

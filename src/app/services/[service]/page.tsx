@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
+import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
 import { getTestimonialsByService } from "@/content/testimonials";
@@ -102,6 +104,22 @@ function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   );
 }
 
+function TwoUpGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
+  return (
+    <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {assets.map((asset) => (
+        <div
+          key={asset.secureUrl}
+          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+          style={{ minHeight: "260px" }}
+        >
+          <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   return (
     <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -123,6 +141,7 @@ function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
 
 function ServiceGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   if (assets.length === 1) return <HeroGallery asset={assets[0]} />;
+  if (assets.length === 2) return <TwoUpGallery assets={assets} />;
   if (assets.length <= 4) return <MasonryGallery assets={assets} />;
   return <FullGallery assets={assets} />;
 }
@@ -187,47 +206,25 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
 
         {!hasContent ? (
-          <div className="mt-6 rounded-xl border border-gray-200 bg-cream p-8">
-            <p className="text-gray-mid">
-              We are adding more {service.shortTitle.toLowerCase()} projects now. In the meantime,
-              get in touch and we can share examples directly.
-            </p>
-            <Link
-              href="/quote"
-              className="font-ui mt-4 inline-block rounded-sm bg-red px-5 py-2.5 text-sm font-semibold text-white"
-            >
-              Request a Quote
-            </Link>
+          <div className="mt-6">
+            <ProjectSectionEmptyState
+              copy={`Project photos are still being added for ${service.shortTitle.toLowerCase()}. We can share examples when we quote the job.`}
+              ctaLabel="Start with a quote"
+            />
           </div>
         ) : hasRegistryProjects ? (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {registryProjects.slice(0, 3).map((project) => (
-              <article
-                key={project.slug}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                <div className="p-5">
-                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
-                    {project.location.cityLabel}, {project.location.state} &middot; {project.year}
-                  </p>
-                  <h3 className="mt-2 text-xl text-charcoal">
-                    <Link href={`/projects/${project.slug}`} className="hover:text-red">
-                      {project.title}
-                    </Link>
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    className="font-ui mt-4 inline-block text-sm font-semibold text-red"
-                  >
-                    View Project →
-                  </Link>
-                </div>
-              </article>
+              <ProjectCard key={project.slug} project={project} />
             ))}
           </div>
         ) : (
-          <ServiceGallery assets={serviceAssets} />
+          <div>
+            <ServiceGallery assets={serviceAssets} />
+            <p className="mt-4 text-sm text-gray-mid">
+              More project photos coming soon. Start with a quote and we can share examples that fit the space.
+            </p>
+          </div>
         )}
       </section>
 
@@ -291,7 +288,7 @@ export default async function ServiceDetailPage({ params }: Props) {
                         href={`/projects/${t.projectSlug}`}
                         className="font-ui mt-2 inline-block text-xs font-medium text-red hover:underline"
                       >
-                        View Project →
+                        View Project
                       </Link>
                     ) : null}
                   </figcaption>

@@ -1,53 +1,7 @@
 import { isAdminSession } from "@/lib/adminAuth";
-import { listAssetsByServiceTag } from "@/lib/cloudinary.server";
-import { SERVICE_LIST } from "@/content/services";
-import { getRepoImageCount } from "@/lib/portfolioContent.server";
-import { getSeedImageCount } from "@/lib/seedImages.server";
+import { getServiceContentAuditRows } from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
-
-type ServiceAuditRow = {
-  slug: string;
-  title: string;
-  status: string;
-  repoCount: number;
-  cloudinaryCount: number;
-  seedCount: number;
-  hasFeatured: boolean;
-  hasHeroCandidate: boolean;
-};
-
-async function buildAuditRows(): Promise<ServiceAuditRow[]> {
-  return Promise.all(
-    SERVICE_LIST.map(async (service) => {
-      const repoCount = getRepoImageCount(service.slug);
-      const seedCount = getSeedImageCount(service.slug);
-      const cloudinaryAssets = await listAssetsByServiceTag(service.slug, 50).catch(() => []);
-      const cloudinaryCount = cloudinaryAssets.length;
-      const hasFeatured = cloudinaryAssets.some(
-        (a) =>
-          a.tags?.includes("featured") ||
-          a.context?.featured?.toLowerCase() === "true",
-      );
-      const hasHeroCandidate =
-        cloudinaryAssets.some((a) => a.tags?.includes("hero")) ||
-        hasFeatured ||
-        cloudinaryCount > 0 ||
-        seedCount > 0;
-
-      return {
-        slug: service.slug,
-        title: service.shortTitle,
-        status: service.status,
-        repoCount,
-        cloudinaryCount,
-        seedCount,
-        hasFeatured,
-        hasHeroCandidate,
-      } satisfies ServiceAuditRow;
-    }),
-  );
-}
 
 function Badge({ ok, label }: { ok: boolean; label: string }) {
   return (
@@ -73,7 +27,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function CloudinaryCount({ count }: { count: number }) {
+function CountTone({ count }: { count: number }) {
   return (
     <span
       className={
@@ -85,6 +39,21 @@ function CloudinaryCount({ count }: { count: number }) {
       }
     >
       {count}
+    </span>
+  );
+}
+
+function CoverageBadge({ status }: { status: "empty" | "thin" | "healthy" }) {
+  const styles =
+    status === "healthy"
+      ? "bg-green-100 text-green-800"
+      : status === "thin"
+        ? "bg-yellow-100 text-yellow-800"
+        : "bg-red-100 text-red-700";
+
+  return (
+    <span className={`inline-block rounded px-2 py-0.5 font-mono text-xs ${styles}`}>
+      {status}
     </span>
   );
 }
@@ -106,12 +75,12 @@ export default async function ContentAuditPage() {
     );
   }
 
-  const rows = await buildAuditRows();
-  const totalCloudinary = rows.reduce((s, r) => s + r.cloudinaryCount, 0);
-  const totalSeed = rows.reduce((s, r) => s + r.seedCount, 0);
-  const readyServices = rows.filter(
-    (r) => r.cloudinaryCount > 0 || r.seedCount > 0,
-  ).length;
+  const rows = await getServiceContentAuditRows();
+  const totalCloudinary = rows.reduce((sum, row) => sum + row.cloudinaryCount, 0);
+  const totalSeed = rows.reduce((sum, row) => sum + row.seedCount, 0);
+  const readyServices = rows.filter((row) => row.actualImageCount > 0).length;
+  const heroReadyServices = rows.filter((row) => row.hasHeroCandidate).length;
+  const healthyServices = rows.filter((row) => row.coverageStatus === "healthy").length;
 
   return (
     <main className="min-h-screen bg-cream px-4 pb-20 pt-20 md:px-8">
@@ -129,8 +98,8 @@ export default async function ContentAuditPage() {
           {[
             { label: "Services", value: rows.length },
             { label: "Has Content", value: readyServices },
-            { label: "Cloudinary", value: totalCloudinary },
-            { label: "Seed Images", value: totalSeed },
+            { label: "Hero Ready", value: heroReadyServices },
+            { label: "Healthy", value: healthyServices },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="font-mono text-3xl text-charcoal">{value}</p>
@@ -146,16 +115,26 @@ export default async function ContentAuditPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left">
-                {["Service", "Status", "Cloudinary", "Repo", "Seed", "Featured", "Hero Ready"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 font-ui text-xs uppercase tracking-widest text-gray-mid"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
+                {[
+                  "Service",
+                  "Status",
+                  "Cloudinary",
+                  "Repo",
+                  "Seed",
+                  "Target",
+                  "Actual",
+                  "Completion",
+                  "Coverage",
+                  "Featured",
+                  "Hero Ready",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 font-ui text-xs uppercase tracking-widest text-gray-mid"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -169,12 +148,15 @@ export default async function ContentAuditPage() {
                       {row.title}
                     </a>
                     <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
+                    {row.notes.length ? (
+                      <p className="mt-1 font-ui text-xs text-red">{row.notes.join(" · ")}</p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={row.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <CloudinaryCount count={row.cloudinaryCount} />
+                    <CountTone count={row.cloudinaryCount} />
                   </td>
                   <td className="px-4 py-3 font-mono text-charcoal">{row.repoCount}</td>
                   <td className="px-4 py-3">
@@ -188,8 +170,19 @@ export default async function ContentAuditPage() {
                       {row.seedCount}
                     </span>
                   </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.targetImageCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.actualImageCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">
+                    {row.completionPercentage}%
+                  </td>
                   <td className="px-4 py-3">
-                    <Badge ok={row.hasFeatured} label={row.hasFeatured ? "yes" : "no"} />
+                    <CoverageBadge status={row.coverageStatus} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge
+                      ok={row.hasFeaturedImage}
+                      label={row.hasFeaturedImage ? "yes" : "no"}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <Badge
@@ -204,6 +197,8 @@ export default async function ContentAuditPage() {
         </div>
 
         <p className="mt-6 font-mono text-xs text-gray-mid">
+          Cloudinary total: {totalCloudinary} · Seed total: {totalSeed} ·
+          {" "}
           Cloudinary: images tagged{" "}
           <code className="rounded bg-gray-100 px-1">service:&lt;slug&gt;</code> (max 50) ·
           Repo: files in{" "}

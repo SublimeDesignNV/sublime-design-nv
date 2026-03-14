@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { isAdminSession } from "@/lib/adminAuth";
-import { ACTIVE_SERVICES } from "@/content/services";
-import { PROJECT_LIST, FEATURED_PROJECTS } from "@/content/projects";
+import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
+import { getLaunchReadinessSummary } from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function LaunchAuditPage() {
+export default async function LaunchAuditPage() {
   if (!isAdminSession()) {
     return (
       <main className="bg-cream pt-28 pb-20">
@@ -69,15 +69,26 @@ export default function LaunchAuditPage() {
   const hasResend = Boolean(process.env.RESEND_API_KEY);
   const hasCloudinaryCloud = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
   const hasCloudinaryPreset = Boolean(process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+  const hasCloudinaryApiCloud = Boolean(process.env.CLOUDINARY_CLOUD_NAME);
+  const hasCloudinaryApiKey = Boolean(process.env.CLOUDINARY_API_KEY);
+  const hasCloudinaryApiSecret = Boolean(process.env.CLOUDINARY_API_SECRET);
   const hasDb = Boolean(process.env.DATABASE_URL);
   const hasAdminToken = Boolean(process.env.ADMIN_TOKEN);
   const hasSiteUrl = Boolean(process.env.NEXT_PUBLIC_SITE_URL);
   const hasFromEmail = Boolean(process.env.LEADS_FROM_EMAIL);
+  const summary = await getLaunchReadinessSummary();
+  const hasCloudinaryConfigured =
+    hasCloudinaryCloud &&
+    hasCloudinaryPreset &&
+    hasCloudinaryApiCloud &&
+    hasCloudinaryApiKey &&
+    hasCloudinaryApiSecret;
 
   // ── Content counts ────────────────────────────────────────────────────────
-  const activeServices = ACTIVE_SERVICES.length;
-  const totalProjects = PROJECT_LIST.length;
+  const activeServices = summary.activeServices;
+  const totalProjects = summary.totalProjects;
   const featuredProjects = FEATURED_PROJECTS.length;
+  const flagshipProjects = FLAGSHIP_PROJECTS.length;
   const featuredTestimonials = FEATURED_TESTIMONIALS.length;
 
   return (
@@ -112,12 +123,12 @@ export default function LaunchAuditPage() {
               detail={hasResend ? "RESEND_API_KEY configured" : "Set RESEND_API_KEY to enable quote emails"}
             />
             <Check
-              ok={hasCloudinaryCloud && hasCloudinaryPreset}
+              ok={hasCloudinaryConfigured}
               label="Cloudinary photo upload"
               detail={
-                hasCloudinaryCloud && hasCloudinaryPreset
+                hasCloudinaryConfigured
                   ? `Cloud: ${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}`
-                  : "Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME + NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET"
+                  : "Set public upload vars and server Cloudinary API vars"
               }
             />
             <Check
@@ -158,8 +169,42 @@ export default function LaunchAuditPage() {
           <Section title="Content Registry">
             <Stat label="Active services" value={activeServices} />
             <Stat label="Project case studies" value={totalProjects} />
+            <Stat label="Flagship projects" value={flagshipProjects} />
             <Stat label="Featured projects" value={featuredProjects} />
+            <Stat label="Hero-ready services" value={summary.servicesWithHeroCandidate} />
             <Stat label="Featured testimonials" value={featuredTestimonials} />
+          </Section>
+
+          <Section title="Launch Checklist">
+            <Check ok={hasGa} label="GA configured" />
+            <Check ok={hasResend} label="Resend configured" />
+            <Check ok={hasCloudinaryConfigured} label="Cloudinary configured" />
+            <Check ok={hasDb} label="Database configured" />
+            <Check ok={hasAdminToken} label="Admin token configured" />
+            <Check ok={hasSiteUrl} label="Site URL configured" />
+          </Section>
+
+          <Section title="Content Readiness">
+            <Check
+              ok={summary.thresholds.hasSixActiveServices}
+              label="At least 6 active services"
+              detail={`${summary.activeServices} active services`}
+            />
+            <Check
+              ok={summary.thresholds.hasSixProjects}
+              label="At least 6 projects"
+              detail={`${summary.totalProjects} registered projects`}
+            />
+            <Check
+              ok={summary.thresholds.hasThreeFlagshipOrFeaturedProjects}
+              label="At least 3 flagship or featured projects"
+              detail={`${summary.flagshipOrFeaturedProjects} priority projects`}
+            />
+            <Check
+              ok={summary.thresholds.hasOneHeroCandidate}
+              label="At least 1 hero candidate"
+              detail={`${summary.servicesWithHeroCandidate} hero-ready services`}
+            />
           </Section>
 
           {/* Quick links */}
@@ -170,6 +215,12 @@ export default function LaunchAuditPage() {
                 className="font-ui rounded-sm bg-red px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90"
               >
                 Lead Inbox
+              </Link>
+              <Link
+                href="/admin/content-audit"
+                className="font-ui rounded-sm border border-gray-300 bg-white px-4 py-1.5 text-xs font-semibold text-charcoal hover:bg-gray-50"
+              >
+                Content Audit
               </Link>
               <Link
                 href="/sitemap.xml"
