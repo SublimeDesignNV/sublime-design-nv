@@ -46,3 +46,18 @@ model AssetTag {
 
   @@id([assetId, serviceTypeId])
 }
+
+model Lead {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  email     String
+  phone     String
+  service   String
+  location  String
+  timeline  String?
+  budget    String?
+  message   String
+  photoUrls String[]
+  status    String   @default("new")
+}

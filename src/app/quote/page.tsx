@@ -1,161 +1,642 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import Link from "next/link";
+import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 
-type FormState = {
+// ─── Service options ──────────────────────────────────────────────────────────
+// Kept inline so this file has no server imports (it's a client component).
+const SERVICE_OPTIONS = [
+  { slug: "floating-shelves", label: "Floating Shelves" },
+  { slug: "built-ins", label: "Built-Ins & Bookcases" },
+  { slug: "pantry-pullouts", label: "Pantry Pullouts" },
+  { slug: "closet-systems", label: "Closet Systems" },
+  { slug: "custom-cabinetry", label: "Custom Cabinetry" },
+  { slug: "mantels", label: "Fireplace Mantels" },
+] as const;
+
+const TIMELINE_OPTIONS = [
+  { value: "", label: "No preference" },
+  { value: "asap", label: "As soon as possible" },
+  { value: "1-month", label: "Within a month" },
+  { value: "1-3-months", label: "1–3 months" },
+  { value: "3-plus-months", label: "3+ months out" },
+] as const;
+
+const BUDGET_OPTIONS = [
+  { value: "", label: "Prefer not to say" },
+  { value: "under-2k", label: "Under $2,000" },
+  { value: "2k-5k", label: "$2,000 – $5,000" },
+  { value: "5k-10k", label: "$5,000 – $10,000" },
+  { value: "over-10k", label: "Over $10,000" },
+] as const;
+
+const MAX_PHOTOS = 5;
+const MAX_FILE_MB = 10;
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type PhotoState = {
+  file: File;
+  previewUrl: string;
+  status: "pending" | "uploading" | "done" | "error";
+  cloudUrl?: string;
+  errorMsg?: string;
+};
+
+type FormFields = {
   name: string;
   email: string;
   phone: string;
-  projectType: string;
+  service: string;
+  location: string;
+  timeline: string;
+  budget: string;
   message: string;
+  consent: boolean;
 };
 
-const DEFAULT_FORM: FormState = {
+type FieldErrors = Partial<Record<keyof FormFields, string>>;
+
+const DEFAULT_FORM: FormFields = {
   name: "",
   email: "",
   phone: "",
-  projectType: "floating-shelves",
+  service: "",
+  location: "",
+  timeline: "",
+  budget: "",
   message: "",
+  consent: false,
 };
 
-export default function QuotePage() {
-  const [form, setForm] = useState<FormState>(DEFAULT_FORM);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+function validateFields(f: FormFields): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!f.name.trim()) errors.name = "Name is required.";
+  if (!f.email.trim()) errors.email = "Email is required.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) errors.email = "Enter a valid email.";
+  if (!f.phone.trim()) errors.phone = "Phone is required.";
+  if (!f.service) errors.service = "Please select a service.";
+  if (!f.location.trim()) errors.location = "Location is required.";
+  if (!f.message.trim()) errors.message = "Please describe your project.";
+  if (!f.consent) errors.consent = "Please confirm you agree to be contacted.";
+  return errors;
+}
+
+function serviceSuccessCopy(slug: string): string {
+  const map: Record<string, string> = {
+    "floating-shelves": "We'll review your floating shelves request and reach out shortly with next steps.",
+    "built-ins": "We'll review your built-ins request and reach out shortly with next steps.",
+    "pantry-pullouts": "We'll review your pantry pullout request and reach out shortly with next steps.",
+    "closet-systems": "We'll review your closet system request and reach out shortly with next steps.",
+    "custom-cabinetry": "We'll review your custom cabinetry request and reach out shortly with next steps.",
+    "mantels": "We'll review your mantel request and reach out shortly with next steps.",
+  };
+  return map[slug] ?? "We'll review your request and reach out shortly with next steps.";
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="mt-1 text-xs text-red-600">{msg}</p>;
+}
+
+function inputClass(hasError: boolean) {
+  return `mt-1 w-full rounded-md border px-3 py-2.5 text-sm text-charcoal shadow-sm transition focus:outline-none focus:ring-2 focus:ring-red/40 ${
+    hasError ? "border-red-400 bg-red-50" : "border-gray-300 bg-white"
+  }`;
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-4 font-ui text-xs uppercase tracking-widest text-gray-mid">{children}</p>
+  );
+}
+
+// ─── Photo upload section ─────────────────────────────────────────────────────
+
+function PhotoUploadSection({
+  photos,
+  onAdd,
+  onRemove,
+  uploadsEnabled,
+}: {
+  photos: PhotoState[];
+  onAdd: (files: FileList) => void;
+  onRemove: (index: number) => void;
+  uploadsEnabled: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canAdd = photos.length < MAX_PHOTOS && uploadsEnabled;
+
+  return (
+    <div>
+      <SectionLabel>Photos (optional)</SectionLabel>
+      <p className="mb-3 text-sm text-gray-mid">
+        Upload up to {MAX_PHOTOS} photos of the space — before shots, measurements, or inspiration.
+      </p>
+
+      {photos.length > 0 ? (
+        <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {photos.map((photo, i) => (
+            <div key={i} className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-cream">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.previewUrl}
+                alt={`Upload ${i + 1}`}
+                className="h-full w-full object-cover"
+              />
+              {/* Status overlay */}
+              {photo.status === "uploading" ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                  <svg className="h-5 w-5 animate-spin text-red" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                </div>
+              ) : photo.status === "error" ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-50/90">
+                  <span className="text-xs text-red-600">Failed</span>
+                </div>
+              ) : photo.status === "done" ? (
+                <div className="absolute right-1 top-1">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[9px] text-white">✓</span>
+                </div>
+              ) : null}
+              {/* Remove button */}
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-[10px] text-white hover:bg-black/70"
+                aria-label="Remove photo"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {canAdd ? (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_TYPES.join(",")}
+            className="sr-only"
+            onChange={(e) => {
+              if (e.target.files) onAdd(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-cream px-4 py-3 text-sm text-gray-mid transition hover:border-red hover:text-red"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add photos {photos.length > 0 ? `(${photos.length}/${MAX_PHOTOS})` : ""}
+          </button>
+        </>
+      ) : photos.length >= MAX_PHOTOS ? (
+        <p className="text-sm text-gray-mid">Maximum {MAX_PHOTOS} photos reached.</p>
+      ) : null}
+    </div>
+  );
+}
+
+// ─── Success state ────────────────────────────────────────────────────────────
+
+function SuccessState({ service }: { service: string }) {
+  return (
+    <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+        <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h2 className="text-xl font-semibold text-charcoal">Request received — thank you!</h2>
+      <p className="mx-auto mt-3 max-w-sm text-sm text-gray-mid">
+        {serviceSuccessCopy(service)}
+      </p>
+      <p className="mt-2 text-sm text-gray-mid">
+        Expect a response within one business day. We may call or email to confirm a few details.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+        <Link href="/projects" className="font-ui text-sm font-semibold text-red hover:underline">
+          Browse our work →
+        </Link>
+        <Link href="/services" className="font-ui text-sm font-semibold text-navy hover:underline">
+          View all services →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function QuotePage() {
+  const [form, setForm] = useState<FormFields>(DEFAULT_FORM);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [photos, setPhotos] = useState<PhotoState[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitError, setSubmitError] = useState("");
+
+  const uploadsEnabled = Boolean(
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
+  );
+
+  // ── Field setters ─────────────────────────────────────────────────────────
+
+  function set<K extends keyof FormFields>(key: K, value: FormFields[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+  }
+
+  // ── Photo handling ────────────────────────────────────────────────────────
+
+  function addPhotos(files: FileList) {
+    const incoming = Array.from(files);
+    const remaining = MAX_PHOTOS - photos.length;
+    const batch = incoming.slice(0, remaining);
+
+    const newStates: PhotoState[] = batch.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: "pending",
+    }));
+
+    setPhotos((prev) => {
+      const updated = [...prev, ...newStates];
+      // Start uploads immediately for each new photo
+      updated.slice(prev.length).forEach((_, relIdx) => {
+        const absIdx = prev.length + relIdx;
+        uploadPhoto(absIdx, updated[absIdx]);
+      });
+      return updated;
+    });
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      const updated = [...prev];
+      URL.revokeObjectURL(updated[index].previewUrl);
+      updated.splice(index, 1);
+      return updated;
+    });
+  }
+
+  function uploadPhoto(index: number, photo: PhotoState) {
+    if (!uploadsEnabled) return;
+
+    // Validate client-side
+    if (!ACCEPTED_TYPES.includes(photo.file.type)) {
+      setPhotos((prev) => {
+        const updated = [...prev];
+        if (updated[index]) {
+          updated[index] = { ...updated[index], status: "error", errorMsg: "Unsupported format" };
+        }
+        return updated;
+      });
+      return;
+    }
+
+    if (photo.file.size > MAX_FILE_MB * 1024 * 1024) {
+      setPhotos((prev) => {
+        const updated = [...prev];
+        if (updated[index]) {
+          updated[index] = { ...updated[index], status: "error", errorMsg: `Max ${MAX_FILE_MB}MB` };
+        }
+        return updated;
+      });
+      return;
+    }
+
+    setPhotos((prev) => {
+      const updated = [...prev];
+      if (updated[index]) updated[index] = { ...updated[index], status: "uploading" };
+      return updated;
+    });
+
+    uploadLeadPhoto(photo.file)
+      .then((result) => {
+        setPhotos((prev) => {
+          const updated = [...prev];
+          if (updated[index]) {
+            updated[index] = { ...updated[index], status: "done", cloudUrl: result.secureUrl };
+          }
+          return updated;
+        });
+      })
+      .catch(() => {
+        setPhotos((prev) => {
+          const updated = [...prev];
+          if (updated[index]) {
+            updated[index] = { ...updated[index], status: "error", errorMsg: "Upload failed" };
+          }
+          return updated;
+        });
+      });
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const fieldErrors = validateFields(form);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      const firstKey = Object.keys(fieldErrors)[0];
+      document.getElementById(`field-${firstKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // Wait if any uploads are still in progress
+    const stillUploading = photos.some((p) => p.status === "uploading");
+    if (stillUploading) {
+      setSubmitError("Photos are still uploading. Please wait a moment.");
+      setSubmitStatus("error");
+      return;
+    }
+
+    const photoUrls = photos
+      .filter((p) => p.status === "done" && p.cloudUrl)
+      .map((p) => p.cloudUrl as string);
+
     setIsSubmitting(true);
-    setStatus("idle");
-    setErrorMessage("");
+    setSubmitStatus("idle");
+    setSubmitError("");
 
     try {
       const response = await fetch("/api/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          service: form.service,
+          location: form.location,
+          timeline: form.timeline || undefined,
+          budget: form.budget || undefined,
+          message: form.message,
+          photoUrls,
+          consent: form.consent,
+        }),
       });
 
       const data = (await response.json()) as { ok?: boolean; error?: string };
+
       if (!response.ok || !data.ok) {
-        throw new Error(data.error || "Unable to submit form.");
+        throw new Error(data.error ?? "Unable to submit. Please try again or call us directly.");
       }
 
-      setStatus("success");
-      setForm(DEFAULT_FORM);
-    } catch (error) {
-      setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "Unable to submit form.");
+      setSubmitStatus("success");
+    } catch (err) {
+      setSubmitStatus("error");
+      setSubmitError(err instanceof Error ? err.message : "Unable to submit.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  if (submitStatus === "success") {
+    return (
+      <main className="bg-cream pt-28 pb-20">
+        <div className="mx-auto max-w-2xl px-4 md:px-8">
+          <SuccessState service={form.service} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="bg-cream pt-28 pb-20">
-      <div className="mx-auto max-w-3xl px-4 md:px-8">
+      <div className="mx-auto max-w-2xl px-4 md:px-8">
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Get a Free Quote</p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Tell Us About Your Project</h1>
-        <p className="mt-4 max-w-2xl text-gray-mid">
-          Share a few details and we will follow up with next steps and a clear estimate.
+        <p className="mt-4 text-gray-mid">
+          Share a few details and we will follow up with next steps, timeline, and pricing — no
+          commitment required.
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="text-sm text-charcoal">
-              Name*
-              <input
-                required
-                type="text"
-                value={form.name}
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
-              />
-            </label>
+        <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-8">
 
-            <label className="text-sm text-charcoal">
-              Email*
-              <input
-                required
-                type="email"
-                value={form.email}
-                onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
-              />
-            </label>
+          {/* ── Section 1: Contact info ────────────────────────────────── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <SectionLabel>Contact Info</SectionLabel>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div id="field-name">
+                <label className="block text-sm font-medium text-charcoal">
+                  Full Name <span className="text-red">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={form.name}
+                  onChange={(e) => set("name", e.target.value)}
+                  className={inputClass(!!errors.name)}
+                  placeholder="Jane Smith"
+                />
+                <FieldError msg={errors.name} />
+              </div>
+
+              <div id="field-email">
+                <label className="block text-sm font-medium text-charcoal">
+                  Email <span className="text-red">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={form.email}
+                  onChange={(e) => set("email", e.target.value)}
+                  className={inputClass(!!errors.email)}
+                  placeholder="jane@example.com"
+                />
+                <FieldError msg={errors.email} />
+              </div>
+
+              <div id="field-phone" className="sm:col-span-2">
+                <label className="block text-sm font-medium text-charcoal">
+                  Phone <span className="text-red">*</span>
+                </label>
+                <input
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  className={inputClass(!!errors.phone)}
+                  placeholder="(702) 555-0100"
+                />
+                <FieldError msg={errors.phone} />
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="text-sm text-charcoal">
-              Phone*
-              <input
-                required
-                type="tel"
-                value={form.phone}
-                onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
-              />
-            </label>
+          {/* ── Section 2: Project details ─────────────────────────────── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <SectionLabel>Project Details</SectionLabel>
 
-            <label className="text-sm text-charcoal">
-              Project Type*
-              <select
-                required
-                value={form.projectType}
-                onChange={(event) => setForm((prev) => ({ ...prev, projectType: event.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
-              >
-                <option value="floating-shelves">Floating Shelves</option>
-                <option value="built-ins">Built-ins</option>
-                <option value="pantry-pullouts">Pantry Pullouts</option>
-                <option value="closet-systems">Closet Systems</option>
-                <option value="other">Other Finish Carpentry</option>
-              </select>
-            </label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div id="field-service">
+                <label className="block text-sm font-medium text-charcoal">
+                  Service <span className="text-red">*</span>
+                </label>
+                <select
+                  required
+                  value={form.service}
+                  onChange={(e) => set("service", e.target.value)}
+                  className={inputClass(!!errors.service)}
+                >
+                  <option value="">Select a service…</option>
+                  {SERVICE_OPTIONS.map((opt) => (
+                    <option key={opt.slug} value={opt.slug}>
+                      {opt.label}
+                    </option>
+                  ))}
+                  <option value="other">Other / Not sure</option>
+                </select>
+                <FieldError msg={errors.service} />
+              </div>
+
+              <div id="field-location">
+                <label className="block text-sm font-medium text-charcoal">
+                  Neighborhood / City <span className="text-red">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  className={inputClass(!!errors.location)}
+                  placeholder="Henderson, NV"
+                />
+                <FieldError msg={errors.location} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-charcoal">Timeline</label>
+                <select
+                  value={form.timeline}
+                  onChange={(e) => set("timeline", e.target.value)}
+                  className={inputClass(false)}
+                >
+                  {TIMELINE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-charcoal">Budget Range</label>
+                <select
+                  value={form.budget}
+                  onChange={(e) => set("budget", e.target.value)}
+                  className={inputClass(false)}
+                >
+                  {BUDGET_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div id="field-message" className="sm:col-span-2">
+                <label className="block text-sm font-medium text-charcoal">
+                  Project Description <span className="text-red">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={5}
+                  value={form.message}
+                  onChange={(e) => set("message", e.target.value)}
+                  className={inputClass(!!errors.message)}
+                  placeholder="Describe the room, scope, and any dimensions or details you have. The more context, the better."
+                />
+                <FieldError msg={errors.message} />
+              </div>
+            </div>
           </div>
 
-          <label className="block text-sm text-charcoal">
-            Project Details*
-            <textarea
-              required
-              rows={5}
-              value={form.message}
-              onChange={(event) => setForm((prev) => ({ ...prev, message: event.target.value }))}
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
-              placeholder="Room, scope, timeline, and anything else helpful."
+          {/* ── Section 3: Photos ─────────────────────────────────────── */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <PhotoUploadSection
+              photos={photos}
+              onAdd={addPhotos}
+              onRemove={removePhoto}
+              uploadsEnabled={uploadsEnabled}
             />
-          </label>
-
-          <div className="rounded-md border border-dashed border-gray-300 bg-cream p-3 text-sm text-gray-mid">
-            Optional photo upload is coming next.
+            {!uploadsEnabled ? (
+              <p className="mt-3 text-xs text-gray-mid">
+                Photo upload is not configured. You can email photos directly after submitting.
+              </p>
+            ) : null}
           </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="font-ui rounded-sm bg-red px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-dark disabled:opacity-60"
-          >
-            {isSubmitting ? "Sending..." : "Submit Quote Request"}
-          </button>
-
-          {status === "success" ? (
-            <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-              Thanks, your request was sent. Expect a response within one business day.
+          {/* ── Consent + Submit ──────────────────────────────────────── */}
+          <div className="space-y-4">
+            <div id="field-consent">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.consent}
+                  onChange={(e) => set("consent", e.target.checked)}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-red"
+                />
+                <span className="text-sm text-charcoal">
+                  I agree to be contacted by Sublime Design NV about this quote request.{" "}
+                  <span className="text-red">*</span>
+                </span>
+              </label>
+              <FieldError msg={errors.consent} />
             </div>
-          ) : null}
 
-          {status === "error" ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {errorMessage}
-            </div>
-          ) : null}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="font-ui w-full rounded-sm bg-red px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60 sm:w-auto"
+            >
+              {isSubmitting ? "Sending…" : "Submit Quote Request"}
+            </button>
+
+            {submitStatus === "error" ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            ) : null}
+          </div>
         </form>
 
-        <p className="mt-6 text-sm text-gray-mid">
-          Prefer to call? <a href="tel:+17028479016" className="font-semibold text-red">(702) 847-9016</a>
-          {" "}or go back to <Link href="/" className="font-semibold text-red">home</Link>.
+        <p className="mt-8 text-sm text-gray-mid">
+          Prefer to call?{" "}
+          <a href="tel:+17028479016" className="font-semibold text-red">
+            (702) 847-9016
+          </a>{" "}
+          · Or go back to{" "}
+          <Link href="/" className="font-semibold text-red">
+            home
+          </Link>
+          .
         </p>
       </div>
     </main>

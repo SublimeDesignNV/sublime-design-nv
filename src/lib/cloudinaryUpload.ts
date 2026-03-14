@@ -30,7 +30,10 @@ function getUploadConfig() {
   return { cloudName, uploadPreset };
 }
 
-export async function uploadFileToCloudinary(file: File): Promise<CloudinaryUploadResult> {
+async function uploadToCloudinary(
+  file: File,
+  folder: string,
+): Promise<CloudinaryUploadResult> {
   const { cloudName, uploadPreset } = getUploadConfig();
   const resourceType = file.type.startsWith("video/") ? "video" : "image";
   const kind = resourceType === "video" ? "VIDEO" : "IMAGE";
@@ -38,14 +41,11 @@ export async function uploadFileToCloudinary(file: File): Promise<CloudinaryUplo
   const formData = new FormData();
   formData.append("file", file);
   formData.append("upload_preset", uploadPreset);
-  formData.append("folder", "sublime-design-nv");
+  formData.append("folder", folder);
 
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
-    {
-      method: "POST",
-      body: formData,
-    },
+    { method: "POST", body: formData },
   );
 
   if (!response.ok) {
@@ -65,4 +65,19 @@ export async function uploadFileToCloudinary(file: File): Promise<CloudinaryUplo
     format: data.format,
     bytes: data.bytes,
   };
+}
+
+export async function uploadFileToCloudinary(file: File): Promise<CloudinaryUploadResult> {
+  return uploadToCloudinary(file, "Sublime/Portfolio");
+}
+
+/**
+ * Upload a lead/quote photo to the dedicated leads folder.
+ * Path: Sublime/Leads/<yyyy>/<mm>
+ */
+export async function uploadLeadPhoto(file: File): Promise<CloudinaryUploadResult> {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  return uploadToCloudinary(file, `Sublime/Leads/${yyyy}/${mm}`);
 }
