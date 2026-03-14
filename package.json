@@ -10,7 +10,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "portfolio:upload": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/uploadPortfolio.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

@@ -513,6 +513,21 @@ export async function updateAssetContext(publicId: string, context: Record<strin
   }
 }
 
+/**
+ * List assets tagged with `service:<slug>`.
+ * Searches across all folders, so it covers both Sublime/Projects and Sublime/Portfolio.
+ */
+export async function listAssetsByServiceTag(
+  serviceSlug: string,
+  maxResults = 50,
+): Promise<CloudinaryAsset[]> {
+  const resources = await searchByExpression(
+    `tags=service:${serviceSlug}`,
+    maxResults,
+  );
+  return resources.map(mapResource);
+}
+
 export async function addAssetTags(publicId: string, tags: string[]) {
   const cleanTags = Array.from(
     new Set(
