@@ -14,6 +14,7 @@ import { getReviewsByService } from "@/content/reviews";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
 import { getTestimonialsByService } from "@/content/testimonials";
+import { getServiceContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical } from "@/lib/seo";
@@ -34,12 +35,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: "Service page not found.",
     };
   }
+  const readiness = await getServiceContentAuditRowBySlug(service.slug);
   return {
     title: service.seoTitle,
     description: service.seoDescription,
     alternates: {
       canonical: buildFacetCanonical(`/services/${service.slug}`),
     },
+    robots: readiness?.shouldNoindex ? { index: false, follow: true } : undefined,
     openGraph: {
       title: service.seoTitle,
       description: service.seoDescription,
@@ -179,6 +182,9 @@ export default async function ServiceDetailPage({ params }: Props) {
   const relatedServiceDefs = service.relatedServices
     .map((slug) => ACTIVE_SERVICES.find((s) => s.slug === slug))
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
+  const primaryArea = ACTIVE_AREAS.find((area) =>
+    area.relatedServiceSlugs.includes(service.slug),
+  );
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -248,7 +254,12 @@ export default async function ServiceDetailPage({ params }: Props) {
         ) : hasRegistryProjects ? (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {registryProjects.slice(0, 3).map((project) => (
-              <ProjectCard key={project.slug} project={project} pageType="service" />
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                pageType="service"
+                sourceSlug={service.slug}
+              />
             ))}
           </div>
         ) : (
@@ -347,6 +358,26 @@ export default async function ServiceDetailPage({ params }: Props) {
             ctaLabel={proofProject ? `View ${service.shortTitle} Project` : "View Projects"}
             eventContext="service_proof_cta"
           />
+          {primaryArea ? (
+            <p className="mt-4 text-sm text-gray-mid">
+              Need local examples? See recent {service.shortTitle.toLowerCase()} work in{" "}
+              <TrackedLink
+                href={`/areas/${primaryArea.slug}`}
+                eventName="proof_cta_click"
+                eventParams={{
+                  page_type: "service",
+                  service_slug: service.slug,
+                  destination_type: "area",
+                  destination_slug: primaryArea.slug,
+                  cta_location: "service_primary_area_link",
+                }}
+                className="font-semibold text-red hover:underline"
+              >
+                {primaryArea.name}
+              </TrackedLink>
+              .
+            </p>
+          ) : null}
         </section>
       ) : null}
 

@@ -133,15 +133,18 @@ export function getAreaServices(areaSlug: string) {
 }
 
 export function getAreaReviews(areaSlug: string) {
+  const matching = getDirectAreaReviews(areaSlug);
+  return matching.length ? matching : FEATURED_REVIEWS.slice(0, 2);
+}
+
+export function getDirectAreaReviews(areaSlug: string) {
   const area = findArea(areaSlug);
   if (!area) return [];
 
   const areaProjects = new Set(getAreaProjects(areaSlug).map((project) => project.slug));
-  const matching = REVIEW_LIST.filter((review) => {
+  return REVIEW_LIST.filter((review) => {
     const locationMatch = review.location.toLowerCase().includes(area.name.toLowerCase());
     const projectMatch = review.projectSlug ? areaProjects.has(review.projectSlug) : false;
     return locationMatch || projectMatch;
   });
-
-  return matching.length ? matching : FEATURED_REVIEWS.slice(0, 2);
 }

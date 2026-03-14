@@ -8,6 +8,7 @@ import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholde
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { findArea, getAreaProjects, getAreaReviews, getAreaServices } from "@/content/areas";
+import { getAreaContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getServiceCardPreviewAsset, type ServicePreviewAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical } from "@/lib/seo";
 
@@ -28,12 +29,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const readiness = await getAreaContentAuditRowBySlug(area.slug);
+
   return {
     title: area.seoTitle,
     description: area.seoDescription,
     alternates: {
       canonical: buildFacetCanonical(`/areas/${area.slug}`),
     },
+    robots: readiness?.shouldNoindex ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -124,6 +128,7 @@ export default async function AreaDetailPage({ params }: Props) {
   const areaServices = getAreaServices(area.slug).slice(0, 6);
   const areaProjects = getAreaProjects(area.slug).slice(0, 3);
   const areaReviews = getAreaReviews(area.slug).slice(0, 3);
+  const leadProject = areaProjects[0];
   const nearbyAreas = area.nearbyAreas
     .map((slug) => findArea(slug))
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
@@ -199,7 +204,12 @@ export default async function AreaDetailPage({ params }: Props) {
         {areaProjects.length ? (
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {areaProjects.map((project) => (
-              <ProjectCard key={project.slug} project={project} pageType="area" />
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                pageType="area"
+                sourceSlug={area.slug}
+              />
             ))}
           </div>
         ) : (
@@ -225,6 +235,24 @@ export default async function AreaDetailPage({ params }: Props) {
           ctaLabel="Start with a Quote"
           eventContext="area_proof_cta"
         />
+        {leadProject ? (
+          <div className="mt-4">
+            <TrackedLink
+              href={`/projects/${leadProject.slug}`}
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: "area",
+                area_slug: area.slug,
+                destination_type: "project",
+                destination_slug: leadProject.slug,
+                cta_location: "area_lead_project_link",
+              }}
+              className="font-ui text-sm font-semibold text-red hover:underline"
+            >
+              See the strongest {area.name} project →
+            </TrackedLink>
+          </div>
+        ) : null}
       </section>
 
       <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">

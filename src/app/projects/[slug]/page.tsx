@@ -8,11 +8,13 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
+import { findArea } from "@/content/areas";
 import { findProject, getProjectsByService } from "@/content/projects";
 import { getRelatedReviews } from "@/content/reviews";
 import { findService } from "@/content/services";
 import type { TestimonialDef } from "@/content/testimonials";
 import { findTestimonial, getTestimonialsByProject } from "@/content/testimonials";
+import { getProjectContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
@@ -35,6 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const service = findService(project.serviceSlug);
+  const readiness = await getProjectContentAuditRowBySlug(project.slug);
   const heroAsset = await getProjectCardPreviewAsset(
     project.slug,
     project.galleryServiceSlug ?? project.serviceSlug,
@@ -50,6 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: buildFacetCanonical(`/projects/${project.slug}`),
     },
+    robots: readiness?.shouldNoindex ? { index: false, follow: true } : undefined,
     openGraph: {
       title: openGraphTitle,
       description: openGraphDescription,
@@ -248,6 +252,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   const heroImage = images[0];
   const serviceLabel =
     serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ");
+  const projectArea = findArea(project.location.city);
   const projectCtaHeading = `Planning similar ${serviceLabel.toLowerCase()} in ${project.location.cityLabel}?`;
   const projectCtaCopy =
     project.ctaLine ??
@@ -320,6 +325,26 @@ export default async function ProjectDetailPage({ params }: Props) {
           </Link>
           .
         </p>
+        {projectArea ? (
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-mid">
+            See more work in{" "}
+            <TrackedLink
+              href={`/areas/${projectArea.slug}`}
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: "project",
+                project_slug: project.slug,
+                destination_type: "area",
+                destination_slug: projectArea.slug,
+                cta_location: "project_area_link",
+              }}
+              className="font-semibold text-red hover:underline"
+            >
+              {projectArea.name}
+            </TrackedLink>
+            {" "}if you want nearby examples before you quote the job.
+          </p>
+        ) : null}
       </section>
 
       {/* ── 3. Case study content ───────────────────────────────────── */}

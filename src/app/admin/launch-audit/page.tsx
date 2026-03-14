@@ -5,8 +5,12 @@ import { isAdminSession } from "@/lib/adminAuth";
 import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import {
+  getAreaContentAuditRows,
   getFlagshipProjectAuditRows,
   getLaunchReadinessSummary,
+  getProjectContentAuditRows,
+  getPromotionReadySummary,
+  getServiceContentAuditRows,
 } from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +83,10 @@ export default async function LaunchAuditPage() {
   const hasFromEmail = Boolean(process.env.LEADS_FROM_EMAIL);
   const summary = await getLaunchReadinessSummary();
   const flagshipRows = await getFlagshipProjectAuditRows();
+  const areaRows = await getAreaContentAuditRows();
+  const projectRows = await getProjectContentAuditRows();
+  const serviceRows = await getServiceContentAuditRows();
+  const promotionReady = await getPromotionReadySummary();
   const hasCloudinaryConfigured =
     hasCloudinaryCloud &&
     hasCloudinaryPreset &&
@@ -88,6 +96,7 @@ export default async function LaunchAuditPage() {
 
   // ── Content counts ────────────────────────────────────────────────────────
   const activeServices = summary.activeServices;
+  const activeAreas = summary.activeAreas;
   const totalProjects = summary.totalProjects;
   const featuredProjects = FEATURED_PROJECTS.length;
   const flagshipProjects = FLAGSHIP_PROJECTS.length;
@@ -176,10 +185,14 @@ export default async function LaunchAuditPage() {
           {/* Content counts */}
           <Section title="Content Registry">
             <Stat label="Active services" value={activeServices} />
+            <Stat label="Active areas" value={activeAreas} />
             <Stat label="Project case studies" value={totalProjects} />
             <Stat label="Flagship projects" value={flagshipProjects} />
             <Stat label="Featured projects" value={featuredProjects} />
             <Stat label="Hero-ready services" value={summary.servicesWithHeroCandidate} />
+            <Stat label="Promotion-ready services" value={summary.promotionReadyServices} />
+            <Stat label="Promotion-ready projects" value={summary.promotionReadyProjects} />
+            <Stat label="Promotion-ready areas" value={summary.promotionReadyAreas} />
             <Stat label="Featured testimonials" value={featuredTestimonials} />
           </Section>
 
@@ -239,6 +252,41 @@ export default async function LaunchAuditPage() {
                 </div>
               </div>
             ))}
+          </Section>
+
+          <Section title="Promotion Ready">
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Flagship projects ready to promote</p>
+              <p className="mt-1 text-xs text-gray-mid">
+                {promotionReady.projects.length
+                  ? promotionReady.projects.map((row) => row.title).join(" · ")
+                  : "No flagship projects are fully promotion-ready yet."}
+              </p>
+            </div>
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Services ready to promote</p>
+              <p className="mt-1 text-xs text-gray-mid">
+                {promotionReady.services.length
+                  ? promotionReady.services.map((row) => row.title).join(" · ")
+                  : "No service pages are fully promotion-ready yet."}
+              </p>
+            </div>
+            <div className="py-3">
+              <p className="text-sm font-medium text-charcoal">Areas ready to promote</p>
+              <p className="mt-1 text-xs text-gray-mid">
+                {promotionReady.areas.length
+                  ? promotionReady.areas.map((row) => row.name).join(" · ")
+                  : "No area pages are fully promotion-ready yet."}
+              </p>
+            </div>
+          </Section>
+
+          <Section title="Noindex Guardrails">
+            <Check
+              ok
+              label="Thin pages are being identified for noindex guardrails"
+              detail={`${serviceRows.filter((row) => row.shouldNoindex).length} service pages, ${projectRows.filter((row) => row.shouldNoindex).length} project pages, and ${areaRows.filter((row) => row.shouldNoindex).length} area pages currently qualify for noindex until proof density improves.`}
+            />
           </Section>
 
           {/* Quick links */}

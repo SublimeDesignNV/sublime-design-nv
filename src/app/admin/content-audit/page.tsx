@@ -2,8 +2,12 @@ import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
 import AdminNav from "@/components/admin/AdminNav";
 import { isAdminSession } from "@/lib/adminAuth";
 import {
+  getAreaContentAuditRows,
   getFlagshipProjectAuditRows,
+  getProjectContentAuditRows,
+  getPromotionReadySummary,
   getServiceContentAuditRows,
+  type ReadinessStatus,
 } from "@/lib/contentAudit.server";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +67,21 @@ function CoverageBadge({ status }: { status: "empty" | "thin" | "healthy" }) {
   );
 }
 
+function ReadinessBadge({ status }: { status: ReadinessStatus }) {
+  const styles =
+    status === "launch-ready"
+      ? "bg-green-100 text-green-800"
+      : status === "improving"
+        ? "bg-yellow-100 text-yellow-800"
+        : "bg-red-100 text-red-700";
+
+  return (
+    <span className={`inline-block rounded px-2 py-0.5 font-mono text-xs ${styles}`}>
+      {status}
+    </span>
+  );
+}
+
 function SourceBadge({ source }: { source: "cloudinary" | "seed" | "mixed" | "empty" }) {
   const styles =
     source === "cloudinary"
@@ -84,16 +103,21 @@ export default async function ContentAuditPage() {
   }
 
   const rows = await getServiceContentAuditRows();
+  const projectRows = await getProjectContentAuditRows();
+  const areaRows = await getAreaContentAuditRows();
   const flagshipRows = await getFlagshipProjectAuditRows();
+  const promotionReady = await getPromotionReadySummary();
   const totalCloudinary = rows.reduce((sum, row) => sum + row.cloudinaryCount, 0);
   const totalSeed = rows.reduce((sum, row) => sum + row.seedCount, 0);
   const readyServices = rows.filter((row) => row.actualImageCount > 0).length;
   const heroReadyServices = rows.filter((row) => row.hasHeroCandidate).length;
   const healthyServices = rows.filter((row) => row.coverageStatus === "healthy").length;
+  const launchReadyProjects = projectRows.filter((row) => row.readinessStatus === "launch-ready").length;
+  const launchReadyAreas = areaRows.filter((row) => row.readinessStatus === "launch-ready").length;
 
   return (
     <main className="min-h-screen bg-cream px-4 pb-20 pt-20 md:px-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <a href="/admin" className="font-ui text-sm font-semibold text-red">
           ← Admin
         </a>
@@ -104,12 +128,14 @@ export default async function ContentAuditPage() {
         <AdminNav />
 
         {/* Summary */}
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
             { label: "Services", value: rows.length },
             { label: "Has Content", value: readyServices },
             { label: "Hero Ready", value: heroReadyServices },
             { label: "Healthy", value: healthyServices },
+            { label: "Projects Ready", value: launchReadyProjects },
+            { label: "Areas Ready", value: launchReadyAreas },
           ].map(({ label, value }) => (
             <div key={label} className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="font-mono text-3xl text-charcoal">{value}</p>
@@ -135,6 +161,12 @@ export default async function ContentAuditPage() {
                   "Actual",
                   "Completion",
                   "Coverage",
+                  "Fallback",
+                  "Projects",
+                  "Proof",
+                  "Areas",
+                  "Ready",
+                  "Score",
                   "Featured",
                   "Hero Ready",
                 ].map((h) => (
@@ -189,6 +221,18 @@ export default async function ContentAuditPage() {
                     <CoverageBadge status={row.coverageStatus} />
                   </td>
                   <td className="px-4 py-3">
+                    <Badge ok={!row.usingSeedFallback} label={row.usingSeedFallback ? "seed" : "live"} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.linkedProjectCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.linkedReviewCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.linkedAreaCoverageCount}</td>
+                  <td className="px-4 py-3">
+                    <ReadinessBadge status={row.readinessStatus} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">
+                    {row.readinessScore}/{row.readinessMaxScore}
+                  </td>
+                  <td className="px-4 py-3">
                     <Badge
                       ok={row.hasFeaturedImage}
                       label={row.hasFeaturedImage ? "yes" : "no"}
@@ -218,6 +262,108 @@ export default async function ContentAuditPage() {
           Run <code className="rounded bg-gray-100 px-1">npm run portfolio:upload</code> to push
           repo images to Cloudinary.
         </p>
+
+        <div className="mt-10 rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-xl text-charcoal">Promotion Ready</h2>
+          <p className="mt-1 text-sm text-gray-mid">
+            Pages with enough media, proof, metadata, and low seed reliance to actively share or promote.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div>
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Flagship Projects</p>
+              <div className="mt-3 space-y-2 text-sm text-charcoal">
+                {promotionReady.projects.length ? promotionReady.projects.map((row) => (
+                  <p key={row.slug}>{row.title}</p>
+                )) : <p className="text-gray-mid">No flagship pages are fully promotion-ready yet.</p>}
+              </div>
+            </div>
+            <div>
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Services</p>
+              <div className="mt-3 space-y-2 text-sm text-charcoal">
+                {promotionReady.services.length ? promotionReady.services.map((row) => (
+                  <p key={row.slug}>{row.title}</p>
+                )) : <p className="text-gray-mid">No service pages are fully promotion-ready yet.</p>}
+              </div>
+            </div>
+            <div>
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Areas</p>
+              <div className="mt-3 space-y-2 text-sm text-charcoal">
+                {promotionReady.areas.length ? promotionReady.areas.map((row) => (
+                  <p key={row.slug}>{row.name}</p>
+                )) : <p className="text-gray-mid">No area pages are fully promotion-ready yet.</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-xl text-charcoal">Project Readiness</h2>
+            <p className="mt-1 text-sm text-gray-mid">
+              Compact launch score for every project page, with deterministic thin vs launch-ready status.
+            </p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                {[
+                  "Project",
+                  "Type",
+                  "Location",
+                  "Images",
+                  "Hero",
+                  "Proof",
+                  "Google CTA",
+                  "Share Ready",
+                  "Ready",
+                  "Score",
+                ].map((heading) => (
+                  <th
+                    key={heading}
+                    className="px-4 py-3 font-ui text-xs uppercase tracking-widest text-gray-mid"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {projectRows.map((row) => (
+                <tr key={row.slug} className="border-b border-gray-100 last:border-0">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-charcoal">{row.title}</p>
+                    <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.isFlagship} label={row.isFlagship ? "flagship" : "standard"} />
+                  </td>
+                  <td className="px-4 py-3 text-charcoal">{row.location}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">
+                    {row.imageCount}/{row.targetImageCount}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasHeroImage} label={row.heroSource} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasReviewOrTestimonial} label={row.hasReviewOrTestimonial ? "yes" : "no"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasGoogleReviewCta} label={row.hasGoogleReviewCta ? "yes" : "no"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasShareReadyMetadataInputs} label={row.hasShareReadyMetadataInputs ? "yes" : "no"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ReadinessBadge status={row.readinessStatus} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">
+                    {row.readinessScore}/{row.readinessMaxScore}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className="mt-10 overflow-x-auto rounded-xl border border-gray-200 bg-white">
           <div className="border-b border-gray-200 px-4 py-3">
@@ -304,6 +450,63 @@ export default async function ContentAuditPage() {
           Flagship rows highlight where real proof is still thin: image totals, gallery health,
           hero source, seed fallback usage, linked review coverage, and richer before/after content.
         </p>
+
+        <div className="mt-10 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-xl text-charcoal">Area Readiness</h2>
+            <p className="mt-1 text-sm text-gray-mid">
+              Local landing pages with enough proof density to actively promote for service + area searches.
+            </p>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-left">
+                {[
+                  "Area",
+                  "Projects",
+                  "Flagship",
+                  "Proof",
+                  "Services",
+                  "SEO",
+                  "Ready",
+                  "Score",
+                ].map((heading) => (
+                  <th
+                    key={heading}
+                    className="px-4 py-3 font-ui text-xs uppercase tracking-widest text-gray-mid"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {areaRows.map((row) => (
+                <tr key={row.slug} className="border-b border-gray-100 last:border-0">
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-charcoal">{row.name}</p>
+                    <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.linkedProjectCount}</td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasFlagshipProject} label={row.hasFlagshipProject ? "yes" : "no"} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.linkedReviewCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.relatedServiceCount}</td>
+                  <td className="px-4 py-3">
+                    <Badge ok={row.hasSeoMetadata} label={row.hasSeoMetadata ? "yes" : "no"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ReadinessBadge status={row.readinessStatus} />
+                  </td>
+                  <td className="px-4 py-3 font-mono text-charcoal">
+                    {row.readinessScore}/{row.readinessMaxScore}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   );

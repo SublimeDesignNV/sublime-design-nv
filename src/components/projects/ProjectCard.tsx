@@ -11,6 +11,7 @@ type ProjectCardProps = {
   project: ProjectDef;
   priorityLabel?: string;
   pageType?: "home" | "projects" | "service" | "area";
+  sourceSlug?: string;
 };
 
 function clampStyle(lines: number) {
@@ -67,6 +68,7 @@ export default async function ProjectCard({
   project,
   priorityLabel,
   pageType = "projects",
+  sourceSlug,
 }: ProjectCardProps) {
   const preview = await getProjectCardPreviewAsset(
     project.slug,
@@ -94,6 +96,20 @@ export default async function ProjectCard({
               page_type: pageType,
               project_slug: project.slug,
               cta_location: "flagship_project_card",
+              ...(pageType === "area" && sourceSlug
+                ? {
+                    area_slug: sourceSlug,
+                    destination_type: "project",
+                    destination_slug: project.slug,
+                  }
+                : {}),
+              ...(pageType === "service" && sourceSlug
+                ? {
+                    service_slug: sourceSlug,
+                    destination_type: "project",
+                    destination_slug: project.slug,
+                  }
+                : {}),
             }
           : undefined
       }

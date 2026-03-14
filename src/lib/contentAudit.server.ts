@@ -1,9 +1,10 @@
 import "server-only";
 
+import { ACTIVE_AREAS, getAreaProjects, getAreaServices, getDirectAreaReviews, type AreaDef } from "@/content/areas";
 import { SERVICE_LIST, ACTIVE_SERVICES } from "@/content/services";
 import { FLAGSHIP_PROJECTS, FEATURED_PROJECTS, PROJECT_LIST, type ProjectDef } from "@/content/projects";
-import { getRelatedReviews } from "@/content/reviews";
-import { findTestimonial } from "@/content/testimonials";
+import { getRelatedReviews, getReviewsByService } from "@/content/reviews";
+import { findTestimonial, getTestimonialsByService } from "@/content/testimonials";
 import { listAssetsByServiceTag } from "@/lib/cloudinary.server";
 import {
   getContentCompletion,
@@ -14,7 +15,10 @@ import {
 } from "@/lib/contentTargets";
 import { getRepoImageCount } from "@/lib/portfolioContent.server";
 import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
+import { BUSINESS_PROFILE } from "@/lib/reviews.config";
 import { getSeedImageCount } from "@/lib/seedImages.server";
+
+export type ReadinessStatus = "thin" | "improving" | "launch-ready";
 
 export type ServiceContentAuditRow = {
   slug: string;
@@ -29,7 +33,59 @@ export type ServiceContentAuditRow = {
   coverageStatus: ContentCoverageStatus;
   hasFeaturedImage: boolean;
   hasHeroCandidate: boolean;
+  usingSeedFallback: boolean;
+  linkedProjectCount: number;
+  linkedReviewCount: number;
+  linkedAreaCoverageCount: number;
+  hasEnoughProofDensity: boolean;
+  readinessScore: number;
+  readinessMaxScore: number;
+  readinessStatus: ReadinessStatus;
+  promotionReady: boolean;
+  shouldNoindex: boolean;
   notes: string[];
+};
+
+export type ProjectContentAuditRow = {
+  slug: string;
+  title: string;
+  serviceSlug: string;
+  location: string;
+  isFlagship: boolean;
+  imageCount: number;
+  targetImageCount: number;
+  hasHeroImage: boolean;
+  heroSource: "cloudinary" | "seed" | "missing";
+  usingSeedFallback: boolean;
+  hasGalleryDepth: boolean;
+  hasService: boolean;
+  hasLocation: boolean;
+  hasSummary: boolean;
+  hasReviewOrTestimonial: boolean;
+  hasRichFlagshipProof: boolean;
+  hasShareReadyMetadataInputs: boolean;
+  hasGoogleReviewCta: boolean;
+  readinessScore: number;
+  readinessMaxScore: number;
+  readinessStatus: ReadinessStatus;
+  promotionReady: boolean;
+  shouldNoindex: boolean;
+};
+
+export type AreaContentAuditRow = {
+  slug: string;
+  name: string;
+  linkedProjectCount: number;
+  hasFlagshipProject: boolean;
+  linkedReviewCount: number;
+  relatedServiceCount: number;
+  hasIntroCopy: boolean;
+  hasSeoMetadata: boolean;
+  readinessScore: number;
+  readinessMaxScore: number;
+  readinessStatus: ReadinessStatus;
+  promotionReady: boolean;
+  shouldNoindex: boolean;
 };
 
 export type LaunchReadinessSummary = {
@@ -38,9 +94,13 @@ export type LaunchReadinessSummary = {
   flagshipProjects: number;
   featuredProjects: number;
   flagshipOrFeaturedProjects: number;
+  activeAreas: number;
   servicesWithContent: number;
   servicesWithHeroCandidate: number;
   healthyServices: number;
+  promotionReadyServices: number;
+  promotionReadyProjects: number;
+  promotionReadyAreas: number;
   thresholds: {
     hasSixActiveServices: boolean;
     hasSixProjects: boolean;
@@ -73,6 +133,12 @@ export type FlagshipProjectAuditRow = {
   hasOgReadyMetadata: boolean;
 };
 
+export type PromotionReadySummary = {
+  services: ServiceContentAuditRow[];
+  projects: ProjectContentAuditRow[];
+  areas: AreaContentAuditRow[];
+};
+
 function isFeaturedAsset(asset: {
   tags?: string[];
   context?: { featured?: string };
@@ -83,6 +149,18 @@ function isFeaturedAsset(asset: {
 
 function hasHeroTag(asset: { tags?: string[] }) {
   return asset.tags?.some((tag) => tag.toLowerCase() === "hero") ?? false;
+}
+
+function getReadinessStatus(score: number, maxScore: number): ReadinessStatus {
+  if (maxScore <= 0) return "thin";
+  const ratio = score / maxScore;
+  if (ratio >= 0.8) return "launch-ready";
+  if (ratio >= 0.5) return "improving";
+  return "thin";
+}
+
+function getProjectTargetImageCount(project: ProjectDef) {
+  return project.flagship ? getFlagshipProjectTarget(project.slug) : 4;
 }
 
 export async function getServiceContentAuditRows(): Promise<ServiceContentAuditRow[]> {
@@ -109,10 +187,42 @@ export async function getServiceContentAuditRows(): Promise<ServiceContentAuditR
         hasFeaturedImage ||
         cloudinaryCount > 0 ||
         seedCount > 0;
+      const linkedProjectCount = PROJECT_LIST.filter(
+        (project) => project.serviceSlug === service.slug,
+      ).length;
+      const linkedReviewCount =
+        getReviewsByService(service.slug).length + getTestimonialsByService(service.slug).length;
+      const linkedAreaCoverageCount = ACTIVE_AREAS.filter((area) =>
+        area.relatedServiceSlugs.includes(service.slug),
+      ).length;
+      const usingSeedFallback = cloudinaryCount === 0 && seedCount > 0;
+      const readinessChecks = [
+        actualImageCount > 0,
+        hasHeroCandidate,
+        hasFeaturedImage,
+        linkedProjectCount > 0,
+        linkedReviewCount > 0,
+        linkedAreaCoverageCount >= 3,
+        !usingSeedFallback || cloudinaryCount >= 3,
+      ];
+      const readinessScore = readinessChecks.filter(Boolean).length;
+      const readinessMaxScore = readinessChecks.length;
+      const readinessStatus = getReadinessStatus(readinessScore, readinessMaxScore);
+      const hasEnoughProofDensity =
+        linkedProjectCount > 0 &&
+        linkedReviewCount > 0 &&
+        actualImageCount >= Math.min(targetImageCount, 4);
+      const promotionReady =
+        readinessStatus === "launch-ready" &&
+        !usingSeedFallback &&
+        hasEnoughProofDensity;
       const notes: string[] = [];
 
       if (!hasHeroCandidate) notes.push("No hero candidate");
       if (!hasFeaturedImage) notes.push("No featured image");
+      if (usingSeedFallback) notes.push("Seed fallback still active");
+      if (linkedProjectCount === 0) notes.push("No linked projects");
+      if (linkedReviewCount === 0) notes.push("No linked proof");
 
       return {
         slug: service.slug,
@@ -127,14 +237,167 @@ export async function getServiceContentAuditRows(): Promise<ServiceContentAuditR
         coverageStatus,
         hasFeaturedImage,
         hasHeroCandidate,
+        usingSeedFallback,
+        linkedProjectCount,
+        linkedReviewCount,
+        linkedAreaCoverageCount,
+        hasEnoughProofDensity,
+        readinessScore,
+        readinessMaxScore,
+        readinessStatus,
+        promotionReady,
+        shouldNoindex:
+          readinessStatus === "thin" &&
+          actualImageCount <= 1 &&
+          linkedProjectCount === 0 &&
+          linkedReviewCount === 0,
         notes,
       } satisfies ServiceContentAuditRow;
     }),
   );
 }
 
-export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummary> {
+export async function getProjectContentAuditRows(): Promise<ProjectContentAuditRow[]> {
+  const hasGoogleReviewCta = Boolean(BUSINESS_PROFILE.reviewProfileUrl);
+
+  return Promise.all(
+    PROJECT_LIST.map(async (project) => {
+      const preview = await getProjectCardPreviewAsset(
+        project.slug,
+        project.galleryServiceSlug ?? project.serviceSlug,
+      ).catch(() => null);
+      const images = await getProjectImages(
+        project.slug,
+        project.galleryServiceSlug ?? project.serviceSlug,
+      ).catch(() => []);
+      const review = getRelatedReviews({
+        projectSlug: project.slug,
+        serviceSlug: project.serviceSlug,
+        limit: 1,
+      })[0];
+      const testimonial = project.testimonialSlug
+        ? findTestimonial(project.testimonialSlug)
+        : undefined;
+      const targetImageCount = getProjectTargetImageCount(project);
+      const imageCount = images.length;
+      const hasRichFlagshipProof = project.flagship
+        ? hasRichProjectContent(project) && hasRealWorldProjectContent(project)
+        : true;
+      const readinessChecks = [
+        Boolean(preview),
+        imageCount >= 4,
+        Boolean(project.serviceSlug),
+        Boolean(project.location.cityLabel && project.location.state),
+        Boolean(project.summary),
+        Boolean(review || testimonial),
+        hasRichFlagshipProof,
+        projectHasShareReadyMetadataInputs(project, Boolean(preview)),
+        hasGoogleReviewCta,
+      ];
+      const readinessScore = readinessChecks.filter(Boolean).length;
+      const readinessMaxScore = readinessChecks.length;
+      const readinessStatus = getReadinessStatus(readinessScore, readinessMaxScore);
+      const usingSeedFallback = images.length > 0 && images.some((image) => image.source === "seed");
+
+      return {
+        slug: project.slug,
+        title: project.title,
+        serviceSlug: project.serviceSlug,
+        location: `${project.location.cityLabel}, ${project.location.state}`,
+        isFlagship: Boolean(project.flagship),
+        imageCount,
+        targetImageCount,
+        hasHeroImage: Boolean(preview),
+        heroSource: preview?.source ?? "missing",
+        usingSeedFallback,
+        hasGalleryDepth: imageCount >= 4,
+        hasService: Boolean(project.serviceSlug),
+        hasLocation: Boolean(project.location.cityLabel && project.location.state),
+        hasSummary: Boolean(project.summary),
+        hasReviewOrTestimonial: Boolean(review || testimonial),
+        hasRichFlagshipProof,
+        hasShareReadyMetadataInputs: projectHasShareReadyMetadataInputs(project, Boolean(preview)),
+        hasGoogleReviewCta,
+        readinessScore,
+        readinessMaxScore,
+        readinessStatus,
+        promotionReady:
+          readinessStatus === "launch-ready" &&
+          !usingSeedFallback &&
+          Boolean(review || testimonial),
+        shouldNoindex:
+          readinessStatus === "thin" &&
+          imageCount < 2 &&
+          !Boolean(review || testimonial),
+      } satisfies ProjectContentAuditRow;
+    }),
+  );
+}
+
+function areaHasSeoMetadata(area: AreaDef) {
+  return Boolean(area.seoTitle && area.seoDescription && area.intro && area.heroHeadline && area.heroBody);
+}
+
+export async function getAreaContentAuditRows(): Promise<AreaContentAuditRow[]> {
+  return ACTIVE_AREAS.map((area) => {
+    const linkedProjects = getAreaProjects(area.slug);
+    const directReviews = getDirectAreaReviews(area.slug);
+    const relatedServices = getAreaServices(area.slug);
+    const hasFlagshipProject = linkedProjects.some((project) => project.flagship);
+    const readinessChecks = [
+      linkedProjects.length > 0,
+      hasFlagshipProject || linkedProjects.length >= 2,
+      directReviews.length > 0,
+      relatedServices.length >= 3,
+      Boolean(area.intro),
+      areaHasSeoMetadata(area),
+    ];
+    const readinessScore = readinessChecks.filter(Boolean).length;
+    const readinessMaxScore = readinessChecks.length;
+    const readinessStatus = getReadinessStatus(readinessScore, readinessMaxScore);
+
+    return {
+      slug: area.slug,
+      name: area.name,
+      linkedProjectCount: linkedProjects.length,
+      hasFlagshipProject,
+      linkedReviewCount: directReviews.length,
+      relatedServiceCount: relatedServices.length,
+      hasIntroCopy: Boolean(area.intro),
+      hasSeoMetadata: areaHasSeoMetadata(area),
+      readinessScore,
+      readinessMaxScore,
+      readinessStatus,
+      promotionReady:
+        readinessStatus === "launch-ready" &&
+        linkedProjects.length > 0 &&
+        directReviews.length > 0,
+      shouldNoindex: linkedProjects.length === 0 && directReviews.length === 0,
+    } satisfies AreaContentAuditRow;
+  });
+}
+
+export async function getProjectContentAuditRowBySlug(slug: string) {
+  const rows = await getProjectContentAuditRows();
+  return rows.find((row) => row.slug === slug);
+}
+
+export async function getServiceContentAuditRowBySlug(slug: string) {
   const rows = await getServiceContentAuditRows();
+  return rows.find((row) => row.slug === slug);
+}
+
+export async function getAreaContentAuditRowBySlug(slug: string) {
+  const rows = await getAreaContentAuditRows();
+  return rows.find((row) => row.slug === slug);
+}
+
+export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummary> {
+  const [serviceRows, projectRows, areaRows] = await Promise.all([
+    getServiceContentAuditRows(),
+    getProjectContentAuditRows(),
+    getAreaContentAuditRows(),
+  ]);
   const flagshipOrFeaturedProjects = new Set(
     [...FLAGSHIP_PROJECTS, ...FEATURED_PROJECTS].map((project) => project.slug),
   ).size;
@@ -145,14 +408,18 @@ export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummar
     flagshipProjects: FLAGSHIP_PROJECTS.length,
     featuredProjects: FEATURED_PROJECTS.length,
     flagshipOrFeaturedProjects,
-    servicesWithContent: rows.filter((row) => row.actualImageCount > 0).length,
-    servicesWithHeroCandidate: rows.filter((row) => row.hasHeroCandidate).length,
-    healthyServices: rows.filter((row) => row.coverageStatus === "healthy").length,
+    activeAreas: ACTIVE_AREAS.length,
+    servicesWithContent: serviceRows.filter((row) => row.actualImageCount > 0).length,
+    servicesWithHeroCandidate: serviceRows.filter((row) => row.hasHeroCandidate).length,
+    healthyServices: serviceRows.filter((row) => row.coverageStatus === "healthy").length,
+    promotionReadyServices: serviceRows.filter((row) => row.promotionReady).length,
+    promotionReadyProjects: projectRows.filter((row) => row.promotionReady).length,
+    promotionReadyAreas: areaRows.filter((row) => row.promotionReady).length,
     thresholds: {
       hasSixActiveServices: ACTIVE_SERVICES.length >= 6,
       hasSixProjects: PROJECT_LIST.length >= 6,
       hasThreeFlagshipOrFeaturedProjects: flagshipOrFeaturedProjects >= 3,
-      hasOneHeroCandidate: rows.some((row) => row.hasHeroCandidate),
+      hasOneHeroCandidate: serviceRows.some((row) => row.hasHeroCandidate),
     },
   };
 }
@@ -229,4 +496,18 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
       };
     }),
   );
+}
+
+export async function getPromotionReadySummary(): Promise<PromotionReadySummary> {
+  const [services, projects, areas] = await Promise.all([
+    getServiceContentAuditRows(),
+    getProjectContentAuditRows(),
+    getAreaContentAuditRows(),
+  ]);
+
+  return {
+    services: services.filter((row) => row.promotionReady),
+    projects: projects.filter((row) => row.promotionReady && row.isFlagship),
+    areas: areas.filter((row) => row.promotionReady),
+  };
 }
