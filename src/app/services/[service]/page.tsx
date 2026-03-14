@@ -9,6 +9,7 @@ import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyS
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
+import { ACTIVE_AREAS } from "@/content/areas";
 import { getReviewsByService } from "@/content/reviews";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
@@ -372,6 +373,35 @@ export default async function ServiceDetailPage({ params }: Props) {
           </div>
         </section>
       )}
+
+      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+        <div className="rounded-xl border border-gray-200 bg-cream p-6">
+          <p className="font-ui text-xs uppercase tracking-widest text-red">Areas We Serve</p>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-gray-mid">
+            We install {service.shortTitle.toLowerCase()} across the Las Vegas Valley, including{" "}
+            {ACTIVE_AREAS.map((area, index) => (
+              <span key={area.slug}>
+                {index > 0 ? ", " : ""}
+                <TrackedLink
+                  href={`/areas/${area.slug}`}
+                  eventName="proof_cta_click"
+                  eventParams={{
+                    page_type: "service",
+                    service_slug: service.slug,
+                    destination_type: "area",
+                    destination_slug: area.slug,
+                    cta_location: "service_areas_block",
+                  }}
+                  className="font-semibold text-red hover:underline"
+                >
+                  {area.name}
+                </TrackedLink>
+              </span>
+            ))}
+            .
+          </p>
+        </div>
+      </section>
 
       {/* ── 9. Quote CTA ────────────────────────────────────────────────── */}
       <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">

@@ -12,7 +12,7 @@ type ReviewSourcePlaceholderProps = {
   emptyBehavior?: "hide" | "placeholder";
   ctaHref?: string;
   ctaLabel?: string;
-  pageType?: "home" | "service" | "project";
+  pageType?: "home" | "service" | "project" | "area";
   eventContext?: string;
   showCompactCta?: boolean;
 };

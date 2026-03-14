@@ -10,7 +10,7 @@ import { getProjectCardPreviewAsset } from "@/lib/portfolio.server";
 type ProjectCardProps = {
   project: ProjectDef;
   priorityLabel?: string;
-  pageType?: "home" | "projects" | "service";
+  pageType?: "home" | "projects" | "service" | "area";
 };
 
 function clampStyle(lines: number) {

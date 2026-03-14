@@ -1,3 +1,4 @@
+import { ACTIVE_AREAS } from "@/content/areas";
 import type { MetadataRoute } from "next";
 import { listProjects, listProjectsIndex } from "@/lib/cloudinary.server";
 import { ACTIVE_SERVICES } from "@/content/services";
@@ -20,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${siteUrl}/`, lastModified: now },
+    { url: `${siteUrl}/areas`, lastModified: now },
     { url: `${siteUrl}/gallery`, lastModified: now },
     { url: `${siteUrl}/projects`, lastModified: now },
     { url: `${siteUrl}/services`, lastModified: now },
@@ -37,6 +39,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       };
     }),
   );
+
+  const areaRoutes: MetadataRoute.Sitemap = ACTIVE_AREAS.map((area) => ({
+    url: `${siteUrl}/areas/${area.slug}`,
+    lastModified: now,
+  }));
 
   // Canonical project routes from the content registry (case-study pages)
   const canonicalProjectRoutes: MetadataRoute.Sitemap = await Promise.all(
@@ -146,6 +153,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
+    ...areaRoutes,
     ...serviceRoutes,
     ...projectRoutes,
     ...locationRoutes,
