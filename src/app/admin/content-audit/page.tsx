@@ -1,3 +1,5 @@
+import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
+import AdminNav from "@/components/admin/AdminNav";
 import { isAdminSession } from "@/lib/adminAuth";
 import { getServiceContentAuditRows } from "@/lib/contentAudit.server";
 
@@ -62,17 +64,7 @@ export default async function ContentAuditPage() {
   const isAuthed = isAdminSession();
 
   if (!isAuthed) {
-    return (
-      <main className="min-h-screen bg-cream px-4 pt-20 md:px-8">
-        <div className="mx-auto max-w-xl">
-          <h1 className="text-3xl text-charcoal">Access Denied</h1>
-          <p className="mt-3 text-gray-mid">Admin login required.</p>
-          <a href="/admin" className="font-ui mt-4 inline-block text-sm font-semibold text-red">
-            ← Go to Admin Login
-          </a>
-        </div>
-      </main>
-    );
+    return <AdminAccessRequired title="Content audit access required" />;
   }
 
   const rows = await getServiceContentAuditRows();
@@ -92,6 +84,7 @@ export default async function ContentAuditPage() {
         <p className="font-ui mt-2 text-sm text-gray-mid">
           Portfolio readiness by service category.
         </p>
+        <AdminNav />
 
         {/* Summary */}
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -74,6 +74,8 @@ export default async function ProjectCard({
     ? findTestimonial(project.testimonialSlug)
     : undefined;
 
+  const label = priorityLabel ?? (project.flagship ? "Flagship" : undefined);
+
   return (
     <Link
       href={`/projects/${project.slug}`}
@@ -81,9 +83,9 @@ export default async function ProjectCard({
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-cream">
         <ProjectPreview preview={preview} alt={project.title} />
-        {priorityLabel ? (
+        {label ? (
           <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 font-ui text-[10px] font-semibold uppercase tracking-[0.18em] text-red shadow-sm">
-            {priorityLabel}
+            {label}
           </span>
         ) : null}
       </div>
@@ -102,7 +104,7 @@ export default async function ProjectCard({
         </div>
 
         <h3 className="mt-3 text-xl text-charcoal group-hover:text-red">{project.title}</h3>
-        <p className="mt-2 text-sm leading-6 text-gray-mid" style={clampStyle(3)}>
+        <p className="mt-2 text-sm leading-6 text-gray-mid" style={clampStyle(2)}>
           {project.summary}
         </p>
 

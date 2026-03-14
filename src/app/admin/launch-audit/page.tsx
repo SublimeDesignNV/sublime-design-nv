@@ -1,3 +1,5 @@
+import AdminAccessRequired from "@/components/admin/AdminAccessRequired";
+import AdminNav from "@/components/admin/AdminNav";
 import Link from "next/link";
 import { isAdminSession } from "@/lib/adminAuth";
 import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
@@ -53,14 +55,10 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 export default async function LaunchAuditPage() {
   if (!isAdminSession()) {
     return (
-      <main className="bg-cream pt-28 pb-20">
-        <div className="mx-auto max-w-xl px-4 text-center">
-          <p className="text-gray-mid">Admin access required.</p>
-          <Link href="/admin" className="mt-4 inline-block font-ui text-sm font-semibold text-red">
-            Sign in →
-          </Link>
-        </div>
-      </main>
+      <AdminAccessRequired
+        title="Launch audit access required"
+        description="This page is protected by the admin token session cookie. Sign in at /admin and the same session will unlock launch audit, content audit, and lead monitoring."
+      />
     );
   }
 
@@ -104,6 +102,7 @@ export default async function LaunchAuditPage() {
             ← Admin home
           </Link>
         </div>
+        <AdminNav />
 
         <div className="mt-8 space-y-6">
           {/* Environment / integrations */}
@@ -162,6 +161,11 @@ export default async function LaunchAuditPage() {
                   ? process.env.LEADS_FROM_EMAIL
                   : "Falling back to Sublime Design NV <admin@sublimedesignnv.com>"
               }
+            />
+            <Check
+              ok
+              label="Admin route access"
+              detail="Protected admin pages require the admin_token session cookie set by signing in at /admin."
             />
           </Section>
 

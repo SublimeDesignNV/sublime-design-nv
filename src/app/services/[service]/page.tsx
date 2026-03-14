@@ -8,6 +8,7 @@ import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyS
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
+import { getReviewsByService } from "@/content/reviews";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
 import { getTestimonialsByService } from "@/content/testimonials";
@@ -166,6 +167,7 @@ export default async function ServiceDetailPage({ params }: Props) {
   ]);
 
   const serviceTestimonials = getTestimonialsByService(service.slug).slice(0, 3);
+  const serviceReviews = getReviewsByService(service.slug).slice(0, 2);
 
   const hasRegistryProjects = registryProjects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
@@ -327,9 +329,18 @@ export default async function ServiceDetailPage({ params }: Props) {
         </section>
       )}
 
-      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
-        <ReviewSourcePlaceholder compact />
-      </section>
+      {serviceReviews.length ? (
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <ReviewSourcePlaceholder
+            reviews={serviceReviews}
+            compact
+            eyebrow="Client Reviews"
+            title={`${service.shortTitle} Reviews`}
+            subheading={`Recent homeowner feedback on ${service.shortTitle.toLowerCase()} projects completed across Las Vegas, Henderson, and Summerlin.`}
+            emptyBehavior="hide"
+          />
+        </section>
+      ) : null}
 
       {/* ── 8. Related services ─────────────────────────────────────────── */}
       {relatedServiceDefs.length > 0 && (

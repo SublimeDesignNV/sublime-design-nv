@@ -42,7 +42,7 @@ export const PROJECT_LIST: ProjectDef[] = [
     flagshipOrder: 1,
     year: "2024",
     summary:
-      "Floor-to-ceiling library wall with integrated desk and display niches for a Henderson home office.",
+      "Floor-to-ceiling built-in library wall with integrated desk and display storage for a Henderson home office.",
     challenge:
       "The client needed to transform a bare 14-foot wall into a functional library with a built-in desk, open display shelves, and closed storage — all while keeping cable management invisible and the finished look seamless.",
     solution:
@@ -65,7 +65,7 @@ export const PROJECT_LIST: ProjectDef[] = [
     flagshipOrder: 2,
     year: "2024",
     summary:
-      "Staggered walnut floating shelves with invisible steel bracket mounts in a Summerlin great room.",
+      "Walnut floating shelves with concealed steel support and a clean staggered layout in a Summerlin great room.",
     challenge:
       "The client wanted dramatic floating shelves on a 10-foot accent wall that would support heavy books and decorative items without any visible hardware — and align perfectly with the existing wall texture and ceiling height.",
     solution:
@@ -109,7 +109,7 @@ export const PROJECT_LIST: ProjectDef[] = [
     flagshipOrder: 3,
     year: "2024",
     summary:
-      "Custom double-hang sections, floor-to-ceiling drawers, and open shoe display in a Henderson primary walk-in closet.",
+      "Custom closet layout with double-hang sections, full-height drawers, and open shoe storage in Henderson.",
     challenge:
       "A walk-in closet with only a single hanging rod and one wire shelf was being shared by two people with no dedicated zones for hanging, folding, shoes, or accessories — all within a fixed room footprint.",
     solution:

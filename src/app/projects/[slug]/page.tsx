@@ -3,11 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
+import ProjectCard from "@/components/projects/ProjectCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
-import { findProject, FEATURED_PROJECTS } from "@/content/projects";
+import { findProject, getProjectsByService } from "@/content/projects";
+import { getRelatedReviews } from "@/content/reviews";
 import { findService } from "@/content/services";
+import type { TestimonialDef } from "@/content/testimonials";
 import { findTestimonial, getTestimonialsByProject } from "@/content/testimonials";
 import { getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
@@ -113,8 +116,6 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
   );
 }
 
-import type { TestimonialDef } from "@/content/testimonials";
-
 function ProjectStructuredData({
   slug,
   title,
@@ -182,16 +183,31 @@ export default async function ProjectDetailPage({ params }: Props) {
     .map((s) => findService(s))
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
 
-  const relatedProjects = FEATURED_PROJECTS.filter(
-    (p) => p.slug !== project.slug && p.serviceSlug === project.serviceSlug,
-  ).slice(0, 2);
+  const relatedProjects = getProjectsByService(project.serviceSlug)
+    .filter((candidate) => candidate.slug !== project.slug)
+    .slice(0, 2);
 
   // Testimonial: prefer linked slug, fall back to any project-linked testimonial
   const linkedTestimonial = project.testimonialSlug
     ? findTestimonial(project.testimonialSlug)
     : getTestimonialsByProject(project.slug)[0];
+  const relatedReviews = getRelatedReviews({
+    projectSlug: project.slug,
+    serviceSlug: project.serviceSlug,
+    limit: 1,
+  });
+  const proofReview = relatedReviews[0];
+  const hasDistinctReview =
+    Boolean(proofReview) &&
+    (!linkedTestimonial ||
+      linkedTestimonial.quote !== proofReview?.quote ||
+      linkedTestimonial.name !== proofReview?.name);
 
   const heroImage = images[0];
+  const serviceLabel =
+    serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ");
+  const projectCtaHeading = `Planning similar ${serviceLabel.toLowerCase()} in ${project.location.cityLabel}?`;
+  const projectCtaCopy = `Tell us about the space and we will reply with the next step for ${serviceLabel.toLowerCase()}, schedule, and quote guidance.`;
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -217,8 +233,13 @@ export default async function ProjectDetailPage({ params }: Props) {
         />
 
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
-          {(serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " "))} • {project.location.cityLabel}
+          {serviceLabel} • {project.location.cityLabel}
         </p>
+        {project.flagship ? (
+          <p className="mt-3 inline-flex rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-red">
+            Flagship Project
+          </p>
+        ) : null}
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{project.title}</h1>
         <p className="mt-2 text-base text-gray-mid">
           {project.location.cityLabel}, {project.location.state} &middot; {project.year}
@@ -235,10 +256,10 @@ export default async function ProjectDetailPage({ params }: Props) {
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         <p className="max-w-3xl text-lg leading-8 text-charcoal/90">{project.summary}</p>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
-          Need similar {serviceDef?.shortTitle.toLowerCase() ?? "finish carpentry"} in{" "}
+          Need similar {serviceLabel.toLowerCase()} in{" "}
           {project.location.cityLabel}? Visit the{" "}
           <Link href={`/services/${project.serviceSlug}`} className="font-semibold text-red hover:underline">
-            {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")} service page
+            {serviceLabel} service page
           </Link>
           {" "}or{" "}
           <Link href="/quote" className="font-semibold text-red hover:underline">
@@ -270,7 +291,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
             <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Service</p>
             <p className="mt-2 text-base font-medium text-charcoal">
-              {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")}
+              {serviceLabel}
             </p>
           </div>
           <div className="rounded-xl border border-gray-200 bg-cream p-5">
@@ -304,9 +325,18 @@ export default async function ProjectDetailPage({ params }: Props) {
         </section>
       ) : null}
 
-      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
-        <ReviewSourcePlaceholder compact />
-      </section>
+      {hasDistinctReview ? (
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <ReviewSourcePlaceholder
+            reviews={[proofReview as NonNullable<typeof proofReview>]}
+            compact
+            eyebrow="Client Review"
+            title={`Proof from ${project.location.cityLabel}`}
+            subheading={`A recent homeowner review related to ${serviceLabel.toLowerCase()} work like this project.`}
+            emptyBehavior="hide"
+          />
+        </section>
+      ) : null}
 
       {/* ── 7. Testimonial (if available) ────────────────────────────── */}
       {linkedTestimonial ? (
@@ -363,22 +393,11 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             {relatedProjects.map((related) => (
-              <Link
+              <ProjectCard
                 key={related.slug}
-                href={`/projects/${related.slug}`}
-                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <div className="p-5">
-                  <p className="font-ui text-xs uppercase tracking-widest text-red">
-                    {related.location.cityLabel}, {related.location.state}
-                  </p>
-                  <h3 className="mt-2 text-xl text-charcoal group-hover:text-red">{related.title}</h3>
-                  <p className="mt-2 text-sm text-gray-mid">{related.summary}</p>
-                  <span className="font-ui mt-4 inline-block text-sm font-semibold text-red">
-                    View Project →
-                  </span>
-                </div>
-              </Link>
+                project={related}
+                priorityLabel={related.flagship ? "Flagship" : undefined}
+              />
             ))}
           </div>
         </section>
@@ -387,16 +406,15 @@ export default async function ProjectDetailPage({ params }: Props) {
       {/* ── 10. Quote CTA ────────────────────────────────────────────── */}
       <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
-          <h2 className="text-3xl md:text-4xl">Ready to start your project?</h2>
+          <h2 className="text-3xl md:text-4xl">{projectCtaHeading}</h2>
           <p className="mt-3 max-w-2xl text-white/90">
-            Tell us what you have in mind and we will reply with scope, timeline, and pricing —
-            no pressure, no commitment required.
+            {projectCtaCopy}
           </p>
           <Link
             href="/quote"
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Start with a Quote
+            Start with a {serviceLabel} Quote
           </Link>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (

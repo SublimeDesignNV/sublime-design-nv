@@ -8,11 +8,12 @@ import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
+import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import { getPriorityProjects } from "@/content/projects";
+import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
-import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
@@ -136,9 +137,16 @@ export default async function HomePage() {
       <BeforeAfterSlider />
 
       <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />
-      <section className="bg-cream py-12">
+      <section className="bg-cream py-20">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <ReviewSourcePlaceholder compact />
+          <ReviewSourcePlaceholder
+            reviews={FEATURED_REVIEWS.slice(0, 3)}
+            eyebrow="Client Reviews"
+            title="Work That Earns Repeat Referrals"
+            subheading="A few recent homeowner reviews tied to real built-ins, floating shelves, closet systems, and cabinetry work around Las Vegas, Henderson, and Summerlin."
+            ctaHref="/quote"
+            ctaLabel="Start with a Quote"
+          />
         </div>
       </section>
 

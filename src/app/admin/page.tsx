@@ -1,3 +1,4 @@
+import AdminNav from "@/components/admin/AdminNav";
 import AdminLogin from "@/components/admin/AdminLogin";
 import AssetTable from "@/components/admin/AssetTable";
 import AssetUploader from "@/components/admin/AssetUploader";
@@ -23,6 +24,7 @@ export default function AdminPage() {
         <p className="font-ui mt-3 text-sm text-gray-mid">
           Upload new files, tag by service type, and publish/unpublish assets.
         </p>
+        <AdminNav />
 
         <div className="mt-8 space-y-6">
           <AssetUploader />

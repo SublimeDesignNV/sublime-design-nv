@@ -38,7 +38,7 @@ export default function AdminLogin() {
     <div className="mx-auto mt-28 max-w-md rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <h1 className="text-3xl text-charcoal">Admin Login</h1>
       <p className="font-ui mt-2 text-sm text-gray-mid">
-        Enter your admin token to access portfolio uploads.
+        Enter your admin token to access portfolio uploads, leads, content audit, and launch audit.
       </p>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
