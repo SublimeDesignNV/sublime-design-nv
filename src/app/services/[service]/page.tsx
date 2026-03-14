@@ -5,9 +5,12 @@ import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
+import { getTestimonialsByService } from "@/content/testimonials";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical } from "@/lib/seo";
+
+const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
 
 type Props = {
   params: {
@@ -135,6 +138,8 @@ export default async function ServiceDetailPage({ params }: Props) {
     getServiceAssets(service.slug).catch(() => []),
   ]);
 
+  const serviceTestimonials = getTestimonialsByService(service.slug).slice(0, 3);
+
   const hasRegistryProjects = registryProjects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
   const hasContent = hasRegistryProjects || hasServiceAssets;
@@ -259,7 +264,45 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* ── 7. Related services ─────────────────────────────────────────── */}
+      {/* ── 7. Client testimonials ──────────────────────────────────────── */}
+      {serviceTestimonials.length > 0 && (
+        <section className="bg-cream py-16 mt-20">
+          <div className="mx-auto max-w-7xl px-4 md:px-8">
+            <h2 className="text-2xl text-charcoal">What Clients Say</h2>
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+              {serviceTestimonials.map((t) => (
+                <figure
+                  key={t.slug}
+                  className="flex flex-col rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+                >
+                  <blockquote className="flex-1">
+                    <p className="text-base leading-7 text-charcoal/90">
+                      &ldquo;{t.quote}&rdquo;
+                    </p>
+                  </blockquote>
+                  <figcaption className="mt-5 border-t border-gray-100 pt-4">
+                    <p className="font-ui text-sm font-semibold text-charcoal">{t.name}</p>
+                    <p className="font-ui text-xs text-gray-mid">{t.location}</p>
+                    {t.roleOrContext ? (
+                      <p className="font-ui mt-0.5 text-xs text-gray-mid">{t.roleOrContext}</p>
+                    ) : null}
+                    {t.projectSlug ? (
+                      <Link
+                        href={`/projects/${t.projectSlug}`}
+                        className="font-ui mt-2 inline-block text-xs font-medium text-red hover:underline"
+                      >
+                        View Project →
+                      </Link>
+                    ) : null}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 8. Related services ─────────────────────────────────────────── */}
       {relatedServiceDefs.length > 0 && (
         <section className="mx-auto mt-20 max-w-7xl px-4 md:px-8">
           <h2 className="text-2xl text-charcoal">Related Services</h2>
@@ -283,7 +326,7 @@ export default async function ServiceDetailPage({ params }: Props) {
         </section>
       )}
 
-      {/* ── 8. Quote CTA ────────────────────────────────────────────────── */}
+      {/* ── 9. Quote CTA ────────────────────────────────────────────────── */}
       <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
           <h2 className="text-3xl md:text-4xl">{service.ctaLabel}</h2>
@@ -296,6 +339,11 @@ export default async function ServiceDetailPage({ params }: Props) {
           >
             Get a Free Quote
           </Link>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
+            {CTA_TRUST_ITEMS.map((item) => (
+              <span key={item} className="font-ui text-xs text-white/70">{item}</span>
+            ))}
+          </div>
         </div>
       </section>
     </main>

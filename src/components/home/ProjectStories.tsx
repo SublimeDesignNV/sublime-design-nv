@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ProjectDef } from "@/content/projects";
 import { findService } from "@/content/services";
+import { findTestimonial } from "@/content/testimonials";
 
 type ProjectStoriesProps = {
   projects: ProjectDef[];
@@ -48,11 +49,14 @@ export default function ProjectStories({ projects }: ProjectStoriesProps) {
                     </li>
                   </ul>
 
-                  {project.testimonial ? (
-                    <p className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid">
-                      &ldquo;{project.testimonial.quote.slice(0, 100)}&hellip;&rdquo;
-                    </p>
-                  ) : null}
+                  {project.testimonialSlug ? (() => {
+                    const t = findTestimonial(project.testimonialSlug);
+                    return t ? (
+                      <p className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid">
+                        &ldquo;{t.quote.slice(0, 100)}&hellip;&rdquo;
+                      </p>
+                    ) : null;
+                  })() : null}
 
                   <Link
                     href={`/projects/${project.slug}`}

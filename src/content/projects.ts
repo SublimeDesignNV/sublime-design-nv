@@ -1,9 +1,3 @@
-export type ProjectTestimonial = {
-  quote: string;
-  author: string;
-  location: string;
-};
-
 export type ProjectLocation = {
   city: string;
   cityLabel: string;
@@ -26,7 +20,8 @@ export type ProjectDef = {
   galleryImagePublicIds?: string[];
   /** Cloudinary tag to search when no explicit IDs — defaults to serviceSlug */
   galleryServiceSlug?: string;
-  testimonial?: ProjectTestimonial;
+  /** Slug from testimonials.ts — normalized testimonial reference */
+  testimonialSlug?: string;
   relatedServices: string[];
   seoTitle: string;
   seoDescription: string;
@@ -48,12 +43,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We measured and shop-built modular sections that fit the wall precisely, incorporating a floating desk with a drawer cabinet base, flanking bookcases with adjustable shelves, and a central display niche with LED cove lighting wired behind the face frame.",
     materials: "Paint-grade MDF, solid maple face frames, brushed nickel hardware",
     timeline: "3 weeks",
-    testimonial: {
-      quote:
-        "Every shelf is exactly where we need it. The desk fits the space perfectly — it feels like it was always there.",
-      author: "Sarah & Tom M.",
-      location: "Henderson, NV",
-    },
+    testimonialSlug: "sarah-tom-m-built-in-library",
     relatedServices: ["floating-shelves", "custom-cabinetry"],
     seoTitle: "Henderson Built-In Library Wall | Sublime Design NV",
     seoDescription:
@@ -74,12 +64,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We used concealed steel rod brackets set deep into the studs and installed custom-milled walnut shelves at staggered heights. Each shelf was leveled precisely to account for slight wall irregularities, and the rod pockets were filled and painted to disappear.",
     materials: "American black walnut, concealed steel rod hardware",
     timeline: "1 week",
-    testimonial: {
-      quote:
-        "The shelves look like they're floating on air. Everyone who visits asks how we did it.",
-      author: "Michael R.",
-      location: "Summerlin, NV",
-    },
+    testimonialSlug: "michael-r-floating-shelves",
     relatedServices: ["built-ins", "mantels"],
     seoTitle: "Summerlin Floating Shelves | Sublime Design NV",
     seoDescription:
@@ -100,6 +85,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We measured each cabinet opening individually and built custom soft-close pullout frames with full-extension drawer slides. The system included tiered spice pullouts, a baking sheet organizer, and wide-format shelves for small appliances.",
     materials: "Baltic birch plywood, full-extension soft-close slides, chrome wire inserts",
     timeline: "2 days",
+    testimonialSlug: "patricia-w-pantry-pullouts",
     relatedServices: ["custom-cabinetry", "closet-systems"],
     seoTitle: "Las Vegas Pantry Pullout Shelves | Sublime Design NV",
     seoDescription:
@@ -120,12 +106,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We designed a zone-based layout: double-hang sections on both side walls, a central island with deep drawers and a felt-lined jewelry tray, and floor-to-ceiling open shelving for shoes and bags on the back wall. Every piece was shop-built for a furniture-grade finish.",
     materials: "Paint-grade MDF, soft-close undermount slides, polished chrome rods and hardware",
     timeline: "1.5 weeks",
-    testimonial: {
-      quote:
-        "We finally have a closet that actually works. The double-hang sections alone doubled our hanging space.",
-      author: "Jessica & Chris L.",
-      location: "Henderson, NV",
-    },
+    testimonialSlug: "jessica-chris-l-closet-system",
     relatedServices: ["built-ins", "pantry-pullouts"],
     seoTitle: "Henderson Closet System | Sublime Design NV",
     seoDescription:
@@ -146,6 +127,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We built a floor-to-ceiling cabinet wall with five individual open cubbies above a shaker-style bench, a coat hook rail at each cubby, and two-door base cabinets with adjustable shelves below for shoes and seasonal gear.",
     materials: "Paint-grade maple, shaker panel doors, matte black hardware",
     timeline: "2 weeks",
+    testimonialSlug: "tom-g-mudroom-cabinetry",
     relatedServices: ["closet-systems", "built-ins"],
     seoTitle: "Summerlin Mudroom Cabinetry | Sublime Design NV",
     seoDescription:
@@ -166,12 +148,7 @@ export const PROJECT_LIST: ProjectDef[] = [
       "We designed a Craftsman-profile surround with a deep display ledge, pilasters on each side, and a coffered header — shop-built in sections for precise fit and finished with satin white paint matched to the room's existing trim throughout.",
     materials: "Paint-grade MDF, solid poplar trim details, satin finish paint",
     timeline: "1 week",
-    testimonial: {
-      quote:
-        "The fireplace is the focal point of the room now. The craftsmanship is really impressive.",
-      author: "David K.",
-      location: "Las Vegas, NV",
-    },
+    testimonialSlug: "david-k-fireplace-mantel",
     relatedServices: ["built-ins", "floating-shelves"],
     seoTitle: "Las Vegas Custom Fireplace Mantel | Sublime Design NV",
     seoDescription:

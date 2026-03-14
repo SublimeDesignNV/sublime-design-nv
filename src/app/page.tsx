@@ -3,8 +3,10 @@ import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import HeroProject from "@/components/home/HeroProject";
 import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
+import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
 import { FEATURED_PROJECTS, PROJECT_LIST } from "@/content/projects";
+import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { findService } from "@/content/services";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
@@ -24,14 +26,14 @@ const PROCESS_STEPS = [
   },
 ] as const;
 
+const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
+
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const heroAsset = await getHeroAsset();
 
-  // Featured projects for cards section; fall back to most-recent
   const projectCards = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
-  // Story projects — show featured ones
   const storyProjects = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
 
   return (
@@ -102,6 +104,8 @@ export default async function HomePage() {
       <ProjectStories projects={storyProjects} />
       <BeforeAfterSlider />
 
+      <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />
+
       <section className="bg-navy py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <p className="font-ui text-sm uppercase tracking-widest text-red">Our Process</p>
@@ -138,6 +142,13 @@ export default async function HomePage() {
             >
               Call {SITE.phone}
             </a>
+          </div>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {CTA_TRUST_ITEMS.map((item) => (
+              <span key={item} className="font-ui text-xs text-white/70">
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </section>

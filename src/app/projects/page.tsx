@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PROJECT_LIST, FEATURED_PROJECTS } from "@/content/projects";
 import { findService } from "@/content/services";
+import { findTestimonial } from "@/content/testimonials";
 import { buildFacetCanonical } from "@/lib/seo";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 
@@ -191,11 +192,14 @@ export default async function ProjectsIndexPage({
                     </Link>
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
-                  {project.testimonial ? (
-                    <p className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid">
-                      &ldquo;{project.testimonial.quote.slice(0, 80)}&hellip;&rdquo;
-                    </p>
-                  ) : null}
+                  {project.testimonialSlug ? (() => {
+                    const t = findTestimonial(project.testimonialSlug);
+                    return t ? (
+                      <p className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid">
+                        &ldquo;{t.quote.slice(0, 80)}&hellip;&rdquo;
+                      </p>
+                    ) : null;
+                  })() : null}
                   <Link
                     href={`/projects/${project.slug}`}
                     className="font-ui mt-4 inline-block text-sm font-semibold text-red"
@@ -223,6 +227,11 @@ export default async function ProjectsIndexPage({
           >
             Get a Free Quote
           </Link>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
+            {(["Free quote", "Local install", "Built to fit", "Clear next steps"] as const).map((item) => (
+              <span key={item} className="font-ui text-xs text-white/70">{item}</span>
+            ))}
+          </div>
         </div>
       </section>
     </main>

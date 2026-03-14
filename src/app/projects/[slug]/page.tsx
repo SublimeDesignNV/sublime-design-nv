@@ -5,9 +5,12 @@ import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { findProject, FEATURED_PROJECTS } from "@/content/projects";
 import { findService } from "@/content/services";
+import { findTestimonial, getTestimonialsByProject } from "@/content/testimonials";
 import { getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
+
+const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +110,8 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
   );
 }
 
+import type { TestimonialDef } from "@/content/testimonials";
+
 function ProjectStructuredData({
   slug,
   title,
@@ -114,6 +119,7 @@ function ProjectStructuredData({
   city,
   state,
   images,
+  testimonial,
 }: {
   slug: string;
   title: string;
@@ -121,9 +127,23 @@ function ProjectStructuredData({
   city: string;
   state: string;
   images: ProjectImageAsset[];
+  testimonial?: TestimonialDef;
 }) {
   const siteUrl = getSiteUrl();
   const projectUrl = `${siteUrl}/projects/${slug}`;
+
+  const review = testimonial
+    ? {
+        "@type": "Review",
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: testimonial.rating ?? 5,
+          bestRating: 5,
+        },
+        author: { "@type": "Person", name: testimonial.name },
+        reviewBody: testimonial.quote,
+      }
+    : undefined;
 
   const creativeWork = {
     "@context": "https://schema.org",
@@ -136,6 +156,7 @@ function ProjectStructuredData({
       name: `${city}, ${state}`,
     },
     url: projectUrl,
+    ...(review ? { review } : {}),
   };
 
   const breadcrumbs = {
@@ -173,6 +194,11 @@ export default async function ProjectDetailPage({ params }: Props) {
     (p) => p.slug !== project.slug && p.serviceSlug === project.serviceSlug,
   ).slice(0, 2);
 
+  // Testimonial: prefer linked slug, fall back to any project-linked testimonial
+  const linkedTestimonial = project.testimonialSlug
+    ? findTestimonial(project.testimonialSlug)
+    : getTestimonialsByProject(project.slug)[0];
+
   const heroImage = images[0];
 
   return (
@@ -184,6 +210,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         city={project.location.cityLabel}
         state={project.location.state}
         images={images}
+        testimonial={linkedTestimonial}
       />
 
       {/* ── 1. Hero ──────────────────────────────────────────────────── */}
@@ -271,16 +298,19 @@ export default async function ProjectDetailPage({ params }: Props) {
       ) : null}
 
       {/* ── 7. Testimonial (if available) ────────────────────────────── */}
-      {project.testimonial ? (
+      {linkedTestimonial ? (
         <section className="bg-cream py-16 mt-16">
           <div className="mx-auto max-w-4xl px-4 md:px-8">
             <blockquote>
               <p className="text-2xl leading-relaxed text-charcoal md:text-3xl">
-                &ldquo;{project.testimonial.quote}&rdquo;
+                &ldquo;{linkedTestimonial.quote}&rdquo;
               </p>
               <footer className="mt-6">
-                <p className="font-ui text-sm font-semibold text-charcoal">{project.testimonial.author}</p>
-                <p className="font-ui text-sm text-gray-mid">{project.testimonial.location}</p>
+                <p className="font-ui text-sm font-semibold text-charcoal">{linkedTestimonial.name}</p>
+                <p className="font-ui text-sm text-gray-mid">{linkedTestimonial.location}</p>
+                {linkedTestimonial.sourceLabel ? (
+                  <p className="font-ui mt-1 text-xs text-gray-mid">{linkedTestimonial.sourceLabel}</p>
+                ) : null}
               </footer>
             </blockquote>
           </div>
@@ -357,6 +387,11 @@ export default async function ProjectDetailPage({ params }: Props) {
           >
             Get a Free Quote
           </Link>
+          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
+            {CTA_TRUST_ITEMS.map((item) => (
+              <span key={item} className="font-ui text-xs text-white/70">{item}</span>
+            ))}
+          </div>
         </div>
       </section>
     </main>
