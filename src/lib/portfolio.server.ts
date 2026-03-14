@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { listProjectAssets, listAssetsByServiceTag } from "@/lib/cloudinary.server";
+import { listProjectAssets, listAssetsByServiceTag, getProjectBySlug } from "@/lib/cloudinary.server";
 import {
   getSeedPreviewAsset,
   getSeedImages,
@@ -228,6 +228,52 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
     secureUrl: img.src,
     alt: img.alt,
     isFeatured: index === 0,
+    source: "seed" as const,
+  }));
+}
+
+export type ProjectImageAsset = {
+  publicId?: string;
+  secureUrl: string;
+  alt: string;
+  source: AssetSource;
+};
+
+/**
+ * Returns gallery images for a project page.
+ * Priority: Cloudinary project folder → service-tagged Cloudinary → seed images → [].
+ */
+export async function getProjectImages(
+  projectSlug: string,
+  serviceSlug: string,
+): Promise<ProjectImageAsset[]> {
+  // 1. Dedicated project folder in Cloudinary
+  const cloudinaryProject = await getProjectBySlug(projectSlug).catch(() => null);
+  if (cloudinaryProject?.images.length) {
+    return cloudinaryProject.images.map((img) => ({
+      publicId: img.public_id,
+      secureUrl: img.secure_url,
+      alt: img.context?.alt ?? `Custom finish carpentry in Las Vegas Valley`,
+      source: "cloudinary" as const,
+    }));
+  }
+
+  // 2. Service-tagged Cloudinary assets
+  const serviceAssets = await listAssetsByServiceTag(serviceSlug, 6).catch(() => []);
+  if (serviceAssets.length) {
+    return serviceAssets.map((asset) => ({
+      publicId: asset.public_id,
+      secureUrl: asset.secure_url,
+      alt: asset.context?.alt ?? `Custom ${serviceSlug.replace(/-/g, " ")} in Las Vegas`,
+      source: "cloudinary" as const,
+    }));
+  }
+
+  // 3. Seed images
+  const seeds = getSeedImages(serviceSlug);
+  return seeds.map((img) => ({
+    secureUrl: img.src,
+    alt: img.alt,
     source: "seed" as const,
   }));
 }

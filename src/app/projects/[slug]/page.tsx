@@ -1,229 +1,364 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import { getProjectBySlug, getProjectSlugDebugInfo } from "@/lib/cloudinary.server";
-import { SERVICES } from "@/lib/constants";
-import ProjectSchema from "@/components/seo/ProjectSchema";
-import {
-  buildProjectImageAlt,
-  buildProjectMetadataDescription,
-  buildProjectMetadataTitle,
-} from "@/lib/seo";
+import { findProject, FEATURED_PROJECTS } from "@/content/projects";
+import { findService } from "@/content/services";
+import { getProjectImages } from "@/lib/portfolio.server";
+import type { ProjectImageAsset } from "@/lib/portfolio.server";
+import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  params: {
-    slug: string;
-  };
-  searchParams?: {
-    debug?: string;
-  };
+  params: { slug: string };
 };
 
-function getServiceLabel(slug: string | undefined) {
-  if (!slug) return undefined;
-  const service = SERVICES.find((item) => item.slug === slug);
-  return service?.shortTitle ?? slug;
-}
-
-function getFallbackDescription(project: {
-  name: string;
-  service?: string;
-  city?: string;
-  state?: string;
-  material?: string;
-  year?: string;
-}) {
-  const details = [project.service, project.city, project.state, project.material, project.year]
-    .filter(Boolean)
-    .join(" • ");
-
-  if (!details) {
-    return `${project.name} project gallery by Sublime Design NV.`;
-  }
-
-  return `${project.name} project gallery featuring ${details}.`;
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const project = await getProjectBySlug(params.slug);
-
+  const project = findProject(params.slug);
   if (!project) {
     return {
       title: "Project Not Found | Sublime Design NV",
       description: "The requested project could not be found.",
-      alternates: {
-        canonical: `/projects/${params.slug}`,
-      },
     };
   }
 
-  const first = project.images[0];
-  const title = buildProjectMetadataTitle(project);
-  const description = project.caption || buildProjectMetadataDescription(project);
-
   return {
-    title,
-    description,
+    title: project.seoTitle,
+    description: project.seoDescription,
     alternates: {
-      canonical: `/projects/${project.slug}`,
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: `/projects/${project.slug}`,
-      images: first ? [{ url: first.secure_url, alt: first.context?.alt || project.name }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: first ? [first.secure_url] : undefined,
+      canonical: buildFacetCanonical(`/projects/${project.slug}`),
     },
   };
 }
 
-export default async function ProjectDetailPage({ params, searchParams }: Props) {
-  const debugMode = searchParams?.debug === "1";
-  const [project, debugInfo] = await Promise.all([
-    getProjectBySlug(params.slug),
-    debugMode ? getProjectSlugDebugInfo(params.slug) : Promise.resolve(null),
-  ]);
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
-  if (debugInfo) {
-    console.error("project-debug", {
-      slug: debugInfo.slug,
-      folder: debugInfo.folder,
-      expression: debugInfo.expression,
-      assetsCount: debugInfo.assetsCount,
-      matchedCount: debugInfo.matchedCount,
-      firstPublicId: debugInfo.firstPublicId,
-      buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
-    });
+function ProjectImage({ asset, sizes }: { asset: ProjectImageAsset; sizes: string }) {
+  if (asset.source === "cloudinary" && asset.publicId) {
+    return (
+      <CloudinaryImage
+        src={asset.publicId}
+        alt={asset.alt}
+        width={1400}
+        height={900}
+        sizes={sizes}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    );
+  }
+  return (
+    <Image
+      src={asset.secureUrl}
+      alt={asset.alt}
+      fill
+      sizes={sizes}
+      className="object-cover"
+    />
+  );
+}
+
+function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
+  if (!images.length) return null;
+
+  if (images.length === 1) {
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+        <ProjectImage asset={images[0]} sizes="100vw" />
+      </div>
+    );
   }
 
-  if (!project) {
-    if (debugInfo) {
-      return (
-        <main style={{ padding: 40 }}>
-          <h1 style={{ marginTop: 0 }}>Project Debug</h1>
-          <p style={{ color: "#555" }}>
-            No project found for slug <code>{params.slug}</code>.
-          </p>
-          <div
-            style={{
-              border: "1px solid #ddd",
-              borderRadius: 10,
-              padding: 14,
-              background: "#fafafa",
-              fontFamily: "monospace",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {JSON.stringify(
-              {
-                slug: debugInfo.slug,
-                folder: debugInfo.folder,
-                expression: debugInfo.expression,
-                assetsCount: debugInfo.assetsCount,
-                matchedCount: debugInfo.matchedCount,
-                firstPublicId: debugInfo.firstPublicId,
-                buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
-              },
-              null,
-              2,
-            )}
-          </div>
-        </main>
-      );
-    }
-    notFound();
+  if (images.length <= 3) {
+    const [first, ...rest] = images;
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ minHeight: "340px" }}>
+          <ProjectImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
+        </div>
+        <div className="flex flex-col gap-4">
+          {rest.map((asset, i) => (
+            <div
+              key={asset.secureUrl + i}
+              className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+              style={{ minHeight: "160px" }}
+            >
+              <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
-
-  const description = project.caption || getFallbackDescription(project);
-  const serviceLabel = getServiceLabel(project.service);
 
   return (
-    <main style={{ padding: 40 }}>
-      {debugInfo ? (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {images.map((asset, i) => (
         <div
-          style={{
-            marginBottom: 16,
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            padding: 10,
-            background: "#f8fafc",
-            fontSize: 13,
-            fontFamily: "monospace",
-          }}
+          key={asset.secureUrl + i}
+          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+          style={{ height: "260px" }}
         >
-          {JSON.stringify(
-            {
-              slug: debugInfo.slug,
-              folder: debugInfo.folder,
-              expression: debugInfo.expression,
-              assetsCount: debugInfo.assetsCount,
-              matchedCount: debugInfo.matchedCount,
-              firstPublicId: debugInfo.firstPublicId,
-              buildSha: process.env.NEXT_PUBLIC_BUILD_SHA || null,
-            },
-            null,
-            2,
-          )}
+          <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
         </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjectStructuredData({
+  slug,
+  title,
+  description,
+  city,
+  state,
+  images,
+}: {
+  slug: string;
+  title: string;
+  description: string;
+  city: string;
+  state: string;
+  images: ProjectImageAsset[];
+}) {
+  const siteUrl = getSiteUrl();
+  const projectUrl = `${siteUrl}/projects/${slug}`;
+
+  const creativeWork = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: title,
+    description,
+    image: images.slice(0, 3).map((img) => img.secureUrl),
+    locationCreated: {
+      "@type": "Place",
+      name: `${city}, ${state}`,
+    },
+    url: projectUrl,
+  };
+
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Projects", item: `${siteUrl}/projects` },
+      { "@type": "ListItem", position: 3, name: title, item: projectUrl },
+    ],
+  };
+
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(creativeWork) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
+    </>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default async function ProjectDetailPage({ params }: Props) {
+  const project = findProject(params.slug);
+  if (!project) notFound();
+
+  const images = await getProjectImages(project.slug, project.galleryServiceSlug ?? project.serviceSlug);
+
+  const serviceDef = findService(project.serviceSlug);
+  const relatedServiceDefs = project.relatedServices
+    .map((s) => findService(s))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
+  const relatedProjects = FEATURED_PROJECTS.filter(
+    (p) => p.slug !== project.slug && p.serviceSlug === project.serviceSlug,
+  ).slice(0, 2);
+
+  const heroImage = images[0];
+
+  return (
+    <main className="bg-white pb-24 pt-24">
+      <ProjectStructuredData
+        slug={project.slug}
+        title={project.title}
+        description={project.seoDescription}
+        city={project.location.cityLabel}
+        state={project.location.state}
+        images={images}
+      />
+
+      {/* ── 1. Hero ──────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-7xl px-4 md:px-8">
+        <nav className="mb-6 flex items-center gap-2 text-sm text-gray-mid">
+          <Link href="/projects" className="hover:text-red">Projects</Link>
+          <span>/</span>
+          <span className="text-charcoal">{project.title}</span>
+        </nav>
+
+        <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
+          {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")}
+        </p>
+        <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{project.title}</h1>
+        <p className="mt-2 text-base text-gray-mid">
+          {project.location.cityLabel}, {project.location.state} &middot; {project.year}
+        </p>
+
+        {heroImage ? (
+          <div className="mt-8 relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+            <ProjectImage asset={heroImage} sizes="100vw" />
+          </div>
+        ) : null}
+      </section>
+
+      {/* ── 2. Summary ───────────────────────────────────────────────── */}
+      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+        <p className="max-w-3xl text-lg leading-8 text-charcoal/90">{project.summary}</p>
+      </section>
+
+      {/* ── 3. Challenge ─────────────────────────────────────────────── */}
+      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <div>
+            <p className="font-ui text-xs uppercase tracking-widest text-red">The Challenge</p>
+            <p className="mt-3 text-base leading-7 text-charcoal/80">{project.challenge}</p>
+          </div>
+
+          {/* ── 4. Solution ── */}
+          <div>
+            <p className="font-ui text-xs uppercase tracking-widest text-red">Our Solution</p>
+            <p className="mt-3 text-base leading-7 text-charcoal/80">{project.solution}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 5. Materials + Timeline ──────────────────────────────────── */}
+      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="rounded-xl border border-gray-200 bg-cream p-5">
+            <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Service</p>
+            <p className="mt-2 text-base font-medium text-charcoal">
+              {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")}
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-cream p-5">
+            <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Location</p>
+            <p className="mt-2 text-base font-medium text-charcoal">
+              {project.location.cityLabel}, {project.location.state}
+            </p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-cream p-5">
+            <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Timeline</p>
+            <p className="mt-2 text-base font-medium text-charcoal">{project.timeline}</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-cream p-5">
+            <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Year</p>
+            <p className="mt-2 text-base font-medium text-charcoal">{project.year}</p>
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-gray-200 bg-cream p-5">
+          <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">Materials</p>
+          <p className="mt-2 text-base text-charcoal">{project.materials}</p>
+        </div>
+      </section>
+
+      {/* ── 6. Gallery ───────────────────────────────────────────────── */}
+      {images.length > 1 ? (
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <h2 className="text-3xl text-charcoal">Project Gallery</h2>
+          <div className="mt-6">
+            <ProjectGallery images={images.slice(1)} />
+          </div>
+        </section>
       ) : null}
 
-      <ProjectSchema project={project} />
+      {/* ── 7. Testimonial (if available) ────────────────────────────── */}
+      {project.testimonial ? (
+        <section className="bg-cream py-16 mt-16">
+          <div className="mx-auto max-w-4xl px-4 md:px-8">
+            <blockquote>
+              <p className="text-2xl leading-relaxed text-charcoal md:text-3xl">
+                &ldquo;{project.testimonial.quote}&rdquo;
+              </p>
+              <footer className="mt-6">
+                <p className="font-ui text-sm font-semibold text-charcoal">{project.testimonial.author}</p>
+                <p className="font-ui text-sm text-gray-mid">{project.testimonial.location}</p>
+              </footer>
+            </blockquote>
+          </div>
+        </section>
+      ) : null}
 
-      <h1 style={{ margin: "0 0 8px" }}>{project.name}</h1>
-      <p style={{ margin: "0 0 14px", color: "#555" }}>{description}</p>
-      <p style={{ margin: "0 0 24px", color: "#666", fontSize: 14 }}>
-        {[
-          serviceLabel,
-          project.city && project.state
-            ? `${project.city}, ${project.state}`
-            : project.city || project.state,
-          project.year,
-          project.material,
-          project.finish,
-          project.room,
-          project.style,
-        ]
-          .filter(Boolean)
-          .join(" • ")}
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-          gap: 14,
-        }}
-      >
-        {project.images.map((image) => {
-          const fallbackAlt = buildProjectImageAlt(project);
-
-          return (
+      {/* ── 8. Related Services ──────────────────────────────────────── */}
+      {relatedServiceDefs.length > 0 ? (
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <h2 className="text-2xl text-charcoal">Related Services</h2>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {relatedServiceDefs.map((service) => (
+              <Link
+                key={service.slug}
+                href={`/services/${service.slug}`}
+                className="rounded-lg border border-gray-200 bg-cream px-5 py-3 text-sm font-medium text-charcoal transition hover:border-red hover:text-red"
+              >
+                {service.shortTitle}
+              </Link>
+            ))}
             <Link
-              key={image.public_id}
-              href={`/gallery?image=${encodeURIComponent(image.public_id)}`}
-              style={{ borderRadius: 10, overflow: "hidden", border: "1px solid #ddd", display: "block" }}
+              href="/services"
+              className="rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-mid transition hover:border-red hover:text-red"
             >
-              <CloudinaryImage
-                src={image.public_id}
-                alt={image.context?.alt || fallbackAlt}
-                width={1600}
-                height={1000}
-                sizes="(max-width: 768px) 100vw, 33vw"
-                style={{ width: "100%", height: 260, objectFit: "cover" }}
-              />
+              All Services →
             </Link>
-          );
-        })}
-      </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── 9. More Projects ─────────────────────────────────────────── */}
+      {relatedProjects.length > 0 ? (
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <div className="flex items-end justify-between gap-4">
+            <h2 className="text-2xl text-charcoal">More Projects</h2>
+            <Link href="/projects" className="font-ui text-sm font-semibold text-red">
+              View All →
+            </Link>
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            {relatedProjects.map((related) => (
+              <Link
+                key={related.slug}
+                href={`/projects/${related.slug}`}
+                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <div className="p-5">
+                  <p className="font-ui text-xs uppercase tracking-widest text-red">
+                    {related.location.cityLabel}, {related.location.state}
+                  </p>
+                  <h3 className="mt-2 text-xl text-charcoal group-hover:text-red">{related.title}</h3>
+                  <p className="mt-2 text-sm text-gray-mid">{related.summary}</p>
+                  <span className="font-ui mt-4 inline-block text-sm font-semibold text-red">
+                    View Project →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── 10. Quote CTA ────────────────────────────────────────────── */}
+      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+        <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
+          <h2 className="text-3xl md:text-4xl">Ready to start your project?</h2>
+          <p className="mt-3 max-w-2xl text-white/90">
+            Tell us what you have in mind and we will reply with scope, timeline, and pricing —
+            no pressure, no commitment required.
+          </p>
+          <Link
+            href="/quote"
+            className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
+          >
+            Get a Free Quote
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

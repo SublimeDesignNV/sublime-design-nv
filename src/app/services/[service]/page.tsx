@@ -4,10 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
-import { listProjectsIndex } from "@/lib/cloudinary.server";
+import { getProjectsByService } from "@/content/projects";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
-import { buildFacetCanonical, buildProjectImageAlt } from "@/lib/seo";
+import { buildFacetCanonical } from "@/lib/seo";
 
 type Props = {
   params: {
@@ -130,20 +130,14 @@ export default async function ServiceDetailPage({ params }: Props) {
   const service = findService(params.service);
   if (!service) notFound();
 
-  const matchSlugs = [service.slug, ...service.aliases];
-
-  const [allProjects, serviceAssets] = await Promise.all([
-    listProjectsIndex(500).catch(() => []),
+  const [registryProjects, serviceAssets] = await Promise.all([
+    Promise.resolve(getProjectsByService(service.slug)),
     getServiceAssets(service.slug).catch(() => []),
   ]);
 
-  const projects = allProjects.filter(
-    (p) => p.serviceSlug && matchSlugs.includes(p.serviceSlug),
-  );
-
-  const hasProjects = projects.length > 0;
+  const hasRegistryProjects = registryProjects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
-  const hasContent = hasProjects || hasServiceAssets;
+  const hasContent = hasRegistryProjects || hasServiceAssets;
 
   const relatedServiceDefs = service.relatedServices
     .map((slug) => ACTIVE_SERVICES.find((s) => s.slug === slug))
@@ -178,12 +172,12 @@ export default async function ServiceDetailPage({ params }: Props) {
         </ul>
       </section>
 
-      {/* ── 4. Gallery ──────────────────────────────────────────────────── */}
+      {/* ── 4. Gallery / Project cards ──────────────────────────────────── */}
       <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl text-charcoal">Project Gallery</h2>
-          <Link href="/gallery" className="font-ui text-sm font-semibold text-red">
-            View Full Gallery →
+          <Link href="/projects" className="font-ui text-sm font-semibold text-red">
+            View All Projects →
           </Link>
         </div>
 
@@ -200,45 +194,29 @@ export default async function ServiceDetailPage({ params }: Props) {
               Request a Quote
             </Link>
           </div>
-        ) : hasProjects ? (
+        ) : hasRegistryProjects ? (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {registryProjects.slice(0, 3).map((project) => (
               <article
                 key={project.slug}
                 className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
               >
-                {project.heroPublicId ? (
-                  <Link href={`/projects/${project.slug}`} className="block">
-                    <CloudinaryImage
-                      src={project.heroPublicId}
-                      alt={
-                        project.heroAlt ||
-                        buildProjectImageAlt({
-                          service: project.serviceSlug,
-                          city: project.cityLabel,
-                          state: project.state,
-                          room: project.roomLabel,
-                          material: project.materialLabel,
-                        })
-                      }
-                      width={1200}
-                      height={800}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      style={{ width: "100%", height: "220px", objectFit: "cover" }}
-                    />
-                  </Link>
-                ) : null}
-                <div className="p-4">
-                  <h3 className="text-xl text-charcoal">
+                <div className="p-5">
+                  <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
+                    {project.location.cityLabel}, {project.location.state} &middot; {project.year}
+                  </p>
+                  <h3 className="mt-2 text-xl text-charcoal">
                     <Link href={`/projects/${project.slug}`} className="hover:text-red">
-                      {project.name}
+                      {project.title}
                     </Link>
                   </h3>
-                  <p className="mt-2 text-sm text-gray-mid">
-                    {[project.cityLabel, project.state, project.materialLabel]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
+                  <Link
+                    href={`/projects/${project.slug}`}
+                    className="font-ui mt-4 inline-block text-sm font-semibold text-red"
+                  >
+                    View Project →
+                  </Link>
                 </div>
               </article>
             ))}

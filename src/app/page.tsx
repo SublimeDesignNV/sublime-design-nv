@@ -1,14 +1,13 @@
 import Link from "next/link";
-import CloudinaryImage from "@/components/CloudinaryImage";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import HeroProject from "@/components/home/HeroProject";
 import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
 import TrustSignals from "@/components/home/TrustSignals";
-import { listProjectsIndex } from "@/lib/cloudinary.server";
+import { FEATURED_PROJECTS, PROJECT_LIST } from "@/content/projects";
+import { findService } from "@/content/services";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
-import { buildProjectImageAlt } from "@/lib/seo";
 
 const PROCESS_STEPS = [
   {
@@ -28,21 +27,12 @@ const PROCESS_STEPS = [
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [allProjects, heroAsset] = await Promise.all([
-    listProjectsIndex(120).catch(() => []),
-    getHeroAsset(),
-  ]);
+  const heroAsset = await getHeroAsset();
 
-  const featuredProjects = allProjects.filter((project) => project.featured);
-
-  const recentProjects = [...allProjects].sort((a, b) => {
-    const aTime = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-    const bTime = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-    return bTime - aTime;
-  });
-
-  const projectCards = (featuredProjects.length ? featuredProjects : recentProjects).slice(0, 3);
-  const storyProjects = (featuredProjects.length ? featuredProjects : recentProjects).slice(0, 3);
+  // Featured projects for cards section; fall back to most-recent
+  const projectCards = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
+  // Story projects — show featured ones
+  const storyProjects = (FEATURED_PROJECTS.length ? FEATURED_PROJECTS : PROJECT_LIST).slice(0, 3);
 
   return (
     <main className="bg-white">
@@ -76,60 +66,36 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {projectCards.length === 0 ? (
-            <div className="mt-8 rounded-xl border border-gray-200 bg-cream p-8">
-              <p className="text-gray-mid">Projects are being added now. Check the gallery for the latest work.</p>
-              <Link
-                href="/gallery"
-                className="font-ui mt-4 inline-block rounded-sm bg-red px-5 py-2 text-sm font-semibold text-white"
-              >
-                View Gallery
-              </Link>
-            </div>
-          ) : (
-            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-              {projectCards.map((project) => (
+          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+            {projectCards.map((project) => {
+              const serviceDef = findService(project.serviceSlug);
+              return (
                 <article
                   key={project.slug}
                   className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
                 >
-                  {project.heroPublicId ? (
-                    <Link href={`/projects/${project.slug}`} className="block">
-                      <CloudinaryImage
-                        src={project.heroPublicId}
-                        alt={
-                          project.heroAlt ||
-                          buildProjectImageAlt({
-                            service: project.serviceSlug,
-                            city: project.cityLabel,
-                            state: project.state,
-                            room: project.roomLabel,
-                            material: project.materialLabel,
-                          })
-                        }
-                        width={1400}
-                        height={900}
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        style={{ width: "100%", height: "240px", objectFit: "cover" }}
-                      />
-                    </Link>
-                  ) : null}
                   <div className="p-5">
-                    <h3 className="text-2xl text-charcoal">
+                    <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
+                      {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")} &middot;{" "}
+                      {project.location.cityLabel}, {project.location.state}
+                    </p>
+                    <h3 className="mt-2 text-2xl text-charcoal">
                       <Link href={`/projects/${project.slug}`} className="hover:text-red">
-                        {project.name}
+                        {project.title}
                       </Link>
                     </h3>
-                    <p className="mt-2 text-sm text-gray-mid">
-                      {[project.serviceLabel, project.cityLabel, project.state, project.year]
-                        .filter(Boolean)
-                        .join(" • ")}
-                    </p>
+                    <p className="mt-2 text-sm leading-6 text-gray-mid">{project.summary}</p>
+                    <Link
+                      href={`/projects/${project.slug}`}
+                      className="font-ui mt-4 inline-block text-sm font-semibold text-red"
+                    >
+                      View Project →
+                    </Link>
                   </div>
                 </article>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       </section>
 
