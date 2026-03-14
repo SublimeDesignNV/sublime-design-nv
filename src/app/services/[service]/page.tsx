@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import { findService } from "@/content/services";
+import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { listProjectsIndex } from "@/lib/cloudinary.server";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
@@ -23,25 +23,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: "Service page not found.",
     };
   }
-
   return {
-    title: `${service.title} | Sublime Design NV`,
-    description: service.description,
+    title: service.seoTitle,
+    description: service.seoDescription,
     alternates: {
       canonical: buildFacetCanonical(`/services/${service.slug}`),
     },
   };
 }
 
-/** Render a single gallery asset using the right image component for its source. */
+// ─── Gallery sub-components ──────────────────────────────────────────────────
+
 function GalleryImage({
   asset,
   sizes,
-  className,
 }: {
   asset: ServiceGalleryAsset;
   sizes: string;
-  className?: string;
 }) {
   if (asset.source === "cloudinary" && asset.publicId) {
     return (
@@ -55,22 +53,20 @@ function GalleryImage({
       />
     );
   }
-  // Seed image
   return (
     <Image
       src={asset.secureUrl}
       alt={asset.alt}
       fill
       sizes={sizes}
-      className={`object-cover ${className ?? ""}`}
+      className="object-cover"
     />
   );
 }
 
-/** 1-image: full-width hero layout */
 function HeroGallery({ asset }: { asset: ServiceGalleryAsset }) {
   return (
-    <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
       <div className="relative h-[420px] w-full sm:h-[520px]">
         <GalleryImage asset={asset} sizes="100vw" />
       </div>
@@ -78,21 +74,21 @@ function HeroGallery({ asset }: { asset: ServiceGalleryAsset }) {
   );
 }
 
-/** 2–4 images: featured-first masonry grid */
 function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   const [first, ...rest] = assets;
   return (
     <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {/* First image spans full height on the left */}
-      <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" style={{ minHeight: "320px" }}>
+      <div
+        className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
+        style={{ minHeight: "320px" }}
+      >
         <GalleryImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
       </div>
-      {/* Remaining images stacked on the right */}
       <div className="flex flex-col gap-4">
         {rest.map((asset) => (
           <div
             key={asset.secureUrl}
-            className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+            className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
             style={{ minHeight: "148px" }}
           >
             <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
@@ -103,17 +99,19 @@ function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   );
 }
 
-/** 5+ images: standard 3-column grid */
 function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   return (
     <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {assets.map((asset) => (
         <div
           key={asset.secureUrl}
-          className="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
           style={{ height: "260px" }}
         >
-          <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+          <GalleryImage
+            asset={asset}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
         </div>
       ))}
     </div>
@@ -126,48 +124,61 @@ function ServiceGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   return <FullGallery assets={assets} />;
 }
 
+// ─── Page ────────────────────────────────────────────────────────────────────
+
 export default async function ServiceDetailPage({ params }: Props) {
   const service = findService(params.service);
   if (!service) notFound();
 
-  // All slugs to match (canonical + aliases)
   const matchSlugs = [service.slug, ...service.aliases];
 
-  // Cloudinary project cards (existing behavior)
-  const allProjects = await listProjectsIndex(500).catch(() => []);
+  const [allProjects, serviceAssets] = await Promise.all([
+    listProjectsIndex(500).catch(() => []),
+    getServiceAssets(service.slug).catch(() => []),
+  ]);
+
   const projects = allProjects.filter(
     (p) => p.serviceSlug && matchSlugs.includes(p.serviceSlug),
   );
-
-  // Service assets — Cloudinary first, seed fallback built-in via getServiceAssets
-  const serviceAssets = await getServiceAssets(service.slug).catch(() => []);
 
   const hasProjects = projects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
   const hasContent = hasProjects || hasServiceAssets;
 
+  const relatedServiceDefs = service.relatedServices
+    .map((slug) => ACTIVE_SERVICES.find((s) => s.slug === slug))
+    .filter((s): s is NonNullable<typeof s> => Boolean(s));
+
   return (
-    <main className="bg-white pb-20 pt-24">
-      {/* Hero */}
+    <main className="bg-white pb-24 pt-24">
+
+      {/* ── 1. Hero ─────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
           {service.status === "coming-soon" ? "Coming Soon" : "Service"}
         </p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{service.heroHeadline}</h1>
-        <p className="mt-4 max-w-3xl text-base text-gray-mid">{service.heroBody}</p>
+        <p className="mt-4 max-w-3xl text-lg text-gray-mid">{service.heroBody}</p>
+      </section>
 
-        {/* Value bullets */}
-        <ul className="mt-6 space-y-2">
+      {/* ── 2. Intro paragraph ──────────────────────────────────────────── */}
+      <section className="mx-auto mt-8 max-w-7xl px-4 md:px-8">
+        <p className="max-w-3xl text-base leading-7 text-charcoal/80">{service.introParagraph}</p>
+      </section>
+
+      {/* ── 3. Value bullets ────────────────────────────────────────────── */}
+      <section className="mx-auto mt-8 max-w-7xl px-4 md:px-8">
+        <ul className="space-y-3">
           {service.valueBullets.map((bullet) => (
             <li key={bullet} className="flex items-start gap-3 text-sm text-charcoal">
-              <span className="mt-0.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
+              <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
               {bullet}
             </li>
           ))}
         </ul>
       </section>
 
-      {/* Gallery */}
+      {/* ── 4. Gallery ──────────────────────────────────────────────────── */}
       <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="flex items-end justify-between gap-4">
           <h2 className="text-3xl text-charcoal">Project Gallery</h2>
@@ -177,7 +188,6 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
 
         {!hasContent ? (
-          /* 0 images — polished empty state */
           <div className="mt-6 rounded-xl border border-gray-200 bg-cream p-8">
             <p className="text-gray-mid">
               We are adding more {service.shortTitle.toLowerCase()} projects now. In the meantime,
@@ -191,7 +201,6 @@ export default async function ServiceDetailPage({ params }: Props) {
             </Link>
           </div>
         ) : hasProjects ? (
-          /* Cloudinary project cards */
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <article
@@ -235,20 +244,69 @@ export default async function ServiceDetailPage({ params }: Props) {
             ))}
           </div>
         ) : (
-          /* Tiered service asset gallery — Cloudinary or seed */
           <ServiceGallery assets={serviceAssets} />
         )}
       </section>
 
-      {/* Back link */}
-      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
-        <Link href="/services" className="font-ui text-sm font-semibold text-red">
-          ← All Services
-        </Link>
+      {/* ── 5. Process ──────────────────────────────────────────────────── */}
+      <section className="mx-auto mt-20 max-w-7xl px-4 md:px-8">
+        <h2 className="text-3xl text-charcoal">How It Works</h2>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          {service.processSteps.map((step, index) => (
+            <div key={step} className="rounded-xl border border-gray-200 bg-cream p-6">
+              <p className="font-ui text-xs uppercase tracking-[0.2em] text-red">
+                Step {index + 1}
+              </p>
+              <p className="mt-3 text-base text-charcoal">{step}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Quote CTA */}
-      <section className="mx-auto mt-10 max-w-7xl px-4 md:px-8">
+      {/* ── 6. FAQ ──────────────────────────────────────────────────────── */}
+      <section className="mx-auto mt-20 max-w-3xl px-4 md:px-8">
+        <h2 className="text-3xl text-charcoal">Common Questions</h2>
+        <div className="mt-8 divide-y divide-gray-200">
+          {service.faq.map((item) => (
+            <details key={item.question} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
+                <span className="text-base font-medium text-charcoal">{item.question}</span>
+                <span className="mt-0.5 flex-shrink-0 text-red transition group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-7 text-gray-mid">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* ── 7. Related services ─────────────────────────────────────────── */}
+      {relatedServiceDefs.length > 0 && (
+        <section className="mx-auto mt-20 max-w-7xl px-4 md:px-8">
+          <h2 className="text-2xl text-charcoal">Related Services</h2>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {relatedServiceDefs.map((related) => (
+              <Link
+                key={related.slug}
+                href={`/services/${related.slug}`}
+                className="rounded-lg border border-gray-200 bg-cream px-5 py-3 text-sm font-medium text-charcoal transition hover:border-red hover:text-red"
+              >
+                {related.shortTitle}
+              </Link>
+            ))}
+            <Link
+              href="/services"
+              className="rounded-lg border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-mid transition hover:border-red hover:text-red"
+            >
+              All Services →
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* ── 8. Quote CTA ────────────────────────────────────────────────── */}
+      <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
           <h2 className="text-3xl md:text-4xl">{service.ctaLabel}</h2>
           <p className="mt-3 max-w-2xl text-white/90">

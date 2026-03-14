@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import { ACTIVE_SERVICES } from "@/content/services";
+import { HOMEPAGE_PRIMARY_SERVICES, HOMEPAGE_SECONDARY_SERVICES } from "@/content/services";
 import { getServiceCardPreviewAsset } from "@/lib/portfolio.server";
 import type { ServicePreviewAsset } from "@/lib/portfolio.server";
 
@@ -25,7 +25,6 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
       />
     );
   }
-  // Seed image — static file served from public/seed-images/
   return (
     <Image
       src={preview.secureUrl}
@@ -69,15 +68,38 @@ async function ServiceCard({
 
 export default async function ServiceCards() {
   return (
-    <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-      {ACTIVE_SERVICES.map((service) => (
-        <ServiceCard
-          key={service.slug}
-          slug={service.slug}
-          shortTitle={service.shortTitle}
-          shortDescription={service.shortDescription}
-        />
-      ))}
+    <div className="mt-10">
+      {/* Primary grid — top 4 services */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        {HOMEPAGE_PRIMARY_SERVICES.map((service) => (
+          <ServiceCard
+            key={service.slug}
+            slug={service.slug}
+            shortTitle={service.shortTitle}
+            shortDescription={service.shortDescription}
+          />
+        ))}
+      </div>
+
+      {/* Secondary row — remaining active services + view all link */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-gray-200 pt-5">
+        <span className="font-ui text-xs uppercase tracking-widest text-gray-mid">Also</span>
+        {HOMEPAGE_SECONDARY_SERVICES.map((service) => (
+          <Link
+            key={service.slug}
+            href={`/services/${service.slug}`}
+            className="font-ui text-sm font-medium text-charcoal transition hover:text-red"
+          >
+            {service.shortTitle}
+          </Link>
+        ))}
+        <Link
+          href="/services"
+          className="font-ui ml-auto text-sm font-semibold text-red"
+        >
+          View All Services →
+        </Link>
+      </div>
     </div>
   );
 }

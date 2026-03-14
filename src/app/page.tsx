@@ -51,11 +51,11 @@ export default async function HomePage() {
 
       <section className="bg-cream py-20">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="font-ui text-sm uppercase tracking-widest text-red">Finish Carpentry Services</p>
-          <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Built for Your Home. Installed Right.</h2>
+          <p className="font-ui text-sm uppercase tracking-widest text-red">What We Build</p>
+          <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Finish Carpentry Done Right</h2>
           <p className="mt-4 max-w-3xl text-base text-gray-mid">
-            We build and install custom finish carpentry across Las Vegas, Henderson, Summerlin,
-            and the surrounding valley.
+            Custom built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and
+            mantels — measured, shop-built, and installed throughout Las Vegas and the Henderson valley.
           </p>
           <ServiceCards />
         </div>
@@ -65,8 +65,8 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-ui text-sm uppercase tracking-widest text-red">Featured Work</p>
-              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Recent Projects</h2>
+              <p className="font-ui text-sm uppercase tracking-widest text-red">Recent Work</p>
+              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Projects</h2>
             </div>
             <Link
               href="/projects"
@@ -138,8 +138,8 @@ export default async function HomePage() {
 
       <section className="bg-navy py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <p className="font-ui text-sm uppercase tracking-widest text-red">How It Works</p>
-          <h2 className="mt-3 text-4xl md:text-5xl">Simple Process. Clean Results.</h2>
+          <p className="font-ui text-sm uppercase tracking-widest text-red">Our Process</p>
+          <h2 className="mt-3 text-4xl md:text-5xl">Measured. Built. Installed.</h2>
           <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
             {PROCESS_STEPS.map((step, index) => (
               <article key={step.title} className="rounded-xl border border-white/15 bg-white/5 p-6">
@@ -154,9 +154,10 @@ export default async function HomePage() {
 
       <section className="bg-red py-20 text-white">
         <div className="mx-auto max-w-4xl px-4 text-center md:px-8">
-          <h2 className="text-4xl md:text-5xl">Ready to transform your space?</h2>
+          <h2 className="text-4xl md:text-5xl">Start with a quote.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-white/90">
-            Tell us about your project and we will send a detailed quote with timeline and scope.
+            Tell us what you have in mind and we will respond with scope, timeline, and pricing —
+            no pressure, no commitment required.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
