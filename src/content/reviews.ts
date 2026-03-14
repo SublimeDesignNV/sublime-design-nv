@@ -5,6 +5,7 @@ export type ReviewDef = {
   quote: string;
   rating: number;
   sourceLabel: string;
+  sourceUrl?: string;
   featured: boolean;
   sortOrder: number;
   serviceSlugs: string[];

@@ -173,6 +173,7 @@ export default async function ServiceDetailPage({ params }: Props) {
   const hasRegistryProjects = registryProjects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
   const hasContent = hasRegistryProjects || hasServiceAssets;
+  const proofProject = registryProjects[0];
 
   const relatedServiceDefs = service.relatedServices
     .map((slug) => ACTIVE_SERVICES.find((s) => s.slug === slug))
@@ -340,6 +341,10 @@ export default async function ServiceDetailPage({ params }: Props) {
             subheading={`Recent homeowner feedback on ${service.shortTitle.toLowerCase()} projects completed across Las Vegas, Henderson, and Summerlin.`}
             emptyBehavior="hide"
             pageType="service"
+            showCompactCta={Boolean(proofProject)}
+            ctaHref={proofProject ? `/projects/${proofProject.slug}` : "/projects"}
+            ctaLabel={proofProject ? `View ${service.shortTitle} Project` : "View Projects"}
+            eventContext="service_proof_cta"
           />
         </section>
       ) : null}

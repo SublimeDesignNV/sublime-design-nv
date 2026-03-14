@@ -1,6 +1,6 @@
 import TrackedLink from "@/components/analytics/TrackedLink";
 import type { ReviewDef } from "@/content/reviews";
-import { REVIEW_SOURCE } from "@/lib/reviews.config";
+import { BUSINESS_PROFILE, REVIEW_SOURCE } from "@/lib/reviews.config";
 
 type ReviewSourcePlaceholderProps = {
   reviews?: ReviewDef[];
@@ -14,6 +14,7 @@ type ReviewSourcePlaceholderProps = {
   ctaLabel?: string;
   pageType?: "home" | "service" | "project";
   eventContext?: string;
+  showCompactCta?: boolean;
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -52,6 +53,16 @@ function ReviewCard({
           {review.location}
           {review.sourceLabel ? ` · ${review.sourceLabel}` : ""}
         </p>
+        {review.sourceUrl ? (
+          <a
+            href={review.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-ui mt-2 inline-block text-xs font-medium text-red hover:underline"
+          >
+            View source ↗
+          </a>
+        ) : null}
       </div>
     </article>
   );
@@ -69,6 +80,7 @@ export default function ReviewSourcePlaceholder({
   ctaLabel = "Start with a Quote",
   pageType = "home",
   eventContext = "reviews_section",
+  showCompactCta = false,
 }: ReviewSourcePlaceholderProps) {
   if (!reviews.length && emptyBehavior === "hide") {
     return null;
@@ -121,6 +133,33 @@ export default function ReviewSourcePlaceholder({
           <ReviewCard key={review.slug} review={review} compact={compact} />
         ))}
       </div>
+      {(showCompactCta || BUSINESS_PROFILE.reviewProfileUrl) ? (
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          {showCompactCta ? (
+            <TrackedLink
+              href={ctaHref}
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: pageType,
+                cta_location: eventContext,
+              }}
+              className="font-ui text-sm font-semibold text-red hover:underline"
+            >
+              {ctaLabel}
+            </TrackedLink>
+          ) : null}
+          {BUSINESS_PROFILE.reviewProfileUrl ? (
+            <a
+              href={BUSINESS_PROFILE.reviewProfileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-ui text-sm font-semibold text-navy hover:text-red"
+            >
+              {BUSINESS_PROFILE.reviewCtaLabel} ↗
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

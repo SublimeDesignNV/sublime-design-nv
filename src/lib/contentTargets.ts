@@ -7,6 +7,12 @@ export const CONTENT_TARGETS: Record<string, number> = {
   mantels: 4,
 };
 
+export const FLAGSHIP_PROJECT_TARGETS: Record<string, number> = {
+  "henderson-built-in-library": 8,
+  "summerlin-floating-shelves": 8,
+  "las-vegas-pantry-pullouts": 6,
+};
+
 export type ContentCoverageStatus = "empty" | "thin" | "healthy";
 
 export function getContentTarget(serviceSlug: string): number {
@@ -15,6 +21,14 @@ export function getContentTarget(serviceSlug: string): number {
 
 export function getAllContentTargets(): Record<string, number> {
   return { ...CONTENT_TARGETS };
+}
+
+export function getFlagshipProjectTarget(projectSlug: string): number {
+  return FLAGSHIP_PROJECT_TARGETS[projectSlug] ?? 6;
+}
+
+export function getAllFlagshipProjectTargets(): Record<string, number> {
+  return { ...FLAGSHIP_PROJECT_TARGETS };
 }
 
 export function getContentCompletion(

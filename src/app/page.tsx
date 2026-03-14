@@ -14,6 +14,7 @@ import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
+import { BUSINESS_PROFILE } from "@/lib/reviews.config";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
@@ -90,8 +91,11 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-ui text-sm uppercase tracking-widest text-red">Recent Work</p>
-              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Projects</h2>
+              <p className="font-ui text-sm uppercase tracking-widest text-red">Flagship Work</p>
+              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Proof Pages That Show the Work</h2>
+              <p className="mt-4 max-w-3xl text-base text-gray-mid">
+                Start with the strongest case studies first. Each flagship project ties together service, location, scope, and real homeowner proof before you ask for a quote.
+              </p>
             </div>
             <Link
               href="/projects"
@@ -145,10 +149,10 @@ export default async function HomePage() {
             eyebrow="Client Reviews"
             title="Work That Earns Repeat Referrals"
             subheading="A few recent homeowner reviews tied to real built-ins, floating shelves, closet systems, and cabinetry work around Las Vegas, Henderson, and Summerlin."
-            ctaHref="/quote"
-            ctaLabel="Start with a Quote"
+            ctaHref={BUSINESS_PROFILE.reviewProfileUrl || "/projects"}
+            ctaLabel={BUSINESS_PROFILE.reviewProfileUrl ? BUSINESS_PROFILE.reviewCtaLabel : "Read more proof"}
             pageType="home"
-            eventContext="reviews_quote_cta"
+            eventContext="reviews_read_more_cta"
           />
         </div>
       </section>

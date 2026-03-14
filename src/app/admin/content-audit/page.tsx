@@ -63,6 +63,19 @@ function CoverageBadge({ status }: { status: "empty" | "thin" | "healthy" }) {
   );
 }
 
+function SourceBadge({ source }: { source: "cloudinary" | "seed" | "mixed" | "empty" }) {
+  const styles =
+    source === "cloudinary"
+      ? "bg-green-100 text-green-800"
+      : source === "mixed"
+        ? "bg-yellow-100 text-yellow-800"
+        : source === "seed"
+          ? "bg-blue-100 text-blue-800"
+          : "bg-gray-100 text-gray-700";
+
+  return <span className={`inline-block rounded px-2 py-0.5 font-mono text-xs ${styles}`}>{source}</span>;
+}
+
 export default async function ContentAuditPage() {
   const isAuthed = isAdminSession();
 
@@ -219,11 +232,19 @@ export default async function ContentAuditPage() {
                 {[
                   "Project",
                   "Location",
+                  "Images",
+                  "Target",
+                  "Gallery",
+                  "Source",
                   "Has Location",
                   "Hero",
+                  "Hero Source",
+                  "Linked Review",
                   "Proof",
+                  "CTA",
                   "Summary",
                   "Rich Content",
+                  "OG Ready",
                   "Share Ready",
                 ].map((heading) => (
                   <th
@@ -243,11 +264,31 @@ export default async function ContentAuditPage() {
                     <p className="font-mono text-xs text-gray-mid">{row.slug}</p>
                   </td>
                   <td className="px-4 py-3 text-charcoal">{row.location}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.imageCount}</td>
+                  <td className="px-4 py-3 font-mono text-charcoal">{row.targetImageCount}</td>
+                  <td className="px-4 py-3"><CoverageBadge status={row.galleryStatus} /></td>
+                  <td className="px-4 py-3">
+                    <SourceBadge
+                      source={
+                        row.imageCount === 0
+                          ? "empty"
+                          : row.usingSeedFallback && row.heroFromCloudinary
+                            ? "mixed"
+                            : row.usingSeedFallback
+                              ? "seed"
+                              : "cloudinary"
+                      }
+                    />
+                  </td>
                   <td className="px-4 py-3"><Badge ok={row.hasLocation} label={row.hasLocation ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasHeroImage} label={row.hasHeroImage ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.heroFromCloudinary} label={row.heroFromCloudinary ? "cloud" : "seed"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasLinkedReview} label={row.hasLinkedReview ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasReviewOrTestimonial} label={row.hasReviewOrTestimonial ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasStrongCtaLine} label={row.hasStrongCtaLine ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasProjectSummary} label={row.hasProjectSummary ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasRichContent} label={row.hasRichContent ? "yes" : "no"} /></td>
+                  <td className="px-4 py-3"><Badge ok={row.hasOgReadyMetadata} label={row.hasOgReadyMetadata ? "yes" : "no"} /></td>
                   <td className="px-4 py-3"><Badge ok={row.hasShareReadyMetadataInputs} label={row.hasShareReadyMetadataInputs ? "yes" : "no"} /></td>
                 </tr>
               ))}

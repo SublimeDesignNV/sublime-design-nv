@@ -387,6 +387,36 @@ export default async function ProjectDetailPage({ params }: Props) {
             </ul>
           </div>
         ) : null}
+        {project.flagship && (project.fitBullets?.length || project.commonRequests?.length) ? (
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {project.fitBullets?.length ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Is This the Right Fit?</p>
+                <ul className="mt-4 space-y-3">
+                  {project.fitBullets.map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm text-charcoal">
+                      <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {project.commonRequests?.length ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Typical Scope Includes</p>
+                <ul className="mt-4 space-y-3">
+                  {project.commonRequests.map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm text-charcoal">
+                      <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {/* ── 6. Gallery ───────────────────────────────────────────────── */}
@@ -409,6 +439,10 @@ export default async function ProjectDetailPage({ params }: Props) {
             subheading={`A recent homeowner review related to ${serviceLabel.toLowerCase()} work like this project.`}
             emptyBehavior="hide"
             pageType="project"
+            showCompactCta
+            ctaHref="/quote"
+            ctaLabel={`Start with a ${serviceLabel} Quote`}
+            eventContext="project_proof_cta"
           />
         </section>
       ) : null}

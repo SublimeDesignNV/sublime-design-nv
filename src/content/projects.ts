@@ -26,12 +26,16 @@ export type ProjectDef = {
   galleryServiceSlug?: string;
   /** Slug from testimonials.ts — normalized testimonial reference */
   testimonialSlug?: string;
+  preferredHeroPublicId?: string;
+  preferredGalleryFirstPublicId?: string;
   intro?: string;
   problem?: string;
   approach?: string;
   result?: string;
   clientType?: string;
   scopeItems?: string[];
+  fitBullets?: string[];
+  commonRequests?: string[];
   materialsDetail?: string;
   timelineDetail?: string;
   ctaLine?: string;
@@ -85,6 +89,16 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Henderson built-in library wall with integrated desk, display niche, and full-height shelving",
     galleryAltPrefix:
       "Henderson built-in library wall detail showing custom shelving and desk installation",
+    fitBullets: [
+      "You want wall-to-wall storage that looks built with the room.",
+      "The space needs display, work surface, and concealed storage in one run.",
+      "You want a measured installation instead of stock cabinets plus filler work.",
+    ],
+    commonRequests: [
+      "Integrated desk and drawer base",
+      "Adjustable shelving for books and display pieces",
+      "Closed lower cabinets for office storage",
+    ],
     testimonialSlug: "sarah-tom-m-built-in-library",
     relatedServices: ["floating-shelves", "custom-cabinetry"],
     seoTitle: "Henderson Built-In Library Wall | Sublime Design NV",
@@ -133,6 +147,16 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Summerlin floating shelves in walnut with concealed steel support on a living room accent wall",
     galleryAltPrefix:
       "Summerlin floating shelves detail showing walnut finish and concealed bracket installation",
+    fitBullets: [
+      "You want open shelving without visible brackets or sagging lines.",
+      "The wall needs a cleaner focal point without a full built-in run.",
+      "You need shelves sized to the room, furniture, and real display weight.",
+    ],
+    commonRequests: [
+      "Accent-wall shelf layouts",
+      "Walnut or paint-grade shelf fabrication",
+      "Heavy-duty concealed bracket installs",
+    ],
     testimonialSlug: "michael-r-floating-shelves",
     relatedServices: ["built-ins", "mantels"],
     seoTitle: "Summerlin Floating Shelves | Sublime Design NV",
@@ -181,6 +205,16 @@ export const PROJECT_LIST: ProjectDef[] = [
       "Las Vegas kitchen pantry pullout system with custom full-extension shelves and organizer inserts",
     galleryAltPrefix:
       "Las Vegas pantry pullout detail showing custom shelving and full-extension storage hardware",
+    fitBullets: [
+      "Your pantry has depth but poor access.",
+      "You want better storage without replacing cabinet boxes.",
+      "The job needs clean hardware and precise fit inside existing openings.",
+    ],
+    commonRequests: [
+      "Full-extension pantry pullouts",
+      "Spice and tray organizers",
+      "Heavy-duty slide upgrades for appliance storage",
+    ],
     testimonialSlug: "patricia-w-pantry-pullouts",
     relatedServices: ["custom-cabinetry", "closet-systems"],
     seoTitle: "Las Vegas Pantry Pullout Shelves | Sublime Design NV",

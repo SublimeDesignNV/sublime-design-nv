@@ -2,6 +2,7 @@ import Image from "next/image";
 import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import type { ProjectDef } from "@/content/projects";
+import { getRelatedReviews } from "@/content/reviews";
 import { findService } from "@/content/services";
 import { findTestimonial } from "@/content/testimonials";
 import { getProjectCardPreviewAsset } from "@/lib/portfolio.server";
@@ -75,6 +76,11 @@ export default async function ProjectCard({
   const testimonial = project.testimonialSlug
     ? findTestimonial(project.testimonialSlug)
     : undefined;
+  const linkedReview = getRelatedReviews({
+    projectSlug: project.slug,
+    serviceSlug: project.serviceSlug,
+    limit: 1,
+  })[0];
 
   const label = priorityLabel ?? (project.flagship ? "Flagship" : undefined);
 
@@ -113,6 +119,11 @@ export default async function ProjectCard({
           <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
             {project.location.cityLabel}, {project.location.state}
           </span>
+          {(linkedReview || testimonial || project.flagship) ? (
+            <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+              {linkedReview ? "Client Review" : testimonial ? "Testimonial" : "Flagship"}
+            </span>
+          ) : null}
         </div>
 
         <h3 className="mt-3 text-xl text-charcoal group-hover:text-red">{project.title}</h3>
@@ -126,6 +137,13 @@ export default async function ProjectCard({
             style={clampStyle(2)}
           >
             &ldquo;{testimonial.quote}&rdquo;
+          </p>
+        ) : linkedReview ? (
+          <p
+            className="mt-4 border-l-2 border-red pl-3 text-sm italic text-gray-mid"
+            style={clampStyle(2)}
+          >
+            &ldquo;{linkedReview.quote}&rdquo;
           </p>
         ) : null}
 

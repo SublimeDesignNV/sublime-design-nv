@@ -1,5 +1,7 @@
 import "server-only";
 import { getProjectImageAltBySlug, getServiceImageAlt } from "@/lib/imageAlt";
+import { findProject } from "@/content/projects";
+import type { CloudinaryAsset } from "@/lib/cloudinary.server";
 import { db } from "@/lib/db";
 import { listProjectAssets, listAssetsByServiceTag, getProjectBySlug } from "@/lib/cloudinary.server";
 import {
@@ -254,6 +256,33 @@ export type ProjectImageAsset = {
 
 export type ProjectPreviewAsset = ProjectImageAsset;
 
+function orderProjectAssetsByPreference(
+  assets: CloudinaryAsset[],
+  projectSlug: string,
+) {
+  const project = findProject(projectSlug);
+  if (!project || !assets.length) return assets;
+
+  const heroId = project.preferredHeroPublicId;
+  const galleryId = project.preferredGalleryFirstPublicId;
+  const ordered = [...assets];
+
+  ordered.sort((a, b) => {
+    const rank = (asset: CloudinaryAsset) => {
+      if (heroId && asset.public_id === heroId) return 0;
+      if (galleryId && asset.public_id === galleryId) return 1;
+      return 2;
+    };
+
+    const rankDiff = rank(a) - rank(b);
+    if (rankDiff !== 0) return rankDiff;
+
+    return 0;
+  });
+
+  return ordered;
+}
+
 /**
  * Returns gallery images for a project page.
  * Priority: Cloudinary project folder → service-tagged Cloudinary → seed images → [].
@@ -265,7 +294,7 @@ export async function getProjectImages(
   // 1. Dedicated project folder in Cloudinary
   const cloudinaryProject = await getProjectBySlug(projectSlug).catch(() => null);
   if (cloudinaryProject?.images.length) {
-    return cloudinaryProject.images.map((img, index) => ({
+    return orderProjectAssetsByPreference(cloudinaryProject.images, projectSlug).map((img, index) => ({
       publicId: img.public_id,
       secureUrl: img.secure_url,
       alt: getProjectImageAltBySlug({
@@ -282,7 +311,7 @@ export async function getProjectImages(
   // 2. Service-tagged Cloudinary assets
   const serviceAssets = await listAssetsByServiceTag(serviceSlug, 6).catch(() => []);
   if (serviceAssets.length) {
-    return serviceAssets.map((asset, index) => ({
+    return orderProjectAssetsByPreference(serviceAssets, projectSlug).map((asset, index) => ({
       publicId: asset.public_id,
       secureUrl: asset.secure_url,
       alt: getProjectImageAltBySlug({

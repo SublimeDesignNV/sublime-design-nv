@@ -8,11 +8,12 @@ import { listAssetsByServiceTag } from "@/lib/cloudinary.server";
 import {
   getContentCompletion,
   getContentCoverageStatus,
+  getFlagshipProjectTarget,
   getContentTarget,
   type ContentCoverageStatus,
 } from "@/lib/contentTargets";
 import { getRepoImageCount } from "@/lib/portfolioContent.server";
-import { getProjectCardPreviewAsset } from "@/lib/portfolio.server";
+import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
 import { getSeedImageCount } from "@/lib/seedImages.server";
 
 export type ServiceContentAuditRow = {
@@ -53,12 +54,20 @@ export type FlagshipProjectAuditRow = {
   title: string;
   serviceSlug: string;
   location: string;
+  imageCount: number;
+  targetImageCount: number;
+  galleryStatus: ContentCoverageStatus;
   hasHeroImage: boolean;
+  heroFromCloudinary: boolean;
+  usingSeedFallback: boolean;
+  hasLinkedReview: boolean;
   hasReviewOrTestimonial: boolean;
   hasLocation: boolean;
   hasProjectSummary: boolean;
   hasRichContent: boolean;
+  hasStrongCtaLine: boolean;
   hasShareReadyMetadataInputs: boolean;
+  hasOgReadyMetadata: boolean;
 };
 
 function isFeaturedAsset(asset: {
@@ -149,7 +158,7 @@ function hasRichProjectContent(project: ProjectDef) {
   return Boolean(project.intro && project.problem && project.approach && project.result);
 }
 
-function hasShareReadyMetadataInputs(project: ProjectDef, hasHeroImage: boolean) {
+function projectHasShareReadyMetadataInputs(project: ProjectDef, hasHeroImage: boolean) {
   return Boolean(
     project.seoTitle &&
       project.seoDescription &&
@@ -164,6 +173,10 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         project.slug,
         project.galleryServiceSlug ?? project.serviceSlug,
       ).catch(() => null);
+      const images = await getProjectImages(
+        project.slug,
+        project.galleryServiceSlug ?? project.serviceSlug,
+      ).catch(() => []);
       const review = getRelatedReviews({
         projectSlug: project.slug,
         serviceSlug: project.serviceSlug,
@@ -173,18 +186,30 @@ export async function getFlagshipProjectAuditRows(): Promise<FlagshipProjectAudi
         ? findTestimonial(project.testimonialSlug)
         : undefined;
       const hasHeroImage = Boolean(preview);
+      const targetImageCount = getFlagshipProjectTarget(project.slug);
+      const imageCount = images.length;
+      const galleryStatus = getContentCoverageStatus(imageCount, targetImageCount);
+      const shareReadyMetadataInputs = projectHasShareReadyMetadataInputs(project, hasHeroImage);
 
       return {
         slug: project.slug,
         title: project.title,
         serviceSlug: project.serviceSlug,
         location: `${project.location.cityLabel}, ${project.location.state}`,
+        imageCount,
+        targetImageCount,
+        galleryStatus,
         hasHeroImage,
+        heroFromCloudinary: preview?.source === "cloudinary",
+        usingSeedFallback: images.length > 0 && images.some((image) => image.source === "seed"),
+        hasLinkedReview: Boolean(review),
         hasReviewOrTestimonial: Boolean(review || testimonial),
         hasLocation: Boolean(project.location.cityLabel && project.location.state),
         hasProjectSummary: Boolean(project.summary),
         hasRichContent: hasRichProjectContent(project),
-        hasShareReadyMetadataInputs: hasShareReadyMetadataInputs(project, hasHeroImage),
+        hasStrongCtaLine: Boolean(project.ctaLine),
+        hasShareReadyMetadataInputs: shareReadyMetadataInputs,
+        hasOgReadyMetadata: Boolean(project.seoTitle && project.seoDescription && hasHeroImage),
       };
     }),
   );

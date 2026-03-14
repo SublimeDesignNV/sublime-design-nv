@@ -221,10 +221,17 @@ export default async function LaunchAuditPage() {
                 <p className="text-sm font-medium text-charcoal">{row.title}</p>
                 <p className="mt-1 text-xs text-gray-mid">{row.location}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-mid sm:grid-cols-3">
+                  <span>Images: {row.imageCount}/{row.targetImageCount}</span>
+                  <span>Gallery: {row.galleryStatus}</span>
+                  <span>Fallback: {row.usingSeedFallback ? "seed" : "cloudinary"}</span>
                   <span>Hero: {row.hasHeroImage ? "yes" : "no"}</span>
+                  <span>Hero source: {row.heroFromCloudinary ? "cloud" : "seed"}</span>
+                  <span>Linked review: {row.hasLinkedReview ? "yes" : "no"}</span>
                   <span>Proof: {row.hasReviewOrTestimonial ? "yes" : "no"}</span>
+                  <span>CTA line: {row.hasStrongCtaLine ? "yes" : "no"}</span>
                   <span>Summary: {row.hasProjectSummary ? "yes" : "no"}</span>
                   <span>Rich content: {row.hasRichContent ? "yes" : "no"}</span>
+                  <span>OG ready: {row.hasOgReadyMetadata ? "yes" : "no"}</span>
                   <span>Share ready: {row.hasShareReadyMetadataInputs ? "yes" : "no"}</span>
                   <span>Location: {row.hasLocation ? "yes" : "no"}</span>
                 </div>
