@@ -12,6 +12,7 @@ import { getPriorityProjects } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
+import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
@@ -66,6 +67,21 @@ export default async function HomePage() {
             mantels — measured, shop-built, and installed throughout Las Vegas and the Henderson valley.
           </p>
           <ServiceCards />
+          <p className="mt-6 max-w-3xl text-sm text-gray-mid">
+            Explore service pages for{" "}
+            <Link href="/services/floating-shelves" className="font-semibold text-red hover:underline">
+              floating shelves
+            </Link>
+            ,{" "}
+            <Link href="/services/built-ins" className="font-semibold text-red hover:underline">
+              built-ins
+            </Link>
+            , and{" "}
+            <Link href="/services/custom-cabinetry" className="font-semibold text-red hover:underline">
+              custom cabinetry
+            </Link>
+            {" "}completed across Las Vegas, Henderson, and Summerlin.
+          </p>
         </div>
       </section>
 
@@ -99,6 +115,20 @@ export default async function HomePage() {
               <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples that fit the job." />
             )}
           </div>
+          {priorityProjects.length ? (
+            <p className="mt-6 max-w-3xl text-sm text-gray-mid">
+              Start with flagship work like{" "}
+              {priorityProjects.slice(0, 2).map((project, index) => (
+                <span key={project.slug}>
+                  {index > 0 ? " and " : ""}
+                  <Link href={`/projects/${project.slug}`} className="font-semibold text-red hover:underline">
+                    {project.title}
+                  </Link>
+                </span>
+              ))}
+              {" "}to see how each job was measured, built, and installed.
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -106,6 +136,11 @@ export default async function HomePage() {
       <BeforeAfterSlider />
 
       <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />
+      <section className="bg-cream py-12">
+        <div className="mx-auto max-w-7xl px-4 md:px-8">
+          <ReviewSourcePlaceholder compact />
+        </div>
+      </section>
 
       <section className="bg-navy py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 md:px-8">
@@ -143,6 +178,15 @@ export default async function HomePage() {
             >
               Call {SITE.phone}
             </a>
+          </div>
+          <div className="mt-6 rounded-xl border border-white/15 bg-white/5 p-5 text-left">
+            <p className="font-ui text-xs uppercase tracking-[0.18em] text-white/70">
+              What Happens Next
+            </p>
+            <p className="mt-2 text-sm text-white/85">
+              Send photos, measurements, or a rough idea of the space. We review the job, reach out
+              to confirm scope, and tell you what the next step looks like before anything moves forward.
+            </p>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             {CTA_TRUST_ITEMS.map((item) => (

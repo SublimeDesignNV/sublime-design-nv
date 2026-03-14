@@ -32,6 +32,18 @@ const BUDGET_OPTIONS = [
   { value: "over-10k", label: "Over $10,000" },
 ] as const;
 
+const TRUST_REASONS = [
+  "Measured, built, and installed by a local finish carpentry team.",
+  "Project photos and scope details stay tied to your quote request.",
+  "Straightforward follow-up by phone or email without a long sales process.",
+] as const;
+
+const NEXT_STEPS = [
+  "We review your service, location, and project details.",
+  "If needed, we follow up to confirm measurements, photos, or scheduling.",
+  "You get the next step for pricing, site visit, or installation timing.",
+] as const;
+
 const MAX_PHOTOS = 5;
 const MAX_FILE_MB = 10;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
@@ -115,6 +127,40 @@ function inputClass(hasError: boolean) {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-4 font-ui text-xs uppercase tracking-widest text-gray-mid">{children}</p>
+  );
+}
+
+function QuoteTrustSection() {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <SectionLabel>Why Homeowners Reach Out</SectionLabel>
+      <ul className="space-y-3 text-sm text-gray-mid">
+        {TRUST_REASONS.map((reason) => (
+          <li key={reason} className="flex items-start gap-3">
+            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red" />
+            <span>{reason}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function WhatHappensNext() {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-cream p-6">
+      <SectionLabel>What Happens Next</SectionLabel>
+      <ol className="space-y-3 text-sm text-gray-mid">
+        {NEXT_STEPS.map((step, index) => (
+          <li key={step} className="flex items-start gap-3">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold text-white">
+              {index + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -229,6 +275,10 @@ function SuccessState({ service }: { service: string }) {
       </p>
       <p className="mt-2 text-sm text-gray-mid">
         Expect a response within one business day. We may call or email to confirm a few details.
+      </p>
+      <p className="mt-2 text-sm text-gray-mid">
+        Your request is already tagged to the selected service so we can follow up with the right
+        next step.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
         <Link href="/projects" className="font-ui text-sm font-semibold text-red hover:underline">
@@ -472,12 +522,17 @@ export default function QuotePage() {
   return (
     <main className="bg-cream pt-28 pb-20">
       <div className="mx-auto max-w-2xl px-4 md:px-8">
-        <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Get a Free Quote</p>
+        <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Start with a Quote</p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Tell Us About Your Project</h1>
         <p className="mt-4 text-gray-mid">
           Share a few details and we will follow up with next steps, timeline, and pricing — no
           commitment required.
         </p>
+
+        <div className="mt-8 space-y-6">
+          <QuoteTrustSection />
+          <WhatHappensNext />
+        </div>
 
         <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-8">
 
@@ -667,7 +722,7 @@ export default function QuotePage() {
               disabled={isSubmitting}
               className="font-ui w-full rounded-sm bg-red px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:opacity-60 sm:w-auto"
             >
-              {isSubmitting ? "Sending…" : "Submit Quote Request"}
+              {isSubmitting ? "Sending…" : "Start with a Quote"}
             </button>
 
             {submitStatus === "error" ? (

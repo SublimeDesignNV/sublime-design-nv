@@ -59,11 +59,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Custom Floating Shelves",
     shortTitle: "Floating Shelves",
     description:
-      "Beautiful floating shelves designed, fabricated, and installed throughout the Las Vegas Valley. Hidden support systems, clean reveals, and finish-ready details built to last.",
+      "Beautiful floating shelves designed, fabricated, and installed throughout Las Vegas, Henderson, Summerlin, and the wider Las Vegas Valley. Hidden support systems, clean reveals, and finish-ready details built to last.",
     shortDescription: "Hidden brackets, solid wood, clean installs.",
     heroHeadline: "Floating Shelves That Look Like They Grew There",
     heroBody:
-      "We design and install custom floating shelves with concealed hardware, clean reveals, and solid construction — measured to fit your exact wall.",
+      "We design and install custom floating shelves in Las Vegas with concealed hardware, clean reveals, and solid construction — measured to fit your exact wall.",
     introParagraph:
       "Most floating shelves look fine in the store and loose on the wall six months later. We build them differently. Every shelf we install is sized to your wall, anchored into studs or blocking with concealed hardware, and finished to your painter's spec. The result is a shelf that holds weight, looks clean, and doesn't shift. We work throughout Las Vegas, Henderson, Summerlin, and the surrounding valley.",
     valueBullets: [
@@ -94,10 +94,10 @@ export const SERVICE_LIST: ServiceDef[] = [
       },
     ],
     relatedServices: ["built-ins", "custom-cabinetry"],
-    seoTitle: "Custom Floating Shelves Las Vegas | Sublime Design NV",
+    seoTitle: "Floating Shelves Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom floating shelves installed throughout Las Vegas, Henderson, and Summerlin. Hidden brackets, solid wood, professional install. Get a quote today.",
-    ctaLabel: "Get a Floating Shelf Quote",
+      "Custom floating shelves in Las Vegas, Henderson, and Summerlin with hidden brackets, solid wood construction, and clean installs across the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 1,
     aliases: [],
     status: "active",
@@ -107,11 +107,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Built-In Shelving & Storage",
     shortTitle: "Built-ins",
     description:
-      "Wall-to-wall built-ins for living rooms, offices, and media walls. Every unit is measured and built to fit your exact space with finish-ready details.",
+      "Wall-to-wall built-ins for living rooms, offices, and media walls across Las Vegas, Henderson, Summerlin, and the surrounding valley. Every unit is measured and built to fit your exact space with finish-ready details.",
     shortDescription: "Entertainment walls, bookcases, office built-ins.",
     heroHeadline: "Built-ins That Fill the Wall the Right Way",
     heroBody:
-      "Shop-built components, measured for your space, installed with tight reveals and clean transitions to ceiling, floor, and trim.",
+      "Shop-built built-ins for Las Vegas homes, measured for your space and installed with tight reveals and clean transitions to ceiling, floor, and trim.",
     introParagraph:
       "A well-built built-in makes a room. A poorly built one shows every gap and never looks quite right. We measure before we build anything — ceiling height, wall rake, floor level, existing trim profiles — and fabricate components in our shop so the install is clean and fast. Whether it's an entertainment wall, a home office surround, or a library-style bookcase, we build it to fit your room and hand it off ready for your painter. We serve homeowners throughout Las Vegas, Henderson, Summerlin, and North Las Vegas.",
     valueBullets: [
@@ -142,10 +142,10 @@ export const SERVICE_LIST: ServiceDef[] = [
       },
     ],
     relatedServices: ["floating-shelves", "custom-cabinetry"],
-    seoTitle: "Custom Built-In Shelving Las Vegas | Sublime Design NV",
+    seoTitle: "Built-Ins Las Vegas | Sublime Design NV",
     seoDescription:
-      "Wall-to-wall built-ins for living rooms, offices, and media walls in Las Vegas and Henderson, NV. Shop-built, installed clean, handed off paint-ready.",
-    ctaLabel: "Get a Built-in Quote",
+      "Custom built-ins in Las Vegas, Henderson, and Summerlin for living rooms, offices, and media walls. Shop-built, installed clean, and finished for the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 2,
     aliases: [],
     status: "active",
@@ -155,11 +155,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Pantry Pullout Systems",
     shortTitle: "Pantry Pullouts",
     description:
-      "Custom pantry pullout systems designed to maximize usable storage and access. Built and installed to fit any cabinet or pantry configuration.",
+      "Custom pantry pullout systems designed to maximize usable storage and access in Las Vegas Valley kitchens. Built and installed to fit any cabinet or pantry configuration.",
     shortDescription: "Space-saving pullouts and pantry storage.",
     heroHeadline: "Stop Losing Things in the Back of Your Pantry",
     heroBody:
-      "Custom pullout systems built to your cabinet dimensions, with full-extension hardware so you can actually reach what you stored.",
+      "Custom pantry pullouts for Las Vegas kitchens, built to your cabinet dimensions with full-extension hardware so you can actually reach what you stored.",
     introParagraph:
       "Standard pantry shelves waste roughly a third of their depth because you can't reach the back without moving everything in front. Pullout systems fix that. We build them to your exact cabinet opening dimensions, use quality full-extension slides, and install them so they glide cleanly and close flush. Whether you have an existing pantry cabinet, a reach-in closet pantry, or a full walk-in, we can fit a pullout layout that makes use of every inch. We install throughout Las Vegas and the Henderson area.",
     valueBullets: [
@@ -190,10 +190,10 @@ export const SERVICE_LIST: ServiceDef[] = [
       },
     ],
     relatedServices: ["closet-systems", "custom-cabinetry"],
-    seoTitle: "Pantry Pullout Systems Las Vegas | Sublime Design NV",
+    seoTitle: "Pantry Pullouts Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom pantry pullout systems installed in Las Vegas and Henderson, NV. Retrofit into existing cabinets. Full-extension hardware, built and installed in one day.",
-    ctaLabel: "Get a Pantry Quote",
+      "Custom pantry pullouts in Las Vegas, Henderson, and Summerlin. Retrofit existing cabinets with full-extension storage systems built for the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 3,
     aliases: ["pantry"],
     status: "active",
@@ -203,11 +203,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Custom Closet Systems",
     shortTitle: "Closet Systems",
     description:
-      "Closet systems built for practical storage, clean alignment, and efficient use of wall space. Walk-ins, reach-ins, and linen closets done right.",
+      "Closet systems built for practical storage, clean alignment, and efficient use of wall space across Las Vegas, Henderson, Summerlin, and the wider valley.",
     shortDescription: "Walk-ins, reach-ins, and linen closets done right.",
     heroHeadline: "A Closet That Actually Works for You",
     heroBody:
-      "Custom closet systems designed around your wardrobe, built with solid components, and installed with the same care we bring to every finish carpentry job.",
+      "Custom closet systems in Las Vegas designed around your wardrobe, built with solid components, and installed with the same care we bring to every finish carpentry job.",
     introParagraph:
       "Wire shelving is cheap and it looks it. Prefab closet kits are designed for average spaces — not yours. We build closet systems from scratch, sized for your closet's exact footprint, and laid out around how you actually use the space. Double-hang sections for shirts and jackets, long hang for dresses, shelves and drawers where you need them, and a clean finish that looks like part of the house. We work in walk-in closets, reach-ins, and linen closets throughout Las Vegas, Henderson, and Summerlin.",
     valueBullets: [
@@ -238,10 +238,10 @@ export const SERVICE_LIST: ServiceDef[] = [
       },
     ],
     relatedServices: ["pantry-pullouts", "built-ins"],
-    seoTitle: "Custom Closet Systems Las Vegas | Sublime Design NV",
+    seoTitle: "Closet Systems Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom walk-in and reach-in closet systems in Las Vegas, Henderson, and Summerlin, NV. Built to your layout — double hang, shelves, drawers, and shoe storage.",
-    ctaLabel: "Get a Closet Quote",
+      "Custom closet systems in Las Vegas, Henderson, and Summerlin with double hang, drawers, shoe storage, and layouts built for real daily use in the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 4,
     aliases: ["closets"],
     status: "active",
@@ -251,11 +251,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Custom Cabinetry",
     shortTitle: "Custom Cabinetry",
     description:
-      "Cabinet builds and installs with clean alignment, proper filler details, and durable finish options. Kitchen, bath, laundry, and beyond.",
+      "Cabinet builds and installs with clean alignment, proper filler details, and durable finish options across Las Vegas, Henderson, Summerlin, and the surrounding valley.",
     shortDescription: "Custom boxes, panels, fillers, and installs.",
     heroHeadline: "Cabinetry Built to Fit — Not to Compromise",
     heroBody:
-      "We build and install cabinets that fit your space precisely, with clean filler details, proper alignment, and finish-ready surfaces throughout.",
+      "We build and install custom cabinetry in Las Vegas that fits your space precisely, with clean filler details, proper alignment, and finish-ready surfaces throughout.",
     introParagraph:
       "Stock cabinets are built for a range of spaces, not yours. The result is filler pieces that don't quite blend, alignment that never gets quite right, and details that look like an afterthought. We build custom boxes sized for your kitchen, bath, laundry, or utility room — and we install them with the filler strips, scribe molding, and end panels done right. If you are working with a designer or general contractor we can coordinate directly. If you are managing the project yourself we can walk you through the process. We install throughout the Las Vegas Valley.",
     valueBullets: [
@@ -288,8 +288,8 @@ export const SERVICE_LIST: ServiceDef[] = [
     relatedServices: ["built-ins", "mantels"],
     seoTitle: "Custom Cabinetry Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom cabinet builds and installs for kitchens, bathrooms, and laundry rooms in Las Vegas, NV. Proper filler details, clean alignment, finish-ready delivery.",
-    ctaLabel: "Get a Cabinetry Quote",
+      "Custom cabinetry in Las Vegas, Henderson, and Summerlin for kitchens, baths, laundry rooms, and utility spaces. Proper filler details and clean alignment across the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 5,
     aliases: ["cabinets"],
     status: "active",
@@ -299,11 +299,11 @@ export const SERVICE_LIST: ServiceDef[] = [
     title: "Custom Mantels & Surrounds",
     shortTitle: "Mantels",
     description:
-      "Custom mantel builds and fireplace surrounds tailored to your wall dimensions and finish details. Stained, painted, or raw — built to your spec.",
+      "Custom mantel builds and fireplace surrounds tailored to your wall dimensions and finish details throughout Las Vegas, Henderson, Summerlin, and the wider valley.",
     shortDescription: "Modern wraps, beams, and fireplace surrounds.",
     heroHeadline: "A Fireplace That Commands the Room",
     heroBody:
-      "We build custom mantels and surrounds scaled to your fireplace and wall — clean lines, solid construction, and finish-ready for your painter.",
+      "We build custom mantels in Las Vegas scaled to your fireplace and wall — clean lines, solid construction, and finish-ready for your painter.",
     introParagraph:
       "A fireplace without a proper mantel is just a hole in the wall. A mantel that isn't scaled to the room makes the problem worse. We design and build custom mantels proportioned to your fireplace opening, ceiling height, and wall width — then install them clean and hand them off ready to paint or stain. Whether you want something contemporary and minimal, a traditional surround with legs and a shelf, or a simple floating beam, we build it from solid wood and install it to last. We serve homeowners throughout Las Vegas and the surrounding valley.",
     valueBullets: [
@@ -334,10 +334,10 @@ export const SERVICE_LIST: ServiceDef[] = [
       },
     ],
     relatedServices: ["custom-cabinetry", "built-ins"],
-    seoTitle: "Custom Fireplace Mantels Las Vegas | Sublime Design NV",
+    seoTitle: "Mantels Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom fireplace mantels and surrounds built and installed in Las Vegas, NV. Scaled to your wall, built in solid wood, paint-ready or stain-ready delivery.",
-    ctaLabel: "Get a Mantel Quote",
+      "Custom fireplace mantels in Las Vegas, Henderson, and Summerlin. Built to fit the wall, finished clean, and installed across the Las Vegas Valley.",
+    ctaLabel: "Start with a Quote",
     sortOrder: 6,
     aliases: [],
     status: "active",

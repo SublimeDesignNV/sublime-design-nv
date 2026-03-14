@@ -5,6 +5,9 @@ import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
+import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
+import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
+import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
 import { getTestimonialsByService } from "@/content/testimonials";
@@ -33,6 +36,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: service.seoDescription,
     alternates: {
       canonical: buildFacetCanonical(`/services/${service.slug}`),
+    },
+    openGraph: {
+      title: service.seoTitle,
+      description: service.seoDescription,
+      url: buildFacetCanonical(`/services/${service.slug}`),
     },
   };
 }
@@ -169,9 +177,17 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white pb-24 pt-24">
+      <LocalBusinessSchema />
 
       {/* ── 1. Hero ─────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 md:px-8">
+        <BreadcrumbTrail
+          crumbs={[
+            { label: "Home", href: "/" },
+            { label: "Services", href: "/services" },
+            { label: service.shortTitle, href: `/services/${service.slug}` },
+          ]}
+        />
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
           {service.status === "coming-soon" ? "Coming Soon" : "Service"}
         </p>
@@ -182,6 +198,18 @@ export default async function ServiceDetailPage({ params }: Props) {
       {/* ── 2. Intro paragraph ──────────────────────────────────────────── */}
       <section className="mx-auto mt-8 max-w-7xl px-4 md:px-8">
         <p className="max-w-3xl text-base leading-7 text-charcoal/80">{service.introParagraph}</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
+          Looking for {service.shortTitle.toLowerCase()} in Las Vegas, Henderson, or Summerlin?
+          Review recent{" "}
+          <Link href="/projects" className="font-semibold text-red hover:underline">
+            project work
+          </Link>
+          {" "}and then{" "}
+          <Link href="/quote" className="font-semibold text-red hover:underline">
+            start with a quote
+          </Link>
+          {" "}when the scope is clear.
+        </p>
       </section>
 
       {/* ── 3. Value bullets ────────────────────────────────────────────── */}
@@ -299,6 +327,10 @@ export default async function ServiceDetailPage({ params }: Props) {
         </section>
       )}
 
+      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+        <ReviewSourcePlaceholder compact />
+      </section>
+
       {/* ── 8. Related services ─────────────────────────────────────────── */}
       {relatedServiceDefs.length > 0 && (
         <section className="mx-auto mt-20 max-w-7xl px-4 md:px-8">
@@ -334,13 +366,17 @@ export default async function ServiceDetailPage({ params }: Props) {
             href="/quote"
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Get a Free Quote
+            Start with a Quote
           </Link>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (
               <span key={item} className="font-ui text-xs text-white/70">{item}</span>
             ))}
           </div>
+          <p className="mt-4 max-w-2xl text-sm text-white/85">
+            We answer with next steps, scheduling guidance, and whether a site measure is the right
+            move for the job.
+          </p>
         </div>
       </section>
     </main>

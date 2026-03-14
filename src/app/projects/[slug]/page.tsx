@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CloudinaryImage from "@/components/CloudinaryImage";
+import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
+import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
+import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import { findProject, FEATURED_PROJECTS } from "@/content/projects";
 import { findService } from "@/content/services";
 import { findTestimonial, getTestimonialsByProject } from "@/content/testimonials";
@@ -159,20 +162,9 @@ function ProjectStructuredData({
     ...(review ? { review } : {}),
   };
 
-  const breadcrumbs = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
-      { "@type": "ListItem", position: 2, name: "Projects", item: `${siteUrl}/projects` },
-      { "@type": "ListItem", position: 3, name: title, item: projectUrl },
-    ],
-  };
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(creativeWork) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
     </>
   );
 }
@@ -203,6 +195,7 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   return (
     <main className="bg-white pb-24 pt-24">
+      <LocalBusinessSchema />
       <ProjectStructuredData
         slug={project.slug}
         title={project.title}
@@ -215,14 +208,16 @@ export default async function ProjectDetailPage({ params }: Props) {
 
       {/* ── 1. Hero ──────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-4 md:px-8">
-        <nav className="mb-6 flex items-center gap-2 text-sm text-gray-mid">
-          <Link href="/projects" className="hover:text-red">Projects</Link>
-          <span>/</span>
-          <span className="text-charcoal">{project.title}</span>
-        </nav>
+        <BreadcrumbTrail
+          crumbs={[
+            { label: "Home", href: "/" },
+            { label: "Projects", href: "/projects" },
+            { label: project.title, href: `/projects/${project.slug}` },
+          ]}
+        />
 
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
-          {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")}
+          {(serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " "))} • {project.location.cityLabel}
         </p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{project.title}</h1>
         <p className="mt-2 text-base text-gray-mid">
@@ -239,6 +234,18 @@ export default async function ProjectDetailPage({ params }: Props) {
       {/* ── 2. Summary ───────────────────────────────────────────────── */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         <p className="max-w-3xl text-lg leading-8 text-charcoal/90">{project.summary}</p>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
+          Need similar {serviceDef?.shortTitle.toLowerCase() ?? "finish carpentry"} in{" "}
+          {project.location.cityLabel}? Visit the{" "}
+          <Link href={`/services/${project.serviceSlug}`} className="font-semibold text-red hover:underline">
+            {serviceDef?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")} service page
+          </Link>
+          {" "}or{" "}
+          <Link href="/quote" className="font-semibold text-red hover:underline">
+            start with a quote
+          </Link>
+          .
+        </p>
       </section>
 
       {/* ── 3. Challenge ─────────────────────────────────────────────── */}
@@ -296,6 +303,10 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
         </section>
       ) : null}
+
+      <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+        <ReviewSourcePlaceholder compact />
+      </section>
 
       {/* ── 7. Testimonial (if available) ────────────────────────────── */}
       {linkedTestimonial ? (
@@ -385,7 +396,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             href="/quote"
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Get a Free Quote
+            Start with a Quote
           </Link>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (

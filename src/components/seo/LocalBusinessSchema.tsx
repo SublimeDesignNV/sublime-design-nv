@@ -3,6 +3,7 @@ export default function LocalBusinessSchema() {
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
     name: "Sublime Design NV",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com",
     telephone: "702-847-9016",
     address: {
       "@type": "PostalAddress",
@@ -10,9 +11,27 @@ export default function LocalBusinessSchema() {
       addressRegion: "NV",
       addressCountry: "US",
     },
+    areaServed: [
+      {
+        "@type": "City",
+        name: "Las Vegas",
+      },
+      {
+        "@type": "City",
+        name: "Henderson",
+      },
+      {
+        "@type": "City",
+        name: "Summerlin",
+      },
+      {
+        "@type": "AdministrativeArea",
+        name: "Las Vegas Valley",
+      },
+    ],
     serviceArea: {
-      "@type": "State",
-      name: "Nevada",
+      "@type": "AdministrativeArea",
+      name: "Las Vegas Valley",
     },
   };
 

@@ -89,6 +89,9 @@ export default async function ProjectCard({
       </div>
 
       <div className="p-5">
+        <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+          {(service?.shortTitle ?? project.serviceSlug.replace(/-/g, " "))} • {project.location.cityLabel}
+        </p>
         <div className="flex flex-wrap gap-2">
           <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
             {service?.shortTitle ?? project.serviceSlug.replace(/-/g, " ")}

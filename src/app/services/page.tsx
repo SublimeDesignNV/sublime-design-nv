@@ -7,6 +7,7 @@ import { ACTIVE_SERVICES } from "@/content/services";
 import { getServiceCardPreviewAsset } from "@/lib/portfolio.server";
 import type { ServicePreviewAsset } from "@/lib/portfolio.server";
 import { buildFacetCanonical } from "@/lib/seo";
+import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,14 @@ export default async function ServicesIndexPage() {
             />
           ))}
         </div>
+        <p className="mt-8 max-w-3xl text-sm text-gray-mid">
+          Each service page links through to relevant project examples so homeowners in Las Vegas,
+          Henderson, and Summerlin can compare scope before requesting a quote.
+        </p>
+      </section>
+
+      <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+        <ReviewSourcePlaceholder compact />
       </section>
 
       {/* CTA */}
@@ -134,7 +143,7 @@ export default async function ServicesIndexPage() {
             href="/quote"
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Get a Free Quote
+            Start with a Quote
           </Link>
         </div>
       </section>
