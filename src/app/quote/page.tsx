@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
+import { trackEvent } from "@/lib/analytics";
 
 // ─── Service options ──────────────────────────────────────────────────────────
 // Kept inline so this file has no server imports (it's a client component).
@@ -241,6 +242,27 @@ function SuccessState({ service }: { service: string }) {
   );
 }
 
+// ─── UTM capture ──────────────────────────────────────────────────────────────
+
+type UtmFields = {
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  referrer: string;
+};
+
+function captureUtm(): UtmFields {
+  const params = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : "",
+  );
+  return {
+    utmSource: params.get("utm_source") ?? "",
+    utmMedium: params.get("utm_medium") ?? "",
+    utmCampaign: params.get("utm_campaign") ?? "",
+    referrer: typeof document !== "undefined" ? document.referrer : "",
+  };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function QuotePage() {
@@ -250,6 +272,16 @@ export default function QuotePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [submitError, setSubmitError] = useState("");
+  const [utm, setUtm] = useState<UtmFields>({
+    utmSource: "",
+    utmMedium: "",
+    utmCampaign: "",
+    referrer: "",
+  });
+
+  useEffect(() => {
+    setUtm(captureUtm());
+  }, []);
 
   const uploadsEnabled = Boolean(
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
@@ -269,6 +301,9 @@ export default function QuotePage() {
     const incoming = Array.from(files);
     const remaining = MAX_PHOTOS - photos.length;
     const batch = incoming.slice(0, remaining);
+    if (batch.length > 0) {
+      trackEvent("quote_photo_upload", { count: batch.length });
+    }
 
     const newStates: PhotoState[] = batch.map((file) => ({
       file,
@@ -393,6 +428,10 @@ export default function QuotePage() {
           message: form.message,
           photoUrls,
           consent: form.consent,
+          utmSource: utm.utmSource || undefined,
+          utmMedium: utm.utmMedium || undefined,
+          utmCampaign: utm.utmCampaign || undefined,
+          referrer: utm.referrer || undefined,
         }),
       });
 
@@ -401,6 +440,13 @@ export default function QuotePage() {
       if (!response.ok || !data.ok) {
         throw new Error(data.error ?? "Unable to submit. Please try again or call us directly.");
       }
+
+      trackEvent("quote_submit", {
+        service: form.service,
+        utm_source: utm.utmSource || undefined,
+        utm_medium: utm.utmMedium || undefined,
+        utm_campaign: utm.utmCampaign || undefined,
+      });
 
       setSubmitStatus("success");
     } catch (err) {
@@ -502,7 +548,12 @@ export default function QuotePage() {
                 <select
                   required
                   value={form.service}
-                  onChange={(e) => set("service", e.target.value)}
+                  onChange={(e) => {
+                    set("service", e.target.value);
+                    if (e.target.value) {
+                      trackEvent("quote_service_select", { service: e.target.value });
+                    }
+                  }}
                   className={inputClass(!!errors.service)}
                 >
                   <option value="">Select a service…</option>

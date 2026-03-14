@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import HeroProject from "@/components/home/HeroProject";
@@ -10,6 +11,22 @@ import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { findService } from "@/content/services";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
+
+export const metadata: Metadata = {
+  title: "Sublime Design NV | Custom Woodwork Las Vegas",
+  description:
+    "Las Vegas's premier custom finish carpentry company. Built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and mantels — measured and installed throughout Las Vegas and Henderson, NV. Free estimates.",
+  alternates: { canonical: `${SITE_URL}/` },
+  openGraph: {
+    title: "Sublime Design NV | Custom Woodwork Las Vegas",
+    description:
+      "Shop-built custom woodwork installed throughout the Las Vegas Valley. Get a free quote today.",
+    url: `${SITE_URL}/`,
+  },
+};
 
 const PROCESS_STEPS = [
   {

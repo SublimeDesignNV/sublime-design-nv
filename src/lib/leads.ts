@@ -14,12 +14,20 @@ export type LeadInput = {
   budget?: string;
   message: string;
   photoUrls: string[];
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  referrer?: string;
 };
 
 export type LeadRecord = LeadInput & {
   id: string;
   createdAt: Date;
   status: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  referrer?: string;
 };
 
 /**
@@ -44,6 +52,10 @@ export async function saveLead(input: LeadInput): Promise<string | null> {
         message: input.message,
         photoUrls: input.photoUrls,
         status: "new",
+        utmSource: input.utmSource ?? null,
+        utmMedium: input.utmMedium ?? null,
+        utmCampaign: input.utmCampaign ?? null,
+        referrer: input.referrer ?? null,
       },
     });
     return lead.id;
@@ -79,6 +91,10 @@ export async function getRecentLeads(limit = 50): Promise<LeadRecord[]> {
       message: r.message,
       photoUrls: r.photoUrls,
       status: r.status,
+      utmSource: r.utmSource ?? undefined,
+      utmMedium: r.utmMedium ?? undefined,
+      utmCampaign: r.utmCampaign ?? undefined,
+      referrer: r.referrer ?? undefined,
     }));
   } catch (error) {
     console.error("[leads] Failed to fetch leads:", error);

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { listProjects, listProjectsIndex } from "@/lib/cloudinary.server";
-import { SERVICES } from "@/lib/services.config";
+import { ACTIVE_SERVICES } from "@/content/services";
+import { PROJECT_LIST } from "@/content/projects";
 import { slugify } from "@/lib/seo";
 import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
 
@@ -21,19 +22,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/gallery`, lastModified: now },
     { url: `${siteUrl}/projects`, lastModified: now },
     { url: `${siteUrl}/services`, lastModified: now },
+    { url: `${siteUrl}/quote`, lastModified: now },
   ];
 
-  const serviceRoutes: MetadataRoute.Sitemap = SERVICES.map((service) => ({
-    url: `${siteUrl}/services/${service}`,
+  // Canonical service routes from the content registry
+  const serviceRoutes: MetadataRoute.Sitemap = ACTIVE_SERVICES.map((service) => ({
+    url: `${siteUrl}/services/${service.slug}`,
     lastModified: now,
   }));
 
-  const projectRoutes: MetadataRoute.Sitemap = projects.map((project) => ({
+  // Canonical project routes from the content registry (case-study pages)
+  const canonicalProjectRoutes: MetadataRoute.Sitemap = PROJECT_LIST.map((project) => ({
     url: `${siteUrl}/projects/${project.slug}`,
-    lastModified: project.images[0]?.created_at
-      ? new Date(project.images[0].created_at)
-      : now,
+    lastModified: now,
   }));
+
+  // Cloudinary-backed project routes (dynamic portfolio)
+  const cloudinaryProjectRoutes: MetadataRoute.Sitemap = projects
+    .filter((project) => !PROJECT_LIST.some((p) => p.slug === project.slug))
+    .map((project) => ({
+      url: `${siteUrl}/projects/${project.slug}`,
+      lastModified: project.images[0]?.created_at
+        ? new Date(project.images[0].created_at)
+        : now,
+    }));
+
+  const projectRoutes = [...canonicalProjectRoutes, ...cloudinaryProjectRoutes];
 
   const locationRoutes: MetadataRoute.Sitemap = Array.from(
     new Set(
@@ -51,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cityServiceMaterialFacetRoutes: MetadataRoute.Sitemap = [];
   const cityServiceRoomFacetRoutes: MetadataRoute.Sitemap = [];
 
-  for (const service of SERVICES) {
+  for (const { slug: service } of ACTIVE_SERVICES) {
     for (const material of MATERIALS) {
       const match = projectsIndex.some(
         (project) =>
@@ -79,7 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   for (const city of CITIES) {
-    for (const service of SERVICES) {
+    for (const { slug: service } of ACTIVE_SERVICES) {
       for (const material of MATERIALS) {
         const match = projectsIndex.some(
           (project) =>

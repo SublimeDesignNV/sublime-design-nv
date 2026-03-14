@@ -3,6 +3,7 @@ import { Bebas_Neue, Montserrat, Raleway } from "next/font/google";
 import Navbar from "@/components/layout/Navbar";
 import BuildDebugBadge from "@/components/layout/BuildDebugBadge";
 import Footer from "@/components/layout/Footer";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
 
 const displayFont = Bebas_Neue({
@@ -26,11 +27,26 @@ const uiFont = Montserrat({
   display: "swap",
 });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
+
 export const metadata: Metadata = {
-  title: "Sublime Design NV | Custom Woodwork Las Vegas",
+  title: {
+    default: "Sublime Design NV | Custom Woodwork Las Vegas",
+    template: "%s | Sublime Design NV",
+  },
   description:
-    "Las Vegas's premier custom woodwork company. Free estimates. Call (702) 241-6907.",
+    "Custom built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and mantels — measured, shop-built, and installed throughout Las Vegas and Henderson, NV. Free estimates.",
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  openGraph: {
+    siteName: "Sublime Design NV",
+    locale: "en_US",
+    type: "website",
+  },
 };
+
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export default function RootLayout({
   children,
@@ -43,6 +59,7 @@ export default function RootLayout({
       className={`${displayFont.variable} ${bodyFont.variable} ${uiFont.variable}`}
     >
       <body className="antialiased">
+        {gaMeasurementId && <GoogleAnalytics measurementId={gaMeasurementId} />}
         <Navbar />
         {children}
         <BuildDebugBadge />

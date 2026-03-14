@@ -16,6 +16,10 @@ type QuotePayload = {
   message?: unknown;
   photoUrls?: unknown;
   consent?: unknown;
+  utmSource?: unknown;
+  utmMedium?: unknown;
+  utmCampaign?: unknown;
+  referrer?: unknown;
 };
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
@@ -57,6 +61,10 @@ function buildHtmlEmail(fields: {
   message: string;
   photoUrls: string[];
   leadId: string | null;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  referrer?: string;
 }) {
   const svcLabel = serviceLabel(fields.service);
 
@@ -143,6 +151,12 @@ function buildHtmlEmail(fields: {
       </div>
 
       ${fields.leadId ? `<p style="margin-top:20px;font-size:11px;color:#9ca3af;">Lead ID: ${fields.leadId}</p>` : ""}
+      ${(fields.utmSource || fields.utmMedium || fields.utmCampaign || fields.referrer)
+        ? `<p style="margin-top:8px;font-size:11px;color:#9ca3af;">
+            Source: ${[fields.utmSource, fields.utmMedium, fields.utmCampaign].filter(Boolean).join(" / ") || "—"}
+            ${fields.referrer ? ` · Referrer: ${fields.referrer}` : ""}
+           </p>`
+        : ""}
     </div>
   </div>
 </body>
@@ -204,6 +218,10 @@ export async function POST(request: Request) {
     const message = str(body.message);
     const photoUrls = strArr(body.photoUrls);
     const consent = body.consent === true;
+    const utmSource = str(body.utmSource);
+    const utmMedium = str(body.utmMedium);
+    const utmCampaign = str(body.utmCampaign);
+    const referrer = str(body.referrer);
 
     // Required field validation
     const missing: string[] = [];
@@ -247,6 +265,10 @@ export async function POST(request: Request) {
       budget: budget || undefined,
       message,
       photoUrls,
+      utmSource: utmSource || undefined,
+      utmMedium: utmMedium || undefined,
+      utmCampaign: utmCampaign || undefined,
+      referrer: referrer || undefined,
     });
 
     // Send email
@@ -274,7 +296,13 @@ export async function POST(request: Request) {
     const svcLabel = serviceLabel(service);
     const subject = `New Quote Request — ${svcLabel} — ${location}`;
 
-    const emailFields = { name, email, phone, service, location, timeline, budget, message, photoUrls, leadId };
+    const emailFields = {
+      name, email, phone, service, location, timeline, budget, message, photoUrls, leadId,
+      utmSource: utmSource || undefined,
+      utmMedium: utmMedium || undefined,
+      utmCampaign: utmCampaign || undefined,
+      referrer: referrer || undefined,
+    };
 
     const { error: sendError } = await resend.emails.send({
       from,
