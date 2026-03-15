@@ -1,6 +1,6 @@
 import AdminNav from "@/components/admin/AdminNav";
 import Link from "next/link";
-import { isAdminAuthConfigured, requireAdmin } from "@/lib/adminAuth";
+import { isAdminAuthConfigured, requireAdmin } from "@/lib/auth";
 import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import {
@@ -60,7 +60,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function LaunchAuditPage() {
-  requireAdmin("/admin/launch-audit");
+  await requireAdmin("/admin/launch-audit");
 
   // ── Env checks ────────────────────────────────────────────────────────────
   const hasGa = Boolean(process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID);
@@ -71,8 +71,11 @@ export default async function LaunchAuditPage() {
   const hasCloudinaryApiKey = Boolean(process.env.CLOUDINARY_API_KEY);
   const hasCloudinaryApiSecret = Boolean(process.env.CLOUDINARY_API_SECRET);
   const hasDb = Boolean(process.env.DATABASE_URL);
-  const hasAdminPasswordHash = Boolean(process.env.ADMIN_PASSWORD_HASH);
   const hasAdminLogin = isAdminAuthConfigured();
+  const hasAuthSecret = Boolean(process.env.AUTH_SECRET);
+  const hasGoogleClientId = Boolean(process.env.AUTH_GOOGLE_ID);
+  const hasGoogleClientSecret = Boolean(process.env.AUTH_GOOGLE_SECRET);
+  const hasAdminAllowedEmails = Boolean(process.env.ADMIN_ALLOWED_EMAILS);
   const hasSiteUrl = Boolean(process.env.NEXT_PUBLIC_SITE_URL);
   const hasFromEmail = Boolean(process.env.LEADS_FROM_EMAIL);
   const summary = await getLaunchReadinessSummary();
@@ -161,10 +164,17 @@ export default async function LaunchAuditPage() {
               label="Admin login configured"
               detail={
                 hasAdminLogin
-                  ? hasAdminPasswordHash
-                    ? "ADMIN_PASSWORD_HASH configured"
-                    : "Legacy ADMIN_TOKEN fallback still active"
-                  : "Set ADMIN_PASSWORD_HASH to enable admin login"
+                  ? "Google OAuth + allowed admin emails configured"
+                  : "Set AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, and ADMIN_ALLOWED_EMAILS"
+              }
+            />
+            <Check
+              ok={hasAuthSecret && hasGoogleClientId && hasGoogleClientSecret && hasAdminAllowedEmails}
+              label="OAuth credentials"
+              detail={
+                hasAuthSecret && hasGoogleClientId && hasGoogleClientSecret && hasAdminAllowedEmails
+                  ? "AUTH_SECRET, Google OAuth credentials, and ADMIN_ALLOWED_EMAILS configured"
+                  : "Missing one or more Google admin auth variables"
               }
             />
             <Check
@@ -179,7 +189,7 @@ export default async function LaunchAuditPage() {
             <Check
               ok
               label="Admin route access"
-              detail="Protected admin pages redirect to /admin/login and require the secure admin session cookie."
+              detail="Protected admin pages redirect to /admin/login and require an authorized Google session."
             />
           </Section>
 

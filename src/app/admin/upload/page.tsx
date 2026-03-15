@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
 import { MATERIALS, ROOMS } from "@/lib/facets.config";
@@ -45,7 +45,6 @@ type UploadFormState = {
   alt: string;
 };
 
-const ADMIN_TOKEN_STORAGE_KEY = "sublime_admin_upload_token";
 const MAX_FILES = 20;
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
 const ACCEPTED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -63,7 +62,6 @@ function slugToTitle(slug: string) {
 }
 
 async function fetchSignedUpload(
-  adminToken: string,
   fileCount: number,
   folder: string,
   tags: string[],
@@ -73,7 +71,6 @@ async function fetchSignedUpload(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-admin-token": adminToken,
     },
     body: JSON.stringify({
       folder,
@@ -129,7 +126,6 @@ async function uploadImage(file: File, config: SignedUploadConfig): Promise<Uplo
 
 export default function AdminUploadPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [adminToken, setAdminToken] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,20 +149,6 @@ export default function AdminUploadPage() {
     gpsLng: "",
     alt: "",
   });
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-    if (stored) {
-      setAdminToken(stored);
-      return;
-    }
-
-    const prompted = window.prompt("Admin token")?.trim() || "";
-    if (prompted) {
-      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, prompted);
-      setAdminToken(prompted);
-    }
-  }, []);
 
   const projectSlug = useMemo(() => toProjectSlug(form.projectName), [form.projectName]);
   const folder = useMemo(
@@ -194,22 +176,11 @@ export default function AdminUploadPage() {
   const canUpload = useMemo(() => {
     return (
       !isUploading &&
-      adminToken.trim().length > 0 &&
       form.projectName.trim().length > 0 &&
       projectSlug.length > 0 &&
       files.length > 0
     );
-  }, [adminToken, files.length, form.projectName, isUploading, projectSlug.length]);
-
-  function updateToken(nextToken: string) {
-    setAdminToken(nextToken);
-
-    if (nextToken.trim()) {
-      window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, nextToken.trim());
-    } else {
-      window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-    }
-  }
+  }, [files.length, form.projectName, isUploading, projectSlug.length]);
 
   function updateField<K extends keyof UploadFormState>(field: K, value: UploadFormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -303,7 +274,6 @@ export default function AdminUploadPage() {
 
     try {
       const signed = await fetchSignedUpload(
-        adminToken.trim(),
         files.length,
         folder,
         uploadTags,
@@ -347,17 +317,6 @@ export default function AdminUploadPage() {
           gap: 14,
         }}
       >
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Admin Token</span>
-          <input
-            type="password"
-            value={adminToken}
-            onChange={(event) => updateToken(event.target.value)}
-            placeholder="Enter ADMIN_UPLOAD_TOKEN"
-            style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
-          />
-        </label>
-
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           <label style={{ display: "grid", gap: 6 }}>
             <span>Project Name</span>

@@ -79,9 +79,10 @@ Stop / continue gate:
 3. Set the environment filter to `Production`.
 4. Verify these runtime variables exist in `Production`:
    - `DATABASE_URL`
-   - `ADMIN_PASSWORD_HASH`
-   - `ADMIN_SESSION_SECRET`
-   - `ADMIN_UPLOAD_TOKEN`
+   - `AUTH_SECRET`
+   - `AUTH_GOOGLE_ID`
+   - `AUTH_GOOGLE_SECRET`
+   - `ADMIN_ALLOWED_EMAILS`
    - `RESEND_API_KEY`
    - `LEADS_FROM_EMAIL`
    - `LEADS_CC_EMAIL`

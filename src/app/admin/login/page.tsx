@@ -1,19 +1,21 @@
 import { redirect } from "next/navigation";
 import AdminLogin from "@/components/admin/AdminLogin";
-import { isAdminSession, normalizeAdminNextPath } from "@/lib/adminAuth";
+import { auth, isAllowedAdminEmail, normalizeAdminNextPath } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 type AdminLoginPageProps = {
   searchParams?: {
     next?: string;
+    error?: string;
   };
 };
 
-export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
+export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
   const nextPath = normalizeAdminNextPath(searchParams?.next);
+  const session = await auth();
 
-  if (isAdminSession()) {
+  if (session?.user?.email && isAllowedAdminEmail(session.user.email)) {
     redirect(nextPath);
   }
 
@@ -27,7 +29,7 @@ export default function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
             Sign in once to access uploads, leads, launch diagnostics, and content operations pages.
           </p>
         </div>
-        <AdminLogin nextPath={nextPath} />
+        <AdminLogin nextPath={nextPath} error={searchParams?.error} />
       </div>
     </main>
   );

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { listAssetsByPublicIdPrefix } from "@/lib/cloudinary.server";
 
 const ALLOWED_ROOT_PREFIXES = ["Sublime/Gallery", "Sublime/Projects"] as const;
@@ -8,12 +9,6 @@ type ListAssetsBody = {
   maxResults?: number;
 };
 
-function isAuthorized(request: NextRequest) {
-  const expected = process.env.ADMIN_UPLOAD_TOKEN;
-  const received = request.headers.get("x-admin-token");
-  return Boolean(expected && received && received === expected);
-}
-
 function isAllowedPrefix(folderPrefix: string) {
   return ALLOWED_ROOT_PREFIXES.some(
     (root) => folderPrefix === root || folderPrefix.startsWith(`${root}/`),
@@ -21,8 +16,8 @@ function isAllowedPrefix(folderPrefix: string) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  if (!(await requireAdminApiSession())) {
+    return unauthorizedResponse();
   }
 
   const body = (await request.json().catch(() => ({}))) as ListAssetsBody;

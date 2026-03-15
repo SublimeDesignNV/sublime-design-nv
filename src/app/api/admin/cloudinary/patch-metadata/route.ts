@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { addAssetTags, updateAssetContext } from "@/lib/cloudinary.server";
 
 type PatchMetadataBody = {
@@ -6,12 +7,6 @@ type PatchMetadataBody = {
   context?: Record<string, string>;
   addTags?: string[];
 };
-
-function isAuthorized(request: NextRequest) {
-  const expected = process.env.ADMIN_UPLOAD_TOKEN;
-  const received = request.headers.get("x-admin-token");
-  return Boolean(expected && received && received === expected);
-}
 
 function normalizeContext(input: unknown) {
   if (!input || typeof input !== "object") return {};
@@ -41,8 +36,8 @@ function normalizeTags(input: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  if (!(await requireAdminApiSession())) {
+    return unauthorizedResponse();
   }
 
   const body = (await request.json().catch(() => ({}))) as PatchMetadataBody;

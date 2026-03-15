@@ -1,12 +1,12 @@
 import AdminNav from "@/components/admin/AdminNav";
 import AssetTable from "@/components/admin/AssetTable";
 import AssetUploader from "@/components/admin/AssetUploader";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
-  requireAdmin("/admin");
+export default async function AdminPage() {
+  await requireAdmin("/admin");
 
   return (
     <main className="bg-cream px-4 pb-16 pt-20 md:px-8">

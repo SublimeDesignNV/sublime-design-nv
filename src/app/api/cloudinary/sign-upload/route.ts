@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { getProjectSlugFromFolder, isValidProjectSlug } from "@/lib/projectSlug";
 
 const MAX_FILES_PER_REQUEST = 20;
@@ -60,20 +61,13 @@ function toTagsString(tags: string[] | undefined) {
   ).join(",");
 }
 
-function unauthorized() {
-  return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-}
-
 function badRequest(error: string) {
   return NextResponse.json({ ok: false, error }, { status: 400 });
 }
 
 export async function POST(request: NextRequest) {
-  const expectedToken = process.env.ADMIN_UPLOAD_TOKEN;
-  const providedToken = request.headers.get("x-admin-token");
-
-  if (!expectedToken || !providedToken || providedToken !== expectedToken) {
-    return unauthorized();
+  if (!(await requireAdminApiSession())) {
+    return unauthorizedResponse();
   }
 
   const body = (await request.json().catch(() => ({}))) as SignUploadBody;

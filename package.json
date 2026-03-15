@@ -20,6 +20,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.576.0",
     "next": "14.2.35",
+    "next-auth": "^5.0.0-beta.30",
     "next-cloudinary": "^6.17.5",
     "prisma": "^6.19.2",
     "react": "^18",

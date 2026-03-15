@@ -1,5 +1,5 @@
 import AdminNav from "@/components/admin/AdminNav";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/auth";
 import {
   getAreaContentAuditRows,
   getFlagshipProjectAuditRows,
@@ -95,7 +95,7 @@ function SourceBadge({ source }: { source: "cloudinary" | "seed" | "mixed" | "em
 }
 
 export default async function ContentAuditPage() {
-  requireAdmin("/admin/content-audit");
+  await requireAdmin("/admin/content-audit");
 
   const rows = await getServiceContentAuditRows();
   const projectRows = await getProjectContentAuditRows();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
 
@@ -40,7 +40,6 @@ type MetadataForm = {
   alt: string;
 };
 
-const ADMIN_TOKEN_STORAGE_KEY = "ADMIN_UPLOAD_TOKEN";
 const FOLDER_OPTIONS = ["Sublime/Gallery", "Sublime/Projects"];
 const MATERIAL_OPTIONS = ["Maple", "Oak", "Walnut", "Plywood", "MDF", "Mixed"];
 const FINISH_OPTIONS = ["Natural", "Stained", "Painted", "Matte", "Satin", "Gloss"];
@@ -56,9 +55,6 @@ function toTagSlug(value: string) {
 }
 
 export default function AdminBackfillPage() {
-  const [adminToken, setAdminToken] = useState(
-    typeof window === "undefined" ? "" : window.localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || "",
-  );
   const [folderPrefix, setFolderPrefix] = useState(FOLDER_OPTIONS[0]);
   const [search, setSearch] = useState("");
   const [assets, setAssets] = useState<ListedAsset[]>([]);
@@ -84,14 +80,6 @@ export default function AdminBackfillPage() {
     caption: "",
     alt: "",
   });
-
-  useEffect(() => {
-    if (adminToken || typeof window === "undefined") return;
-    const prompted = window.prompt("Admin token")?.trim() || "";
-    if (prompted) {
-      persistToken(prompted);
-    }
-  }, [adminToken]);
 
   const filteredAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -135,18 +123,6 @@ export default function AdminBackfillPage() {
     [autoTags, customTags],
   );
 
-  function persistToken(nextToken: string) {
-    const cleaned = nextToken.trim();
-    setAdminToken(cleaned);
-    if (typeof window !== "undefined") {
-      if (cleaned) {
-        window.localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, cleaned);
-      } else {
-        window.localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-      }
-    }
-  }
-
   async function fetchAssets() {
     setError(null);
     setResult(null);
@@ -157,7 +133,6 @@ export default function AdminBackfillPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-token": adminToken,
         },
         body: JSON.stringify({ folderPrefix, maxResults: 300 }),
       });
@@ -209,11 +184,6 @@ export default function AdminBackfillPage() {
     setError(null);
     setResult(null);
 
-    if (!adminToken) {
-      setError("Admin token is required.");
-      return;
-    }
-
     if (!selectedPublicIds.length) {
       setError("Select at least one asset.");
       return;
@@ -247,7 +217,6 @@ export default function AdminBackfillPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-token": adminToken,
         },
         body: JSON.stringify({
           publicIds: selectedPublicIds,
@@ -278,17 +247,6 @@ export default function AdminBackfillPage() {
       <h1 style={{ marginTop: 0 }}>Admin Backfill Metadata</h1>
 
       <section style={{ marginBottom: 18, display: "grid", gap: 12 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          <span>Admin Token</span>
-          <input
-            type="password"
-            value={adminToken}
-            onChange={(event) => persistToken(event.target.value)}
-            placeholder="ADMIN_UPLOAD_TOKEN"
-            style={{ border: "1px solid #ccc", borderRadius: 8, padding: 10 }}
-          />
-        </label>
-
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6 }}>
             <span>Folder Prefix</span>
@@ -308,7 +266,7 @@ export default function AdminBackfillPage() {
           <button
             type="button"
             onClick={fetchAssets}
-            disabled={!adminToken || isLoading}
+            disabled={isLoading}
             style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid #222" }}
           >
             {isLoading ? "Fetching..." : "Fetch Assets"}

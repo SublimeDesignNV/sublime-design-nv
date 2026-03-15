@@ -8,7 +8,7 @@ type AdminAccessRequiredProps = {
 
 export default function AdminAccessRequired({
   title = "Admin access required",
-  description = "Use the admin password login to unlock launch audit, content audit, and lead monitoring routes.",
+  description = "Use an authorized Google account to unlock launch audit, content audit, and lead monitoring routes.",
 }: AdminAccessRequiredProps) {
   return (
     <main className="min-h-screen bg-cream px-4 pb-16 pt-20 md:px-8">
@@ -22,7 +22,7 @@ export default function AdminAccessRequired({
             <Link href="/admin/login" className="font-semibold text-red hover:underline">
               /admin/login
             </Link>
-            {" "}and the secure session cookie will unlock protected admin pages.
+            {" "}and your Google-backed admin session will unlock protected admin pages.
           </p>
         </div>
         <AdminLogin nextPath="/admin" />

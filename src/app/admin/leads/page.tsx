@@ -1,6 +1,6 @@
 import AdminNav from "@/components/admin/AdminNav";
 import Link from "next/link";
-import { requireAdmin } from "@/lib/adminAuth";
+import { requireAdmin } from "@/lib/auth";
 import { getRecentLeads } from "@/lib/leads";
 import { ACTIVE_SERVICES } from "@/content/services";
 
@@ -37,7 +37,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function AdminLeadsPage() {
-  requireAdmin("/admin/leads");
+  await requireAdmin("/admin/leads");
 
   const leads = await getRecentLeads(50);
   const hasDb = Boolean(process.env.DATABASE_URL);

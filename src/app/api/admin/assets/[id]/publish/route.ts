@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminRequest, unauthorizedResponse } from "@/lib/adminAuth";
+import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 type PublishBody = {
@@ -10,7 +10,7 @@ export async function PATCH(
   request: NextRequest,
   context: { params: { id: string } },
 ) {
-  if (!isAdminRequest(request)) {
+  if (!(await requireAdminApiSession())) {
     return unauthorizedResponse();
   }
 

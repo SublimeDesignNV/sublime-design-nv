@@ -1,6 +1,6 @@
 import { AssetKind, Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminRequest, unauthorizedResponse } from "@/lib/adminAuth";
+import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 type CreateAssetBody = {
@@ -37,7 +37,8 @@ function normalizeTagSlugs(tagSlugs: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!isAdminRequest(request)) {
+  void request;
+  if (!(await requireAdminApiSession())) {
     return unauthorizedResponse();
   }
 
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAdminRequest(request)) {
+  if (!(await requireAdminApiSession())) {
     return unauthorizedResponse();
   }
 
