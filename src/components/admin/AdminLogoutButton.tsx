@@ -3,7 +3,7 @@ import { signOut } from "@/lib/auth";
 export default function AdminLogoutButton() {
   async function handleLogout() {
     "use server";
-    await signOut({ redirectTo: "/" });
+    await signOut({ redirectTo: "/admin/login" });
   }
 
   return (

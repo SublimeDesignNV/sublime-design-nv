@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
+import { auth } from "@/lib/auth";
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Upload" },
@@ -8,9 +9,12 @@ const ADMIN_LINKS = [
   { href: "/admin/launch-audit", label: "Launch Audit" },
 ] as const;
 
-export default function AdminNav() {
+export default async function AdminNav() {
+  const session = await auth();
+  const identity = session?.user?.email || session?.user?.name || "Authorized admin";
+
   return (
-    <div className="mt-6 flex flex-wrap gap-2">
+    <div className="mt-6 flex flex-wrap items-center gap-2">
       {ADMIN_LINKS.map((link) => (
         <Link
           key={link.href}
@@ -20,6 +24,9 @@ export default function AdminNav() {
           {link.label}
         </Link>
       ))}
+      <span className="rounded-full border border-gray-200 bg-white px-4 py-1.5 font-ui text-xs text-gray-mid">
+        Signed in as {identity}
+      </span>
       <AdminLogoutButton />
     </div>
   );

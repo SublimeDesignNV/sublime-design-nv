@@ -15,17 +15,26 @@
 6. Add these authorized redirect URIs:
    - `http://localhost:3001/api/auth/callback/google`
    - `https://www.sublimedesignnv.com/api/auth/callback/google`
-7. Copy the client ID into `AUTH_GOOGLE_ID`.
-8. Copy the client secret into `AUTH_GOOGLE_SECRET`.
+7. The apex domain currently redirects to `https://www.sublimedesignnv.com/`, so `https://sublimedesignnv.com/api/auth/callback/google` is not required for the intended production flow.
+8. Copy the client ID into `AUTH_GOOGLE_ID`.
+9. Copy the client secret into `AUTH_GOOGLE_SECRET`.
 
 ## Login flow
 - Visit `/admin/login`.
 - Click `Sign in with Google`.
 - Only emails listed in `ADMIN_ALLOWED_EMAILS` can complete sign-in.
 - Unauthorized Google accounts return to `/admin/login` with an access denied message.
-- Logout ends the Auth.js session and returns the user to `/`.
+- Logout ends the Auth.js session and returns the user to `/admin/login`.
 
 ## Vercel setup
 - Add `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `ADMIN_ALLOWED_EMAILS` to the Production environment in Vercel.
 - Keep the rest of the existing production vars intact.
 - Redeploy after changing any auth environment variable.
+
+## Live verification
+1. Open `/admin` in a private window and confirm it redirects to `/admin/login`.
+2. Sign in as Brandon and confirm `/admin` loads.
+3. Open `/admin/leads` and confirm it loads.
+4. Log out and confirm you return to `/admin/login`.
+5. Sign in as Tyler and confirm the same routes load.
+6. Attempt sign-in with a non-allowed Google account and confirm `/admin/login` shows the unauthorized message.

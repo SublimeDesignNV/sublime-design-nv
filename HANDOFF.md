@@ -99,7 +99,6 @@ Stop / continue gate:
    - `NEXT_PUBLIC_GOOGLE_BUSINESS_PLACE_ID`
 7. Verify these optional or legacy variables if still used operationally:
    - `CLOUDINARY_FOLDER`
-   - `ADMIN_TOKEN`
 8. If any missing values are known, add them and save.
 9. If any Production env variable was changed, return to `Deployments` and trigger a fresh redeploy of the latest `main` commit before moving on.
 
