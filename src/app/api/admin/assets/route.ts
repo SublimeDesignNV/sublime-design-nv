@@ -2,6 +2,11 @@ import { AssetKind, Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { db } from "@/lib/db";
+import {
+  getServiceTagBySlug,
+  isServiceTagSlug,
+  normalizeServiceTagSlugs,
+} from "@/lib/serviceTags";
 
 type CreateAssetBody = {
   kind?: AssetKind;
@@ -21,18 +26,6 @@ function getDbUnavailableResponse() {
   return NextResponse.json(
     { ok: false, error: "DATABASE_URL is not configured." },
     { status: 503 },
-  );
-}
-
-function normalizeTagSlugs(tagSlugs: unknown) {
-  if (!Array.isArray(tagSlugs)) return [];
-  return Array.from(
-    new Set(
-      tagSlugs
-        .filter((tag): tag is string => typeof tag === "string")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
   );
 }
 
@@ -114,7 +107,7 @@ export async function POST(request: NextRequest) {
   const publicId = body.publicId;
   const secureUrl = body.secureUrl;
 
-  const tagSlugs = normalizeTagSlugs(body.tagSlugs);
+  const tagSlugs = normalizeServiceTagSlugs(body.tagSlugs);
   if (tagSlugs.length === 0) {
     return NextResponse.json(
       { ok: false, error: "At least one service tag is required." },
@@ -122,21 +115,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const serviceTypes = await db.serviceType.findMany({
-    where: {
-      slug: {
-        in: tagSlugs,
-      },
-    },
-    select: {
-      id: true,
-      slug: true,
-    },
-  });
-
-  if (serviceTypes.length !== tagSlugs.length) {
-    const validSlugs = new Set(serviceTypes.map((serviceType) => serviceType.slug));
-    const invalid = tagSlugs.filter((slug) => !validSlugs.has(slug));
+  const invalid = tagSlugs.filter((slug) => !isServiceTagSlug(slug));
+  if (invalid.length > 0) {
     return NextResponse.json(
       { ok: false, error: `Invalid service tag slugs: ${invalid.join(", ")}` },
       { status: 400 },
@@ -145,6 +125,28 @@ export async function POST(request: NextRequest) {
 
   try {
     const asset = await db.$transaction(async (tx) => {
+      const serviceTypes = await Promise.all(
+        tagSlugs.map(async (slug) => {
+          const serviceTag = getServiceTagBySlug(slug);
+          if (!serviceTag) {
+            throw new Error(`Invalid service tag slug: ${slug}`);
+          }
+
+          return tx.serviceType.upsert({
+            where: { slug: serviceTag.slug },
+            update: { title: serviceTag.title },
+            create: {
+              slug: serviceTag.slug,
+              title: serviceTag.title,
+            },
+            select: {
+              id: true,
+              slug: true,
+            },
+          });
+        }),
+      );
+
       return tx.asset.create({
         data: {
           kind,

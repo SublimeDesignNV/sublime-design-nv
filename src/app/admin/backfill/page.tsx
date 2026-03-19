@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
+import { SERVICE_TAGS } from "@/lib/serviceTags";
 
 type ListedAsset = {
   public_id: string;
@@ -68,7 +68,7 @@ export default function AdminBackfillPage() {
   const [form, setForm] = useState<MetadataForm>({
     projectName: "",
     projectSlug: "",
-    service: SERVICES[0]?.slug ?? "",
+    service: SERVICE_TAGS[0]?.slug ?? "",
     city: "",
     state: "NV",
     material: MATERIAL_OPTIONS[0],
@@ -97,8 +97,8 @@ export default function AdminBackfillPage() {
   );
 
   const altSuggestion = useMemo(() => {
-    const selectedService = SERVICES.find((service) => service.slug === form.service);
-    return [form.projectName.trim(), selectedService?.shortTitle, form.city.trim(), form.state]
+    const selectedService = SERVICE_TAGS.find((service) => service.slug === form.service);
+    return [form.projectName.trim(), selectedService?.label, form.city.trim(), form.state]
       .filter(Boolean)
       .join(" - ");
   }, [form.city, form.projectName, form.service, form.state]);
@@ -363,9 +363,9 @@ export default function AdminBackfillPage() {
               onChange={(event) => setField("service", event.target.value)}
               style={{ border: "1px solid #ccc", borderRadius: 8, padding: 9 }}
             >
-              {SERVICES.map((service) => (
+              {SERVICE_TAGS.map((service) => (
                 <option key={service.slug} value={service.slug}>
-                  {service.shortTitle}
+                  {service.label}
                 </option>
               ))}
             </select>

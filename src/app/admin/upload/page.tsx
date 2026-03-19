@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { SERVICES } from "@/lib/constants";
 import { toProjectSlug } from "@/lib/projectSlug";
 import { MATERIALS, ROOMS } from "@/lib/facets.config";
 import {
@@ -12,6 +11,7 @@ import {
   materialLabelFromSlug,
   toFacetTag,
 } from "@/lib/seo";
+import { SERVICE_TAGS } from "@/lib/serviceTags";
 
 type SignedUploadConfig = {
   timestamp: number;
@@ -135,7 +135,7 @@ export default function AdminUploadPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [form, setForm] = useState<UploadFormState>({
     projectName: "",
-    service: SERVICES[0]?.slug ?? "",
+    service: SERVICE_TAGS[0]?.slug ?? "",
     city: "",
     state: "NV",
     material: MATERIAL_OPTIONS[0],
@@ -157,21 +157,21 @@ export default function AdminUploadPage() {
   );
 
   const selectedService = useMemo(
-    () => SERVICES.find((service) => service.slug === form.service),
+    () => SERVICE_TAGS.find((service) => service.slug === form.service),
     [form.service],
   );
 
   const altSuggestion = useMemo(() => {
     const parts = [
       form.projectName.trim(),
-      selectedService?.shortTitle,
+      selectedService?.label,
       roomLabelFromSlug(form.room),
       form.city.trim(),
       form.state.trim(),
     ].filter(Boolean);
 
     return parts.join(" - ");
-  }, [form.city, form.projectName, form.room, form.state, selectedService?.shortTitle]);
+  }, [form.city, form.projectName, form.room, form.state, selectedService?.label]);
 
   const canUpload = useMemo(() => {
     return (
@@ -337,9 +337,9 @@ export default function AdminUploadPage() {
               onChange={(event) => updateField("service", event.target.value)}
               style={{ padding: 10, borderRadius: 8, border: "1px solid #ccc" }}
             >
-              {SERVICES.map((service) => (
+              {SERVICE_TAGS.map((service) => (
                 <option key={service.slug} value={service.slug}>
-                  {service.shortTitle}
+                  {service.label}
                 </option>
               ))}
             </select>
@@ -536,7 +536,7 @@ export default function AdminUploadPage() {
           <strong>Auto Fields</strong>
           <span>project_slug: {projectSlug || "(enter project name)"}</span>
           <span>folder: {folder || "(enter project name)"}</span>
-          <span>service label: {selectedService ? selectedService.shortTitle : slugToTitle(form.service)}</span>
+          <span>service label: {selectedService ? selectedService.label : slugToTitle(form.service)}</span>
         </div>
 
         <label style={{ display: "grid", gap: 6 }}>

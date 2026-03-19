@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { SERVICES } from "@/lib/constants";
 import { uploadFileToCloudinary } from "@/lib/cloudinaryUpload";
+import { SERVICE_TAGS } from "@/lib/serviceTags";
 
 type UploadStatus = {
   name: string;
@@ -114,7 +114,7 @@ export default function AssetUploader() {
             Service Tags
           </legend>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {SERVICES.map((service) => {
+            {SERVICE_TAGS.map((service) => {
               const checked = selectedTags.includes(service.slug);
               return (
                 <label
@@ -133,7 +133,7 @@ export default function AssetUploader() {
                       });
                     }}
                   />
-                  {service.shortTitle}
+                  {service.label}
                 </label>
               );
             })}
