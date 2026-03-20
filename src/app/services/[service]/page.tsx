@@ -316,12 +316,6 @@ export default async function ServiceDetailPage({ params }: Props) {
               copy={`${service.shortTitle} photos are still being added, but the category is active and quote-ready. Send the opening, wall, or room details and we will guide the right scope, finish path, and install approach.`}
               ctaHref={quoteHref}
               ctaLabel={service.ctaLabel}
-              tracked
-              trackParams={{
-                page_type: "service",
-                service_slug: service.slug,
-                cta_location: "service_empty_state_quote_cta",
-              }}
             />
             {fallbackProjects.length > 0 ? (
               <div className="mt-8">
