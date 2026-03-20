@@ -96,3 +96,76 @@ This only repairs recoverable DB fields such as `secureUrl`, `width`, `height`, 
 2. Confirm `/api/admin/assets` returns explicit `publicId`, `imageUrl`, `thumbnailUrl`, `projectSlug`, `renderable`, and `diagnosis`
 3. Confirm the intended service page uses the same `imageUrl` / `publicId` contract
 4. If the asset should appear on project/gallery pages, verify it has project linkage; otherwise the debug endpoint should explicitly report `unlinked_to_project`
+
+## Project Workflow Decisions
+
+- Service pages show published renderable assets by service tags and do not require project linkage.
+- Project pages, `/projects`, `/gallery`, and explicit homepage spotlight cards now read from DB-backed `Project` records.
+- A project appears publicly only when:
+  - `project.published = true`
+  - it has at least one linked asset
+  - at least one linked asset is published and renderable
+  - a cover image resolves from `coverAssetId` or the first ordered linked asset
+- Homepage spotlight prefers `featured = true` projects, then falls back centrally to other renderable published projects.
+
+## Project Data Model
+
+- `Project`
+  - `title`
+  - `slug`
+  - `description`
+  - `serviceSlug`
+  - `areaSlug`
+  - `location`
+  - `published`
+  - `featured`
+  - `spotlightRank`
+  - `coverAssetId`
+- `ProjectAsset`
+  - ordered asset linkage via `position`
+- `Asset`
+  - now carries optional `uploadBatchId` for post-upload grouping convenience
+
+## Admin Workflow Added
+
+- Asset table:
+  - bulk select assets
+  - `Create Project from Selected`
+  - `Link to Existing Project`
+  - `Orphans` filter for published renderable assets with no project linkage
+- Project table:
+  - edit title / slug / service / area / location / description
+  - reorder linked assets
+  - choose cover image
+  - toggle publish / featured / spotlight rank
+  - detach linked assets
+  - delete project record
+- Backfill:
+  - `POST /api/admin/projects/backfill`
+  - repairs missing cover images from ordered linked assets
+  - reports orphan counts and unresolved items
+
+## Exact Verification Steps
+
+### Single-image project
+
+1. Upload one asset in `/admin`
+2. In the assets table, select it and click `Create Project from Selected`
+3. Set title / slug / service / location
+4. Choose the cover image and publish
+5. Verify:
+   - `/projects/<slug>`
+   - `/projects`
+   - `/gallery`
+
+### Multi-image project
+
+1. Upload multiple images in one batch
+2. Use the automatically selected batch in the asset table
+3. Click `Create Project from Selected`
+4. Reorder the linked assets and choose an explicit cover image
+5. Publish and optionally mark featured
+6. Verify:
+   - project detail page renders in saved order
+   - projects/gallery cards use the chosen cover image
+   - homepage spotlight uses the project record when featured
