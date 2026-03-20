@@ -456,6 +456,12 @@ export function findService(slug: string): ServiceDef | undefined {
 }
 
 /** Legacy single-lookup helper */
+export function getServiceLookupSlugs(slug: string): string[] {
+  const service = findService(slug);
+  if (!service) return [slug];
+  return [service.slug, ...service.aliases];
+}
+
 export function getServiceMeta(slug: string): ServiceDef | null {
   return findService(slug) ?? null;
 }
