@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
                 tags: {
                   some: {
                     serviceType: {
+                      tagType: "SERVICE",
                       slug: {
                         in: serviceLookupSlugs,
                       },
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
             select: {
               slug: true,
               title: true,
+              tagType: true,
             },
           },
         },
@@ -68,8 +70,16 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const response: PortfolioResponse = {
-    assets: assets.map((asset) => ({
+  const normalizedAssets = assets.map((asset) => {
+    const tags = asset.tags.map((tag) => ({
+      slug: tag.serviceType.slug,
+      title: tag.serviceType.title,
+      tagType: tag.serviceType.tagType,
+    }));
+    const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
+    const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
+
+    return {
       id: asset.id,
       kind: asset.kind,
       secureUrl: asset.secureUrl,
@@ -86,12 +96,12 @@ export async function GET(request: NextRequest) {
           : null,
       alt: asset.alt,
       createdAt: asset.createdAt,
-      tags: asset.tags.map((tag) => ({
-        slug: tag.serviceType.slug,
-        title: tag.serviceType.title,
-      })),
-    })),
-  };
+      tags,
+      serviceTags,
+      contextTags,
+      contextSlugs: contextTags.map((tag) => tag.slug),
+    };
+  });
 
-  return NextResponse.json(response);
+  return NextResponse.json({ assets: normalizedAssets } satisfies PortfolioResponse);
 }

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { uploadFileToCloudinary } from "@/lib/cloudinaryUpload";
-import { SERVICE_TAGS } from "@/lib/serviceTags";
+import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 
 type UploadStatus = {
   name: string;
@@ -15,6 +15,7 @@ export default function AssetUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [primaryService, setPrimaryService] = useState("");
   const [secondaryServices, setSecondaryServices] = useState<string[]>([]);
+  const [contextSlugs, setContextSlugs] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -44,6 +45,14 @@ export default function AssetUploader() {
 
   function toggleSecondaryService(slug: string) {
     setSecondaryServices((current) =>
+      current.includes(slug)
+        ? current.filter((currentSlug) => currentSlug !== slug)
+        : [...current, slug],
+    );
+  }
+
+  function toggleContext(slug: string) {
+    setContextSlugs((current) =>
       current.includes(slug)
         ? current.filter((currentSlug) => currentSlug !== slug)
         : [...current, slug],
@@ -85,6 +94,7 @@ export default function AssetUploader() {
             serviceMetadata,
             published,
             tagSlugs,
+            contextSlugs,
           }),
         });
 
@@ -161,6 +171,37 @@ export default function AssetUploader() {
           </div>
           <p className="mt-2 text-xs text-gray-mid">
             Add any other service pages where this hybrid project should appear.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend className="font-ui text-sm font-semibold text-charcoal">Project Context</legend>
+          <div className="mt-3 space-y-4">
+            {(["room", "feature"] as const).map((group) => (
+              <div key={group}>
+                <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">
+                  {group === "room" ? "Rooms" : "Features"}
+                </p>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {CONTEXT_TAGS.filter((context) => context.group === group).map((context) => (
+                    <label
+                      key={context.slug}
+                      className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 text-sm text-charcoal"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={contextSlugs.includes(context.slug)}
+                        onChange={() => toggleContext(context.slug)}
+                      />
+                      <span>{context.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-mid">
+            Add room and feature context tags for future filtering and SEO organization.
           </p>
         </fieldset>
 

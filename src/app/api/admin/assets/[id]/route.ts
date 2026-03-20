@@ -1,8 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
+import { findContext } from "@/content/contexts";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getServiceTagBySlug, isServiceTagSlug, normalizeServiceTagSlugs } from "@/lib/serviceTags";
+import {
+  buildAssetTagDefinitions,
+  isServiceTagSlug,
+  normalizeContextTagSlugs,
+  normalizeServiceTagSlugs,
+} from "@/lib/serviceTags";
 import { buildAssetAltText, validateServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
 
 type UpdateAssetBody = {
@@ -13,6 +19,7 @@ type UpdateAssetBody = {
   serviceMetadata?: unknown;
   published?: boolean;
   tagSlugs?: string[];
+  contextSlugs?: string[];
 };
 
 export async function PATCH(
@@ -48,10 +55,19 @@ export async function PATCH(
     );
   }
 
-  const tagSlugs = normalizeServiceTagSlugs([
+  const invalidContexts = (body.contextSlugs ?? []).filter((slug) => !findContext(slug));
+  if (invalidContexts.length > 0) {
+    return NextResponse.json(
+      { ok: false, error: `Invalid context slugs: ${invalidContexts.join(", ")}` },
+      { status: 400 },
+    );
+  }
+
+  const serviceSlugs = normalizeServiceTagSlugs([
     primaryServiceSlug,
     ...(body.tagSlugs ?? []),
   ]);
+  const contextSlugs = normalizeContextTagSlugs(body.contextSlugs);
 
   const metadataValidation = validateServiceAssetMetadata(
     primaryServiceSlug,
@@ -78,25 +94,31 @@ export async function PATCH(
         throw new Error("NOT_FOUND");
       }
 
-      const serviceTypes = await Promise.all(
-        tagSlugs.map(async (slug) => {
-          const serviceTag = getServiceTagBySlug(slug);
-          if (!serviceTag) {
-            throw new Error(`Invalid service tag slug: ${slug}`);
-          }
+      const tagDefinitions = buildAssetTagDefinitions({
+        serviceSlugs,
+        contextSlugs,
+      });
 
-          return tx.serviceType.upsert({
-            where: { slug: serviceTag.slug },
-            update: { title: serviceTag.title },
+      const tagRecords = await Promise.all(
+        tagDefinitions.map((tag) =>
+          tx.serviceType.upsert({
+            where: {
+              slug_tagType: {
+                slug: tag.slug,
+                tagType: tag.tagType,
+              },
+            },
+            update: { title: tag.title },
             create: {
-              slug: serviceTag.slug,
-              title: serviceTag.title,
+              slug: tag.slug,
+              title: tag.title,
+              tagType: tag.tagType,
             },
             select: {
               id: true,
             },
-          });
-        }),
+          }),
+        ),
       );
 
       return tx.asset.update({
@@ -117,22 +139,13 @@ export async function PATCH(
             }),
           tags: {
             deleteMany: {},
-            create: serviceTypes.map((serviceType) => ({
-              serviceTypeId: serviceType.id,
+            create: tagRecords.map((tag) => ({
+              serviceTypeId: tag.id,
             })),
           },
         },
-        include: {
-          tags: {
-            include: {
-              serviceType: {
-                select: {
-                  slug: true,
-                  title: true,
-                },
-              },
-            },
-          },
+        select: {
+          id: true,
         },
       });
     });
@@ -171,7 +184,6 @@ export async function DELETE(
   }
 
   try {
-    // Phase-1 delete removes only the database record. Cloudinary cleanup can be added separately.
     await db.asset.delete({
       where: { id: context.params.id },
     });

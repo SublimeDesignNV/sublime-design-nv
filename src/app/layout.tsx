@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import BuildDebugBadge from "@/components/layout/BuildDebugBadge";
 import Footer from "@/components/layout/Footer";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import { auth, isAllowedAdminEmail } from "@/lib/auth";
 import "./globals.css";
 
 const displayFont = Bebas_Neue({
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     template: "%s | Sublime Design NV",
   },
   description:
-    "Custom built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and mantels — measured, shop-built, and installed throughout Las Vegas and Henderson, NV. Free estimates.",
+    "Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim work — measured, shop-built, and installed throughout Las Vegas Valley.",
   metadataBase: new URL(SITE_URL),
   alternates: { canonical: "/" },
   openGraph: {
@@ -48,11 +49,14 @@ export const metadata: Metadata = {
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  const isAdmin = Boolean(session?.user?.email && isAllowedAdminEmail(session.user.email));
+
   return (
     <html
       lang="en"
@@ -60,7 +64,7 @@ export default function RootLayout({
     >
       <body className="antialiased">
         {gaMeasurementId && <GoogleAnalytics measurementId={gaMeasurementId} />}
-        <Navbar />
+        <Navbar isAdmin={isAdmin} />
         {children}
         <BuildDebugBadge />
         <Footer />

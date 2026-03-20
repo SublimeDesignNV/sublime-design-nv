@@ -81,7 +81,9 @@ function GalleryImage({
 }
 
 function GalleryMeta({ asset }: { asset: ServiceGalleryAsset }) {
-  if (!asset.title && !asset.location && !asset.tags?.length) return null;
+  if (!asset.title && !asset.location && !asset.serviceTags?.length && !asset.contextTags?.length) {
+    return null;
+  }
 
   return (
     <div className="border-t border-gray-200 bg-white px-4 py-3">
@@ -89,11 +91,23 @@ function GalleryMeta({ asset }: { asset: ServiceGalleryAsset }) {
       {asset.location ? (
         <p className="mt-1 text-xs uppercase tracking-widest text-gray-mid">{asset.location}</p>
       ) : null}
-      {asset.tags?.length ? (
+      {asset.serviceTags?.length ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          {asset.tags.map((tag) => (
+          {asset.serviceTags.map((tag) => (
             <span
-              key={tag.slug}
+              key={`service-${tag.slug}`}
+              className="rounded-full border border-red/20 bg-red/5 px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red"
+            >
+              {tag.title}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {asset.contextTags?.length ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {asset.contextTags.map((tag) => (
+            <span
+              key={`context-${tag.slug}`}
               className="rounded-full border border-gray-200 bg-cream px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal"
             >
               {tag.title}

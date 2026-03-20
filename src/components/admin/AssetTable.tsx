@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ImageIcon, Pencil, Trash2, Video, X } from "lucide-react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
-import { SERVICE_TAGS } from "@/lib/serviceTags";
+import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { sanitizeServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
 
 type AdminAsset = {
@@ -18,7 +18,10 @@ type AdminAsset = {
   serviceMetadata: Record<string, unknown> | null;
   published: boolean;
   createdAt: string;
-  tags: Array<{ slug: string; title: string }>;
+  tags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
+  serviceTags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
+  contextTags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
+  contextSlugs: string[];
 };
 
 type AssetsResponse = {
@@ -34,12 +37,13 @@ type EditFormState = {
   location: string;
   primaryServiceSlug: string;
   secondaryServiceSlugs: string[];
+  contextSlugs: string[];
   serviceMetadata: Record<string, unknown>;
   published: boolean;
 };
 
 function toEditForm(asset: AdminAsset): EditFormState {
-  const primaryServiceSlug = asset.primaryServiceSlug ?? asset.tags[0]?.slug ?? "";
+  const primaryServiceSlug = asset.primaryServiceSlug ?? asset.serviceTags[0]?.slug ?? "";
 
   return {
     id: asset.id,
@@ -47,9 +51,10 @@ function toEditForm(asset: AdminAsset): EditFormState {
     description: asset.description ?? "",
     location: asset.location ?? "",
     primaryServiceSlug,
-    secondaryServiceSlugs: asset.tags
+    secondaryServiceSlugs: asset.serviceTags
       .map((tag) => tag.slug)
       .filter((slug) => slug !== primaryServiceSlug),
+    contextSlugs: asset.contextSlugs,
     serviceMetadata: asset.serviceMetadata ?? {},
     published: asset.published,
   };
@@ -181,6 +186,19 @@ export default function AssetTable() {
     });
   }
 
+  function toggleContext(slug: string) {
+    setEditForm((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        contextSlugs: current.contextSlugs.includes(slug)
+          ? current.contextSlugs.filter((item) => item !== slug)
+          : [...current.contextSlugs, slug],
+      };
+    });
+  }
+
   async function saveChanges() {
     if (!editForm) return;
 
@@ -196,6 +214,7 @@ export default function AssetTable() {
         location: editForm.location.trim() || undefined,
         primaryServiceSlug: editForm.primaryServiceSlug,
         tagSlugs: [editForm.primaryServiceSlug, ...editForm.secondaryServiceSlugs],
+        contextSlugs: editForm.contextSlugs,
         serviceMetadata: editForm.serviceMetadata,
         published: editForm.published,
       }),
@@ -288,7 +307,7 @@ export default function AssetTable() {
                   Asset
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Services
+                  Services / Context
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Published
@@ -308,7 +327,7 @@ export default function AssetTable() {
                     {asset.kind === "IMAGE" ? (
                       <img
                         src={asset.secureUrl}
-                        alt={asset.tags[0]?.title || "Asset preview"}
+                        alt={asset.serviceTags[0]?.title || asset.contextTags[0]?.title || "Asset preview"}
                         className="h-16 w-16 rounded-sm bg-cream object-contain p-1"
                       />
                     ) : (
@@ -335,11 +354,23 @@ export default function AssetTable() {
                   </td>
                   <td className="font-ui py-2 pr-3 text-sm text-charcoal">
                     <p>{asset.primaryServiceLabel || "Unassigned"}</p>
-                    {asset.tags.length > 0 ? (
+                    {asset.serviceTags.length > 0 ? (
                       <div className="mt-2 flex max-w-xs flex-wrap gap-1.5">
-                        {asset.tags.map((tag) => (
+                        {asset.serviceTags.map((tag) => (
                           <span
-                            key={tag.slug}
+                            key={`${tag.tagType}-${tag.slug}`}
+                            className="rounded-full border border-red/20 bg-red/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-red"
+                          >
+                            {tag.title}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {asset.contextTags.length > 0 ? (
+                      <div className="mt-2 flex max-w-xs flex-wrap gap-1.5">
+                        {asset.contextTags.map((tag) => (
+                          <span
+                            key={`${tag.tagType}-${tag.slug}`}
                             className="rounded-full border border-gray-200 bg-cream px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-charcoal"
                           >
                             {tag.title}
@@ -494,6 +525,36 @@ export default function AssetTable() {
                       </label>
                     ),
                   )}
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="font-ui text-sm font-semibold text-charcoal">
+                  Project Context
+                </legend>
+                <div className="mt-3 space-y-4">
+                  {(["room", "feature"] as const).map((group) => (
+                    <div key={group}>
+                      <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">
+                        {group === "room" ? "Rooms" : "Features"}
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {CONTEXT_TAGS.filter((context) => context.group === group).map((context) => (
+                          <label
+                            key={context.slug}
+                            className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 text-sm text-charcoal"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editForm.contextSlugs.includes(context.slug)}
+                              onChange={() => toggleContext(context.slug)}
+                            />
+                            <span>{context.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </fieldset>
 

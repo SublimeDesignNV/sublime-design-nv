@@ -12,13 +12,21 @@ enum AssetKind {
   VIDEO
 }
 
+enum TagType {
+  SERVICE
+  CONTEXT
+}
+
 model ServiceType {
   id        String     @id @default(cuid())
-  slug      String     @unique
+  slug      String
   title     String
+  tagType   TagType    @default(SERVICE)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   AssetTags AssetTag[]
+
+  @@unique([slug, tagType])
 }
 
 model Asset {

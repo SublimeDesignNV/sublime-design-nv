@@ -25,6 +25,14 @@ function mapPublishedAsset(asset: {
   createdAt: Date;
   tags: Array<{ serviceType: PortfolioTag }>;
 }): PublishedAsset {
+  const tags = asset.tags.map((tag) => ({
+    slug: tag.serviceType.slug,
+    title: tag.serviceType.title,
+    tagType: tag.serviceType.tagType,
+  }));
+  const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
+  const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
+
   return {
     id: asset.id,
     kind: asset.kind,
@@ -40,10 +48,10 @@ function mapPublishedAsset(asset: {
         : null,
     alt: asset.alt,
     createdAt: asset.createdAt.toISOString(),
-    tags: asset.tags.map((tag) => ({
-      slug: tag.serviceType.slug,
-      title: tag.serviceType.title,
-    })),
+    tags,
+    serviceTags,
+    contextTags,
+    contextSlugs: contextTags.map((tag) => tag.slug),
   };
 }
 
@@ -75,6 +83,7 @@ export async function getPublishedAssets(): Promise<PublishedAsset[]> {
               select: {
                 slug: true,
                 title: true,
+                tagType: true,
               },
             },
           },
@@ -115,6 +124,7 @@ export async function getPublishedAssetsByServiceSlug(
                   tags: {
                     some: {
                       serviceType: {
+                        tagType: "SERVICE",
                         slug: {
                           in: lookupSlugs,
                         },
@@ -144,6 +154,7 @@ export async function getPublishedAssetsByServiceSlug(
               select: {
                 slug: true,
                 title: true,
+                tagType: true,
               },
             },
           },
@@ -308,7 +319,9 @@ export type ServiceGalleryAsset = {
   title?: string;
   location?: string;
   primaryServiceSlug?: string | null;
-  tags?: PortfolioTag[];
+  serviceTags?: PortfolioTag[];
+  contextTags?: PortfolioTag[];
+  contextSlugs?: string[];
   isFeatured: boolean;
   source: AssetSource;
 };
@@ -330,7 +343,9 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
       title: asset.title ?? undefined,
       location: asset.location ?? undefined,
       primaryServiceSlug: asset.primaryServiceSlug,
-      tags: asset.tags,
+      serviceTags: asset.serviceTags,
+      contextTags: asset.contextTags,
+      contextSlugs: asset.contextSlugs,
       isFeatured: index === 0,
       source: "cloudinary" as const,
     }));

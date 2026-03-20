@@ -3,6 +3,7 @@ import type { AssetKind } from "@prisma/client";
 export type PortfolioTag = {
   slug: string;
   title: string;
+  tagType: "SERVICE" | "CONTEXT";
 };
 
 export type PortfolioAsset = {
@@ -20,6 +21,9 @@ export type PortfolioAsset = {
   alt: string | null;
   createdAt: Date;
   tags: PortfolioTag[];
+  serviceTags: PortfolioTag[];
+  contextTags: PortfolioTag[];
+  contextSlugs: string[];
 };
 
 export type PortfolioResponse = {
@@ -39,4 +43,7 @@ export type PublishedAsset = {
   alt: string | null;
   createdAt: string;
   tags: PortfolioTag[];
+  serviceTags: PortfolioTag[];
+  contextTags: PortfolioTag[];
+  contextSlugs: string[];
 };

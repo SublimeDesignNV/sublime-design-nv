@@ -1,17 +1,16 @@
 import { AssetKind, Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
+import { findContext } from "@/content/contexts";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { findService } from "@/content/services";
 import { db } from "@/lib/db";
 import {
-  getServiceTagBySlug,
+  buildAssetTagDefinitions,
   isServiceTagSlug,
+  normalizeContextTagSlugs,
   normalizeServiceTagSlugs,
 } from "@/lib/serviceTags";
-import {
-  buildAssetAltText,
-  validateServiceAssetMetadata,
-} from "@/lib/serviceAssetMetadata";
+import { buildAssetAltText, validateServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
 
 type CreateAssetBody = {
   kind?: AssetKind;
@@ -30,6 +29,7 @@ type CreateAssetBody = {
   serviceMetadata?: unknown;
   published?: boolean;
   tagSlugs?: string[];
+  contextSlugs?: string[];
 };
 
 const ASSET_SELECT = {
@@ -56,17 +56,60 @@ const ASSET_SELECT = {
         select: {
           slug: true,
           title: true,
+          tagType: true,
         },
       },
     },
   },
 } as const;
 
+type AdminAssetRow = Prisma.AssetGetPayload<{ select: typeof ASSET_SELECT }>;
+
 function getDbUnavailableResponse() {
   return NextResponse.json(
     { ok: false, error: "DATABASE_URL is not configured." },
     { status: 503 },
   );
+}
+
+function serializeAdminAsset(asset: AdminAssetRow) {
+  const tags = asset.tags.map((tag) => ({
+    slug: tag.serviceType.slug,
+    title: tag.serviceType.title,
+    tagType: tag.serviceType.tagType,
+  }));
+  const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
+  const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
+
+  return {
+    id: asset.id,
+    kind: asset.kind,
+    publicId: asset.publicId,
+    secureUrl: asset.secureUrl,
+    width: asset.width,
+    height: asset.height,
+    duration: asset.duration,
+    format: asset.format,
+    bytes: asset.bytes,
+    title: asset.title,
+    description: asset.description,
+    location: asset.location,
+    primaryServiceSlug: asset.primaryServiceSlug,
+    primaryServiceLabel: asset.primaryServiceSlug
+      ? (findService(asset.primaryServiceSlug)?.shortTitle ?? asset.primaryServiceSlug)
+      : null,
+    serviceMetadata:
+      asset.serviceMetadata && typeof asset.serviceMetadata === "object"
+        ? (asset.serviceMetadata as Record<string, unknown>)
+        : null,
+    alt: asset.alt,
+    published: asset.published,
+    createdAt: asset.createdAt,
+    tags,
+    serviceTags,
+    contextTags,
+    contextSlugs: contextTags.map((tag) => tag.slug),
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -87,35 +130,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    assets: assets.map((asset) => ({
-      id: asset.id,
-      kind: asset.kind,
-      publicId: asset.publicId,
-      secureUrl: asset.secureUrl,
-      width: asset.width,
-      height: asset.height,
-      duration: asset.duration,
-      format: asset.format,
-      bytes: asset.bytes,
-      title: asset.title,
-      description: asset.description,
-      location: asset.location,
-      primaryServiceSlug: asset.primaryServiceSlug,
-      primaryServiceLabel: asset.primaryServiceSlug
-        ? (findService(asset.primaryServiceSlug)?.shortTitle ?? asset.primaryServiceSlug)
-        : null,
-      serviceMetadata:
-        asset.serviceMetadata && typeof asset.serviceMetadata === "object"
-          ? (asset.serviceMetadata as Record<string, unknown>)
-          : null,
-      alt: asset.alt,
-      published: asset.published,
-      createdAt: asset.createdAt,
-      tags: asset.tags.map((tag) => ({
-        slug: tag.serviceType.slug,
-        title: tag.serviceType.title,
-      })),
-    })),
+    assets: assets.map(serializeAdminAsset),
   });
 }
 
@@ -143,11 +158,12 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
   const kind: AssetKind = body.kind;
   const publicId = body.publicId;
   const secureUrl = body.secureUrl;
-  const title = body.title?.trim();
 
+  const title = body.title?.trim();
   if (!title) {
     return NextResponse.json(
       { ok: false, error: "title is required." },
@@ -177,13 +193,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const tagSlugs = normalizeServiceTagSlugs(
+  const serviceSlugs = normalizeServiceTagSlugs(
     body.tagSlugs?.length ? body.tagSlugs : [primaryServiceSlug],
   );
-  const invalid = tagSlugs.filter((slug) => !isServiceTagSlug(slug));
-  if (invalid.length > 0) {
+  const contextSlugs = normalizeContextTagSlugs(body.contextSlugs);
+
+  const invalidContexts = (body.contextSlugs ?? []).filter((slug) => !findContext(slug));
+  if (invalidContexts.length > 0) {
     return NextResponse.json(
-      { ok: false, error: `Invalid service tag slugs: ${invalid.join(", ")}` },
+      { ok: false, error: `Invalid context slugs: ${invalidContexts.join(", ")}` },
       { status: 400 },
     );
   }
@@ -194,26 +212,31 @@ export async function POST(request: NextRequest) {
 
   try {
     const asset = await db.$transaction(async (tx) => {
-      const serviceTypes = await Promise.all(
-        tagSlugs.map(async (slug) => {
-          const serviceTag = getServiceTagBySlug(slug);
-          if (!serviceTag) {
-            throw new Error(`Invalid service tag slug: ${slug}`);
-          }
+      const tagDefinitions = buildAssetTagDefinitions({
+        serviceSlugs,
+        contextSlugs,
+      });
 
-          return tx.serviceType.upsert({
-            where: { slug: serviceTag.slug },
-            update: { title: serviceTag.title },
+      const tagRecords = await Promise.all(
+        tagDefinitions.map((tag) =>
+          tx.serviceType.upsert({
+            where: {
+              slug_tagType: {
+                slug: tag.slug,
+                tagType: tag.tagType,
+              },
+            },
+            update: { title: tag.title },
             create: {
-              slug: serviceTag.slug,
-              title: serviceTag.title,
+              slug: tag.slug,
+              title: tag.title,
+              tagType: tag.tagType,
             },
             select: {
               id: true,
-              slug: true,
             },
-          });
-        }),
+          }),
+        ),
       );
 
       return tx.asset.create({
@@ -234,27 +257,16 @@ export async function POST(request: NextRequest) {
           alt: alt || null,
           published: Boolean(body.published),
           tags: {
-            create: serviceTypes.map((serviceType) => ({
-              serviceTypeId: serviceType.id,
+            create: tagRecords.map((tag) => ({
+              serviceTypeId: tag.id,
             })),
           },
         },
-        include: {
-          tags: {
-            include: {
-              serviceType: {
-                select: {
-                  slug: true,
-                  title: true,
-                },
-              },
-            },
-          },
-        },
+        select: ASSET_SELECT,
       });
     });
 
-    return NextResponse.json({ ok: true, asset }, { status: 201 });
+    return NextResponse.json({ ok: true, asset: serializeAdminAsset(asset) }, { status: 201 });
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
