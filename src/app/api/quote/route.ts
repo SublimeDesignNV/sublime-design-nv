@@ -2,68 +2,63 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { ACTIVE_SERVICES } from "@/content/services";
 import { saveLead } from "@/lib/leads";
+import {
+  buildQuoteSubject,
+  getQuoteSpamSignals,
+  isValidBudget,
+  isValidTimeline,
+  normalizeQuoteRequestPayload,
+  validateQuoteFields,
+  type QuoteFieldErrors,
+} from "@/lib/quoteForm";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type QuotePayload = {
-  name?: unknown;
-  email?: unknown;
-  phone?: unknown;
-  service?: unknown;
-  location?: unknown;
-  timeline?: unknown;
-  budget?: unknown;
-  message?: unknown;
-  photoUrls?: unknown;
-  consent?: unknown;
-  utmSource?: unknown;
-  utmMedium?: unknown;
-  utmCampaign?: unknown;
-  referrer?: unknown;
-  sourceType?: unknown;
-  sourcePath?: unknown;
-  projectTitle?: unknown;
-  projectSlug?: unknown;
-  areaSlug?: unknown;
-  ctaLabel?: unknown;
+  [key: string]: unknown;
 };
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
-
-const ACTIVE_SERVICE_SLUGS = new Set(ACTIVE_SERVICES.map((s) => s.slug));
-
-function str(v: unknown): string {
-  return typeof v === "string" ? v.trim() : "";
-}
-
-function strArr(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
-}
-
-function isValidEmail(v: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-}
-
-function isValidService(v: string) {
-  return ACTIVE_SERVICE_SLUGS.has(v) || v === "other";
-}
 
 function serviceLabel(slug: string) {
   if (slug === "other") return "Other / Not sure";
   return ACTIVE_SERVICES.find((s) => s.slug === slug)?.shortTitle ?? slug;
 }
 
-function sanitizeSlug(v: string) {
-  return /^[a-z0-9-]{1,80}$/.test(v) ? v : "";
+function jsonValidationError(message: string, fieldErrors: QuoteFieldErrors, status = 400) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: {
+        type: "validation",
+        message,
+        fieldErrors,
+      },
+    },
+    { status },
+  );
 }
 
-function sanitizeShort(v: string, max = 120) {
-  return v.slice(0, max);
+function jsonServerError(message: string, status = 500) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: {
+        type: "server",
+        message,
+      },
+    },
+    { status },
+  );
 }
 
-function sanitizePath(v: string) {
-  return /^\/[a-z0-9\-/_?=&]*$/i.test(v) ? v.slice(0, 200) : "";
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 // ─── Email HTML builder ───────────────────────────────────────────────────────
@@ -95,7 +90,7 @@ function buildHtmlEmail(fields: {
   const row = (label: string, value: string) =>
     value
       ? `<tr>
-          <td style="padding:8px 12px;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top;width:140px;">${label}</td>
+          <td style="padding:8px 12px;font-weight:600;color:#374151;white-space:nowrap;vertical-align:top;width:140px;">${escapeHtml(label)}</td>
           <td style="padding:8px 12px;color:#1f2937;">${value}</td>
         </tr>`
       : "";
@@ -109,7 +104,7 @@ function buildHtmlEmail(fields: {
               .map(
                 (url, i) =>
                   `<a href="${url}" style="display:inline-block;text-decoration:none;">
-                    <img src="${url}" alt="Lead photo ${i + 1}" width="160" height="120"
+                    <img src="${escapeHtml(url)}" alt="Lead photo ${i + 1}" width="160" height="120"
                          style="border-radius:6px;object-fit:cover;border:1px solid #e5e7eb;" />
                   </a>`,
               )
@@ -128,7 +123,7 @@ function buildHtmlEmail(fields: {
     <div style="background:#b91c1c;padding:24px 28px;">
       <p style="margin:0;color:rgba(255,255,255,0.8);font-size:12px;text-transform:uppercase;letter-spacing:0.1em;">New Quote Request</p>
       <h1 style="margin:6px 0 0;color:#ffffff;font-size:22px;font-weight:700;">
-        ${svcLabel} — ${fields.location}
+        ${escapeHtml(svcLabel)} — ${escapeHtml(fields.location)}
       </h1>
     </div>
 
@@ -139,9 +134,9 @@ function buildHtmlEmail(fields: {
       <p style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Contact</p>
       <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
         <tbody>
-          ${row("Name", fields.name)}
-          ${row("Email", `<a href="mailto:${fields.email}" style="color:#b91c1c;">${fields.email}</a>`)}
-          ${row("Phone", `<a href="tel:${fields.phone.replace(/\D/g, "").replace(/^(\d)/, "+1$1")}" style="color:#b91c1c;">${fields.phone}</a>`)}
+          ${row("Name", escapeHtml(fields.name))}
+          ${row("Email", `<a href="mailto:${escapeHtml(fields.email)}" style="color:#b91c1c;">${escapeHtml(fields.email)}</a>`)}
+          ${row("Phone", `<a href="tel:${escapeHtml(fields.phone.replace(/\D/g, "").replace(/^(\d)/, "+1$1"))}" style="color:#b91c1c;">${escapeHtml(fields.phone)}</a>`)}
         </tbody>
       </table>
 
@@ -158,39 +153,49 @@ function buildHtmlEmail(fields: {
 
       <!-- Message -->
       <p style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Details</p>
-      <div style="background:#f9fafb;border-radius:8px;padding:14px 16px;color:#1f2937;line-height:1.6;white-space:pre-wrap;">${fields.message}</div>
+      <div style="background:#f9fafb;border-radius:8px;padding:14px 16px;color:#1f2937;line-height:1.6;white-space:pre-wrap;">${escapeHtml(fields.message)}</div>
 
       ${photosSection}
 
+      ${(fields.projectTitle || fields.projectSlug || fields.sourceType || fields.sourcePath || fields.areaSlug || fields.ctaLabel)
+        ? `<p style="margin:24px 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Source Context</p>
+      <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+        <tbody>
+          ${row("Project", fields.projectTitle ? escapeHtml(fields.projectTitle) : "")}
+          ${row("Project Slug", fields.projectSlug ? escapeHtml(fields.projectSlug) : "")}
+          ${row("Area", fields.areaSlug ? escapeHtml(fields.areaSlug) : "")}
+          ${row("Source Type", fields.sourceType ? escapeHtml(fields.sourceType) : "")}
+          ${row("Source Path", fields.sourcePath ? escapeHtml(fields.sourcePath) : "")}
+          ${row("CTA", fields.ctaLabel ? escapeHtml(fields.ctaLabel) : "")}
+        </tbody>
+      </table>`
+        : ""}
+
+      ${(fields.utmSource || fields.utmMedium || fields.utmCampaign || fields.referrer)
+        ? `<p style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Attribution</p>
+      <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;">
+        <tbody>
+          ${row("UTM Source", fields.utmSource ? escapeHtml(fields.utmSource) : "")}
+          ${row("UTM Medium", fields.utmMedium ? escapeHtml(fields.utmMedium) : "")}
+          ${row("UTM Campaign", fields.utmCampaign ? escapeHtml(fields.utmCampaign) : "")}
+          ${row("Referrer", fields.referrer ? escapeHtml(fields.referrer) : "")}
+        </tbody>
+      </table>`
+        : ""}
+
       <!-- Actions -->
       <div style="margin-top:28px;display:flex;gap:12px;">
-        <a href="mailto:${fields.email}?subject=Re: ${encodeURIComponent(`Your ${svcLabel} Quote Request`)}"
+        <a href="mailto:${escapeHtml(fields.email)}?subject=Re: ${encodeURIComponent(`Your ${svcLabel} Quote Request`)}"
            style="display:inline-block;background:#b91c1c;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
-          Reply to ${fields.name.split(" ")[0]}
+          Reply to ${escapeHtml(fields.name.split(" ")[0] || "Lead")}
         </a>
-        <a href="tel:${fields.phone.replace(/\D/g, "").replace(/^(\d)/, "+1$1")}"
+        <a href="tel:${escapeHtml(fields.phone.replace(/\D/g, "").replace(/^(\d)/, "+1$1"))}"
            style="display:inline-block;background:#1e3a5f;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">
-          Call ${fields.phone}
+          Call ${escapeHtml(fields.phone)}
         </a>
       </div>
 
-      ${fields.leadId ? `<p style="margin-top:20px;font-size:11px;color:#9ca3af;">Lead ID: ${fields.leadId}</p>` : ""}
-      ${(fields.utmSource || fields.utmMedium || fields.utmCampaign || fields.referrer)
-        ? `<p style="margin-top:8px;font-size:11px;color:#9ca3af;">
-            Source: ${[fields.utmSource, fields.utmMedium, fields.utmCampaign].filter(Boolean).join(" / ") || "—"}
-            ${fields.referrer ? ` · Referrer: ${fields.referrer}` : ""}
-           </p>`
-        : ""}
-      ${(fields.sourceType || fields.sourcePath || fields.projectSlug || fields.areaSlug)
-        ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;">
-            ${fields.sourceType ? `<div>Lead Source: ${fields.sourceType}</div>` : ""}
-            ${fields.sourcePath ? `<div>Source Path: ${fields.sourcePath}</div>` : ""}
-            ${fields.projectTitle ? `<div>Project: ${fields.projectTitle}</div>` : ""}
-            ${fields.projectSlug ? `<div>Project Slug: ${fields.projectSlug}</div>` : ""}
-            ${fields.areaSlug ? `<div>Area Slug: ${fields.areaSlug}</div>` : ""}
-            ${fields.ctaLabel ? `<div>CTA Label: ${fields.ctaLabel}</div>` : ""}
-          </div>`
-        : ""}
+      ${fields.leadId ? `<p style="margin-top:20px;font-size:11px;color:#9ca3af;">Lead ID: ${escapeHtml(fields.leadId)}</p>` : ""}
     </div>
   </div>
 </body>
@@ -214,9 +219,9 @@ function buildTextEmail(fields: {
   areaSlug?: string;
   ctaLabel?: string;
 }) {
-  const svcLabel = serviceLabel(fields.service);
-  const lines = [
-    `NEW QUOTE REQUEST — ${svcLabel.toUpperCase()} — ${fields.location.toUpperCase()}`,
+    const svcLabel = serviceLabel(fields.service);
+    const lines = [
+      `NEW QUOTE REQUEST — ${svcLabel.toUpperCase()} — ${fields.location.toUpperCase()}`,
     "─".repeat(50),
     "",
     "CONTACT",
@@ -257,74 +262,41 @@ function buildTextEmail(fields: {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as QuotePayload;
+    const normalized = normalizeQuoteRequestPayload(body);
+    const { fields } = normalized;
+    const fieldErrors = validateQuoteFields(fields);
 
-    const name = str(body.name);
-    const email = str(body.email);
-    const phone = str(body.phone);
-    const service = str(body.service);
-    const location = str(body.location);
-    const timeline = str(body.timeline);
-    const budget = str(body.budget);
-    const message = str(body.message);
-    const photoUrls = strArr(body.photoUrls);
-    const consent = body.consent === true;
-    const utmSource = str(body.utmSource);
-    const utmMedium = str(body.utmMedium);
-    const utmCampaign = str(body.utmCampaign);
-    const referrer = str(body.referrer);
-    const sourceType = sanitizeShort(str(body.sourceType), 40);
-    const sourcePath = sanitizePath(str(body.sourcePath));
-    const projectTitle = sanitizeShort(str(body.projectTitle), 120);
-    const projectSlug = sanitizeSlug(str(body.projectSlug));
-    const areaSlug = sanitizeSlug(str(body.areaSlug));
-    const ctaLabel = sanitizeShort(str(body.ctaLabel), 60);
-
-    // Required field validation
-    const missing: string[] = [];
-    if (!name) missing.push("name");
-    if (!email) missing.push("email");
-    if (!phone) missing.push("phone");
-    if (!service) missing.push("service");
-    if (!location) missing.push("location");
-    if (!message) missing.push("message");
-    if (!consent) missing.push("consent");
-
-    if (missing.length > 0) {
-      return NextResponse.json(
-        { ok: false, error: `Missing required fields: ${missing.join(", ")}` },
-        { status: 400 },
-      );
+    if (fields.timeline && !isValidTimeline(fields.timeline)) {
+      fieldErrors.timeline = "Please choose a valid timeline option.";
+    }
+    if (fields.budget && !isValidBudget(fields.budget)) {
+      fieldErrors.budget = "Please choose a valid budget range.";
     }
 
-    if (!isValidEmail(email)) {
-      return NextResponse.json(
-        { ok: false, error: "Please provide a valid email address." },
-        { status: 400 },
-      );
+    if (Object.keys(fieldErrors).length > 0) {
+      return jsonValidationError("Please review the highlighted fields and try again.", fieldErrors);
     }
 
-    if (!isValidService(service)) {
-      return NextResponse.json(
-        { ok: false, error: "Please select a valid service." },
-        { status: 400 },
-      );
+    const spamSignals = getQuoteSpamSignals(normalized);
+    if (spamSignals.honeypotTriggered || spamSignals.submittedTooFast) {
+      return NextResponse.json({ ok: true, ignored: true }, { status: 200 });
     }
 
     // Persist lead (soft-fail)
     const leadId = await saveLead({
-      name,
-      email,
-      phone,
-      service,
-      location,
-      timeline: timeline || undefined,
-      budget: budget || undefined,
-      message,
-      photoUrls,
-      utmSource: utmSource || undefined,
-      utmMedium: utmMedium || undefined,
-      utmCampaign: utmCampaign || undefined,
-      referrer: referrer || undefined,
+      name: fields.name,
+      email: fields.email,
+      phone: fields.phone,
+      service: fields.service,
+      location: fields.location,
+      timeline: fields.timeline || undefined,
+      budget: fields.budget || undefined,
+      message: fields.message,
+      photoUrls: normalized.photoUrls,
+      utmSource: normalized.utmSource,
+      utmMedium: normalized.utmMedium,
+      utmCampaign: normalized.utmCampaign,
+      referrer: normalized.referrer,
     });
 
     // Send email
@@ -336,41 +308,58 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, leadId }, { status: 200 });
       }
       return NextResponse.json(
-        { ok: false, error: "Email send failed. Please call us directly." },
+        { ok: false, error: { type: "server", message: "Email send failed. Please call us directly." } },
         { status: 500 },
       );
     }
 
     const resend = new Resend(resendApiKey);
     const from =
-      str(process.env.LEADS_FROM_EMAIL) || "Sublime Design NV <admin@sublimedesignnv.com>";
+      (typeof process.env.LEADS_FROM_EMAIL === "string" ? process.env.LEADS_FROM_EMAIL.trim() : "") ||
+      "Sublime Design NV <admin@sublimedesignnv.com>";
 
     const recipients = ["admin@sublimedesignnv.com"];
-    const cc = str(process.env.LEADS_CC_EMAIL);
+    const cc = typeof process.env.LEADS_CC_EMAIL === "string" ? process.env.LEADS_CC_EMAIL.trim() : "";
     if (cc) recipients.push(cc);
 
-    const svcLabel = serviceLabel(service);
-    const subject = `New Quote Request — ${svcLabel} — ${location}`;
+    const subject = buildQuoteSubject(
+      {
+        name: fields.name,
+        service: fields.service,
+        location: fields.location,
+      },
+      normalized.sourceType,
+      normalized.projectTitle,
+    );
 
     const emailFields = {
-      name, email, phone, service, location, timeline, budget, message, photoUrls, leadId,
-      utmSource: utmSource || undefined,
-      utmMedium: utmMedium || undefined,
-      utmCampaign: utmCampaign || undefined,
-      referrer: referrer || undefined,
-      sourceType: sourceType || undefined,
-      sourcePath: sourcePath || undefined,
-      projectTitle: projectTitle || undefined,
-      projectSlug: projectSlug || undefined,
-      areaSlug: areaSlug || undefined,
-      ctaLabel: ctaLabel || undefined,
+      name: fields.name,
+      email: fields.email,
+      phone: fields.phone,
+      service: fields.service,
+      location: fields.location,
+      timeline: fields.timeline,
+      budget: fields.budget,
+      message: fields.message,
+      photoUrls: normalized.photoUrls,
+      leadId,
+      utmSource: normalized.utmSource,
+      utmMedium: normalized.utmMedium,
+      utmCampaign: normalized.utmCampaign,
+      referrer: normalized.referrer,
+      sourceType: normalized.sourceType,
+      sourcePath: normalized.sourcePath,
+      projectTitle: normalized.projectTitle,
+      projectSlug: normalized.projectSlug,
+      areaSlug: normalized.areaSlug,
+      ctaLabel: normalized.ctaLabel,
     };
 
     const { error: sendError } = await resend.emails.send({
       from,
       to: recipients,
       subject,
-      replyTo: email,
+      replyTo: fields.email,
       html: buildHtmlEmail(emailFields),
       text: buildTextEmail(emailFields),
     });
@@ -382,7 +371,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, leadId }, { status: 200 });
       }
       return NextResponse.json(
-        { ok: false, error: "Email send failed. Please call us directly." },
+        { ok: false, error: { type: "server", message: "Email send failed. Please call us directly." } },
         { status: 500 },
       );
     }
@@ -390,6 +379,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, leadId }, { status: 200 });
   } catch (error) {
     console.error("[quote-email] Unexpected error", error);
-    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400 });
+    return jsonServerError("We couldn’t submit your request right now. Please try again or call us directly.");
   }
 }

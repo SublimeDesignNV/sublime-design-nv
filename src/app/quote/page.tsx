@@ -6,25 +6,21 @@ import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 import { trackEvent } from "@/lib/analytics";
 import { SERVICES, findService } from "@/content/services";
 import { readQuotePrefill, type QuotePrefillContext } from "@/lib/publicLeadCtas";
+import {
+  applyQuotePrefillToForm,
+  BUDGET_OPTIONS,
+  hasVisibleQuoteContext,
+  QUOTE_DEFAULT_FORM,
+  TIMELINE_OPTIONS,
+  getQuoteVisibleContext,
+  sanitizePhone,
+  validateQuoteFields,
+  type QuoteFieldErrors,
+  type QuoteFormFields,
+} from "@/lib/quoteForm";
 
 // ─── Service options ──────────────────────────────────────────────────────────
 const SERVICE_OPTIONS = SERVICES;
-
-const TIMELINE_OPTIONS = [
-  { value: "", label: "No preference" },
-  { value: "asap", label: "As soon as possible" },
-  { value: "1-month", label: "Within a month" },
-  { value: "1-3-months", label: "1–3 months" },
-  { value: "3-plus-months", label: "3+ months out" },
-] as const;
-
-const BUDGET_OPTIONS = [
-  { value: "", label: "Prefer not to say" },
-  { value: "under-2k", label: "Under $2,000" },
-  { value: "2k-5k", label: "$2,000 – $5,000" },
-  { value: "5k-10k", label: "$5,000 – $10,000" },
-  { value: "over-10k", label: "Over $10,000" },
-] as const;
 
 const TRUST_REASONS = [
   "Measured, built, and installed by a local finish carpentry team.",
@@ -52,57 +48,12 @@ type PhotoState = {
   errorMsg?: string;
 };
 
-type FormFields = {
-  name: string;
-  email: string;
-  phone: string;
-  service: string;
-  location: string;
-  timeline: string;
-  budget: string;
-  message: string;
-  consent: boolean;
-};
-
-type FieldErrors = Partial<Record<keyof FormFields, string>>;
-
-const DEFAULT_FORM: FormFields = {
-  name: "",
-  email: "",
-  phone: "",
-  service: "",
-  location: "",
-  timeline: "",
-  budget: "",
-  message: "",
-  consent: false,
-};
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function validateFields(f: FormFields): FieldErrors {
-  const errors: FieldErrors = {};
-  if (!f.name.trim()) errors.name = "Name is required.";
-  if (!f.email.trim()) errors.email = "Email is required.";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) errors.email = "Enter a valid email.";
-  if (!f.phone.trim()) errors.phone = "Phone is required.";
-  if (!f.service) errors.service = "Please select a service.";
-  if (!f.location.trim()) errors.location = "Location is required.";
-  if (!f.message.trim()) errors.message = "Please describe your project.";
-  if (!f.consent) errors.consent = "Please confirm you agree to be contacted.";
-  return errors;
-}
 
 function serviceSuccessCopy(slug: string): string {
   const service = findService(slug);
   if (!service) return "We'll review your request and reach out shortly with next steps.";
   return `We'll review your ${service.shortTitle.toLowerCase()} request and reach out shortly with next steps.`;
-}
-
-function buildContextMessage(context: QuotePrefillContext) {
-  if (context.projectTitle) return `Inquiry about: ${context.projectTitle}`;
-  if (context.serviceLabel) return `Interested in: ${context.serviceLabel}`;
-  return "";
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -255,7 +206,8 @@ function PhotoUploadSection({
 
 // ─── Success state ────────────────────────────────────────────────────────────
 
-function SuccessState({ service }: { service: string }) {
+function SuccessState({ service, context }: { service: string; context: QuotePrefillContext }) {
+  const visibleContext = getQuoteVisibleContext(context);
   return (
     <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -270,11 +222,11 @@ function SuccessState({ service }: { service: string }) {
       <p className="mt-2 text-sm text-gray-mid">
         Expect a response within one business day. We may call or email to confirm a few details.
       </p>
-      <p className="mt-2 text-sm text-gray-mid">
-        Your request is already tagged to the selected service so we can follow up with the right
-        next step.
-      </p>
+      {visibleContext.summary ? <p className="mt-2 text-sm text-gray-mid">{visibleContext.summary}</p> : null}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+        <Link href="/quote" className="font-ui text-sm font-semibold text-charcoal hover:underline">
+          Start another request
+        </Link>
         <Link href="/projects" className="font-ui text-sm font-semibold text-red hover:underline">
           Browse our work →
         </Link>
@@ -310,12 +262,14 @@ function captureUtm(): UtmFields {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function QuotePage() {
-  const [form, setForm] = useState<FormFields>(DEFAULT_FORM);
-  const [errors, setErrors] = useState<FieldErrors>({});
+  const [form, setForm] = useState<QuoteFormFields>(QUOTE_DEFAULT_FORM);
+  const [errors, setErrors] = useState<QuoteFieldErrors>({});
   const [photos, setPhotos] = useState<PhotoState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [submitError, setSubmitError] = useState("");
+  const [startedAt, setStartedAt] = useState(0);
+  const [honeypot, setHoneypot] = useState("");
   const [utm, setUtm] = useState<UtmFields>({
     utmSource: "",
     utmMedium: "",
@@ -336,21 +290,14 @@ export default function QuotePage() {
 
   useEffect(() => {
     setUtm(captureUtm());
+    setStartedAt(Date.now());
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const context = readQuotePrefill(new URLSearchParams(window.location.search));
     setQuoteContext(context);
-
-    setForm((prev) => ({
-      ...prev,
-      service:
-        !prev.service && context.serviceSlug && SERVICE_OPTIONS.some((service) => service.slug === context.serviceSlug)
-          ? context.serviceSlug
-          : prev.service,
-      location: !prev.location && context.location ? context.location : prev.location,
-    }));
+    setForm((prev) => applyQuotePrefillToForm(prev, context));
   }, []);
 
   const uploadsEnabled = Boolean(
@@ -360,7 +307,7 @@ export default function QuotePage() {
 
   // ── Field setters ─────────────────────────────────────────────────────────
 
-  function set<K extends keyof FormFields>(key: K, value: FormFields[K]) {
+  function set<K extends keyof QuoteFormFields>(key: K, value: QuoteFormFields[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
@@ -459,7 +406,7 @@ export default function QuotePage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const fieldErrors = validateFields(form);
+    const fieldErrors = validateQuoteFields(form);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       const firstKey = Object.keys(fieldErrors)[0];
@@ -508,13 +455,28 @@ export default function QuotePage() {
           projectSlug: quoteContext.projectSlug || undefined,
           areaSlug: quoteContext.areaSlug || undefined,
           ctaLabel: quoteContext.ctaLabel || undefined,
+          honeypot: honeypot || undefined,
+          startedAt,
         }),
       });
 
-      const data = (await response.json()) as { ok?: boolean; error?: string };
+      const data = (await response.json()) as {
+        ok?: boolean;
+        ignored?: boolean;
+        error?: {
+          type?: string;
+          message?: string;
+          fieldErrors?: QuoteFieldErrors;
+        };
+      };
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.error ?? "Unable to submit. Please try again or call us directly.");
+        if (data.error?.fieldErrors) {
+          setErrors(data.error.fieldErrors);
+        }
+        throw new Error(
+          data.error?.message ?? "Unable to submit. Please try again or call us directly.",
+        );
       }
 
       trackEvent("quote_submit", {
@@ -542,11 +504,13 @@ export default function QuotePage() {
     return (
       <main className="bg-cream pt-28 pb-20">
         <div className="mx-auto max-w-2xl px-4 md:px-8">
-          <SuccessState service={form.service} />
+          <SuccessState service={form.service} context={quoteContext} />
         </div>
       </main>
     );
   }
+
+  const visibleContext = getQuoteVisibleContext(quoteContext);
 
   return (
     <main className="bg-cream pt-28 pb-20">
@@ -554,18 +518,17 @@ export default function QuotePage() {
         <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Start with a Quote</p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Tell Us About Your Project</h1>
         <p className="mt-4 text-gray-mid">
-          Share a few details and we will follow up with next steps, timeline, and pricing — no
-          commitment required.
+          Share the basics, add photos if you have them, and we will follow up with the right next
+          step for pricing, scheduling, or an on-site visit.
         </p>
-        {buildContextMessage(quoteContext) ? (
+        <p className="mt-2 text-sm text-gray-mid">Most homeowners hear back within one business day.</p>
+        {hasVisibleQuoteContext(quoteContext) ? (
           <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">Context</p>
-            <p className="mt-2 text-sm text-charcoal">{buildContextMessage(quoteContext)}</p>
-            <p className="mt-1 text-sm text-gray-mid">
-              {quoteContext.sourcePath
-                ? `Started from ${quoteContext.sourcePath}.`
-                : "We carried over the page context so your inquiry stays specific."}
-            </p>
+            <p className="mt-2 text-sm text-charcoal">{visibleContext.summary}</p>
+            {visibleContext.detail ? (
+              <p className="mt-1 text-sm text-gray-mid">{visibleContext.detail}</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -575,6 +538,16 @@ export default function QuotePage() {
         </div>
 
         <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-8">
+          <input
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            className="sr-only"
+            aria-hidden="true"
+          />
+          <input type="hidden" value={startedAt} readOnly />
 
           {/* ── Section 1: Contact info ────────────────────────────────── */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -622,7 +595,7 @@ export default function QuotePage() {
                   required
                   autoComplete="tel"
                   value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
+                  onChange={(e) => set("phone", sanitizePhone(e.target.value))}
                   className={inputClass(!!errors.phone)}
                   placeholder="(702) 555-0100"
                 />
@@ -719,6 +692,10 @@ export default function QuotePage() {
                   className={inputClass(!!errors.message)}
                   placeholder="Describe the room, scope, and any dimensions or details you have. The more context, the better."
                 />
+                <div className="mt-1 flex items-center justify-between text-xs text-gray-mid">
+                  <span>Helpful details: room, style, dimensions, and timing.</span>
+                  <span>{form.message.length}/2000</span>
+                </div>
                 <FieldError msg={errors.message} />
               </div>
             </div>
@@ -764,6 +741,9 @@ export default function QuotePage() {
             >
               {isSubmitting ? "Sending…" : "Start with a Quote"}
             </button>
+            <p className="text-xs text-gray-mid">
+              Your details are only used to follow up about this quote request.
+            </p>
 
             {submitStatus === "error" ? (
               <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
