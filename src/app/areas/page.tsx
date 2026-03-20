@@ -42,7 +42,9 @@ function AreaCardImage({
         width={900}
         height={600}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        crop="pad"
+        gravity="auto:subject"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     );
   }
@@ -53,7 +55,7 @@ function AreaCardImage({
       alt={preview.alt}
       fill
       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-      className="object-cover transition duration-500 group-hover:scale-105"
+      className="object-contain p-2 transition duration-500 group-hover:scale-105"
     />
   );
 }
@@ -74,7 +76,7 @@ async function AreaCard({
   return (
     <article className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
       <Link href={`/areas/${slug}`} className="block">
-        <div className="relative h-56 overflow-hidden bg-cream">
+        <div className="relative h-64 overflow-hidden bg-cream">
           <AreaCardImage preview={preview} title={name} />
         </div>
       </Link>

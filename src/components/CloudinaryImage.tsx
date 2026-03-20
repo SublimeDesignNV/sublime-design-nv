@@ -10,6 +10,9 @@ export default function CloudinaryImage({
   height = 800,
   sizes = "100vw",
   style,
+  className,
+  crop = "fill",
+  gravity = "auto",
 }: {
   src: string;
   alt: string;
@@ -17,6 +20,9 @@ export default function CloudinaryImage({
   height?: number;
   sizes?: string;
   style?: CSSProperties;
+  className?: string;
+  crop?: "fill" | "pad";
+  gravity?: "auto" | "auto:subject";
 }) {
   return (
     <CldImage
@@ -25,10 +31,11 @@ export default function CloudinaryImage({
       width={width}
       height={height}
       sizes={sizes}
-      crop="fill"
-      gravity="auto"
+      crop={crop}
+      gravity={gravity}
       quality="auto"
       format="auto"
+      className={className}
       style={style}
     />
   );

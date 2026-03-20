@@ -343,6 +343,18 @@ export function getVisibleServiceMetadataFields(
   });
 }
 
+export function sanitizeServiceAssetMetadata(
+  service: string,
+  rawValues: Record<string, unknown>,
+) {
+  const visibleFields = getVisibleServiceMetadataFields(service, rawValues);
+  const allowedKeys = new Set(visibleFields.map((field) => field.key));
+
+  return Object.fromEntries(
+    Object.entries(rawValues).filter(([key]) => allowedKeys.has(key)),
+  );
+}
+
 function parseBoolean(value: unknown): boolean | null {
   if (typeof value === "boolean") return value;
   if (value === "true") return true;

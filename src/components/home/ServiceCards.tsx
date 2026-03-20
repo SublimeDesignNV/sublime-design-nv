@@ -21,7 +21,9 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
         width={800}
         height={520}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        crop="pad"
+        gravity="auto:subject"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     );
   }
@@ -31,7 +33,7 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
       alt={preview.alt}
       fill
       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-      className="object-cover transition duration-500 group-hover:scale-105"
+      className="object-contain p-2 transition duration-500 group-hover:scale-105"
     />
   );
 }
@@ -52,14 +54,14 @@ async function ServiceCard({
       href={`/services/${slug}`}
       className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <div className="relative h-52 overflow-hidden bg-cream">
+      <div className="relative h-60 overflow-hidden bg-cream">
         <CardImage preview={preview} title={shortTitle} />
       </div>
       <div className="p-5">
         <h3 className="text-2xl text-charcoal">{shortTitle}</h3>
         <p className="mt-2 text-sm leading-6 text-gray-mid">{shortDescription}</p>
         <span className="font-ui mt-4 inline-block text-sm font-semibold text-red">
-          Learn More →
+          Explore {shortTitle} →
         </span>
       </div>
     </Link>

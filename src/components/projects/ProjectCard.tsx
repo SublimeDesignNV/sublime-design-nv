@@ -48,7 +48,9 @@ function ProjectPreview({
         width={960}
         height={720}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        crop="pad"
+        gravity="auto:subject"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     );
   }
@@ -59,7 +61,7 @@ function ProjectPreview({
       alt={preview.alt || alt}
       fill
       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-      className="object-cover transition duration-500 group-hover:scale-[1.02]"
+      className="object-contain p-2 transition duration-500 group-hover:scale-[1.02]"
     />
   );
 }
@@ -115,7 +117,7 @@ export default async function ProjectCard({
       }
       className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-cream">
+      <div className="relative aspect-[4/5] overflow-hidden bg-cream sm:aspect-[4/3]">
         <ProjectPreview preview={preview} alt={project.title} />
         {label ? (
           <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 font-ui text-[10px] font-semibold uppercase tracking-[0.18em] text-red shadow-sm">

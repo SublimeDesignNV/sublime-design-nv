@@ -1,13 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
+import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { uploadFileToCloudinary } from "@/lib/cloudinaryUpload";
 import { SERVICE_TAGS } from "@/lib/serviceTags";
-import {
-  getServiceAssetMetadataConfig,
-  getVisibleServiceMetadataFields,
-  type ServiceMetadataField,
-} from "@/lib/serviceAssetMetadata";
 
 type UploadStatus = {
   name: string;
@@ -27,20 +23,8 @@ export default function AssetUploader() {
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const metadataConfig = useMemo(
-    () => getServiceAssetMetadataConfig(primaryService),
-    [primaryService],
-  );
-  const visibleFields = useMemo(
-    () => getVisibleServiceMetadataFields(primaryService, serviceMetadata),
-    [primaryService, serviceMetadata],
-  );
-
-  const canUpload = useMemo(
-    () => files.length > 0 && Boolean(primaryService) && Boolean(title.trim()) && !isUploading,
-    [files.length, isUploading, primaryService, title],
-  );
+  const canUpload =
+    files.length > 0 && Boolean(primaryService) && Boolean(title.trim()) && !isUploading;
 
   function updateStatus(name: string, next: Partial<UploadStatus>) {
     setStatuses((current) =>
@@ -226,23 +210,11 @@ export default function AssetUploader() {
           />
         </label>
 
-        {metadataConfig ? (
-          <div className="rounded-lg border border-gray-warm/70 bg-cream/60 p-4">
-            <p className="font-ui text-sm font-semibold text-charcoal">
-              {metadataConfig.label} Metadata
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {visibleFields.map((field) => (
-                <ServiceMetadataInput
-                  key={field.key}
-                  field={field}
-                  value={serviceMetadata[field.key]}
-                  onChange={(value) => updateMetadataField(field.key, value)}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <ServiceMetadataFields
+          service={primaryService}
+          values={serviceMetadata}
+          onChange={updateMetadataField}
+        />
 
         <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
           <input
@@ -278,80 +250,5 @@ export default function AssetUploader() {
         </div>
       ) : null}
     </section>
-  );
-}
-
-function ServiceMetadataInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: ServiceMetadataField;
-  value: unknown;
-  onChange: (value: string | number | boolean) => void;
-}) {
-  const inputClass =
-    "mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy";
-
-  if (field.type === "select") {
-    return (
-      <label className="block">
-        <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
-        <select
-          value={typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(event.target.value)}
-          className={inputClass}
-        >
-          <option value="">Select</option>
-          {field.options?.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-
-  if (field.type === "boolean") {
-    return (
-      <label className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal">
-        <input
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(event) => onChange(event.target.checked)}
-        />
-        {field.label}
-      </label>
-    );
-  }
-
-  if (field.type === "number") {
-    return (
-      <label className="block">
-        <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
-        <input
-          type="number"
-          min={field.min}
-          step={field.step ?? 1}
-          value={typeof value === "number" ? value : typeof value === "string" ? value : ""}
-          onChange={(event) => onChange(event.target.value)}
-          className={inputClass}
-        />
-      </label>
-    );
-  }
-
-  return (
-    <label className="block">
-      <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
-      <input
-        type="text"
-        value={typeof value === "string" ? value : ""}
-        onChange={(event) => onChange(event.target.value)}
-        className={inputClass}
-        placeholder={field.placeholder}
-      />
-    </label>
   );
 }

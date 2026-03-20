@@ -123,6 +123,12 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
+          <Link
+            href="/admin"
+            className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid transition-colors hover:text-red"
+          >
+            Admin
+          </Link>
           <a
             href={SITE.phoneHref}
             className="font-ui text-sm font-semibold text-charcoal transition-colors hover:text-red"
@@ -193,6 +199,13 @@ export default function Navbar() {
             </Link>
 
             <div className="mt-2 flex flex-col gap-3 border-t border-gray-warm pt-4">
+              <Link
+                href="/admin"
+                className="font-ui text-sm font-semibold text-gray-mid transition-colors hover:text-red"
+                onClick={closeMenus}
+              >
+                Admin
+              </Link>
               <a
                 href={SITE.phoneHref}
                 className="font-ui text-sm font-semibold text-charcoal"

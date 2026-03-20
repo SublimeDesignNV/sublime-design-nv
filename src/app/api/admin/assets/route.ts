@@ -32,6 +32,36 @@ type CreateAssetBody = {
   tagSlugs?: string[];
 };
 
+const ASSET_SELECT = {
+  id: true,
+  kind: true,
+  publicId: true,
+  secureUrl: true,
+  width: true,
+  height: true,
+  duration: true,
+  format: true,
+  bytes: true,
+  title: true,
+  description: true,
+  location: true,
+  primaryServiceSlug: true,
+  serviceMetadata: true,
+  alt: true,
+  published: true,
+  createdAt: true,
+  tags: {
+    include: {
+      serviceType: {
+        select: {
+          slug: true,
+          title: true,
+        },
+      },
+    },
+  },
+} as const;
+
 function getDbUnavailableResponse() {
   return NextResponse.json(
     { ok: false, error: "DATABASE_URL is not configured." },
@@ -50,18 +80,7 @@ export async function GET(request: NextRequest) {
   }
 
   const assets = await db.asset.findMany({
-    include: {
-      tags: {
-        include: {
-          serviceType: {
-            select: {
-              slug: true,
-              title: true,
-            },
-          },
-        },
-      },
-    },
+    select: ASSET_SELECT,
     orderBy: {
       createdAt: "desc",
     },

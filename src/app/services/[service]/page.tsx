@@ -62,7 +62,9 @@ function GalleryImage({
         width={1200}
         height={800}
         sizes={sizes}
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        crop="pad"
+        gravity="auto:subject"
+        style={{ width: "100%", height: "100%", objectFit: "contain" }}
       />
     );
   }
@@ -73,7 +75,7 @@ function GalleryImage({
       alt={asset.alt}
       fill
       sizes={sizes}
-      className="object-cover"
+      className="object-contain"
     />
   );
 }
@@ -106,7 +108,7 @@ function GalleryMeta({ asset }: { asset: ServiceGalleryAsset }) {
 function HeroGallery({ asset }: { asset: ServiceGalleryAsset }) {
   return (
     <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-      <div className="relative h-[420px] w-full sm:h-[520px]">
+      <div className="relative h-[420px] w-full bg-cream p-2 sm:h-[520px]">
         <GalleryImage asset={asset} sizes="100vw" />
       </div>
       <GalleryMeta asset={asset} />
@@ -119,7 +121,7 @@ function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   return (
     <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
-        <div className="relative" style={{ minHeight: "320px" }}>
+        <div className="relative bg-cream p-2" style={{ minHeight: "320px" }}>
           <GalleryImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
         </div>
         <GalleryMeta asset={first} />
@@ -130,7 +132,7 @@ function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
             key={asset.secureUrl}
             className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
           >
-            <div className="relative" style={{ minHeight: "148px" }}>
+            <div className="relative bg-cream p-2" style={{ minHeight: "148px" }}>
               <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
             </div>
             <GalleryMeta asset={asset} />
@@ -149,7 +151,7 @@ function TwoUpGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
           key={asset.secureUrl}
           className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
         >
-          <div className="relative" style={{ minHeight: "260px" }}>
+          <div className="relative bg-cream p-2" style={{ minHeight: "260px" }}>
             <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
           </div>
           <GalleryMeta asset={asset} />
@@ -167,7 +169,7 @@ function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
           key={asset.secureUrl}
           className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
         >
-          <div className="relative" style={{ height: "260px" }}>
+          <div className="relative bg-cream p-2" style={{ height: "260px" }}>
             <GalleryImage
               asset={asset}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -247,7 +249,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             href="#service-proof"
             className="font-ui rounded-sm border border-gray-300 px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-red hover:text-red"
           >
-            View Proof
+            View Recent Work
           </Link>
         </div>
       </section>
