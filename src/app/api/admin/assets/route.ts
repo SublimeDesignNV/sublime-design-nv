@@ -1,12 +1,17 @@
 import { AssetKind, Prisma } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
+import { findService } from "@/content/services";
 import { db } from "@/lib/db";
 import {
   getServiceTagBySlug,
   isServiceTagSlug,
   normalizeServiceTagSlugs,
 } from "@/lib/serviceTags";
+import {
+  buildAssetAltText,
+  validateServiceAssetMetadata,
+} from "@/lib/serviceAssetMetadata";
 
 type CreateAssetBody = {
   kind?: AssetKind;
@@ -18,6 +23,11 @@ type CreateAssetBody = {
   format?: string;
   bytes?: number;
   alt?: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  primaryServiceSlug?: string;
+  serviceMetadata?: unknown;
   published?: boolean;
   tagSlugs?: string[];
 };
@@ -68,6 +78,17 @@ export async function GET(request: NextRequest) {
       duration: asset.duration,
       format: asset.format,
       bytes: asset.bytes,
+      title: asset.title,
+      description: asset.description,
+      location: asset.location,
+      primaryServiceSlug: asset.primaryServiceSlug,
+      primaryServiceLabel: asset.primaryServiceSlug
+        ? (findService(asset.primaryServiceSlug)?.shortTitle ?? asset.primaryServiceSlug)
+        : null,
+      serviceMetadata:
+        asset.serviceMetadata && typeof asset.serviceMetadata === "object"
+          ? (asset.serviceMetadata as Record<string, unknown>)
+          : null,
       alt: asset.alt,
       published: asset.published,
       createdAt: asset.createdAt,
@@ -106,15 +127,40 @@ export async function POST(request: NextRequest) {
   const kind: AssetKind = body.kind;
   const publicId = body.publicId;
   const secureUrl = body.secureUrl;
+  const title = body.title?.trim();
 
-  const tagSlugs = normalizeServiceTagSlugs(body.tagSlugs);
-  if (tagSlugs.length === 0) {
+  if (!title) {
     return NextResponse.json(
-      { ok: false, error: "At least one service tag is required." },
+      { ok: false, error: "title is required." },
       { status: 400 },
     );
   }
 
+  const primaryServiceSlug = body.primaryServiceSlug?.trim()
+    ? body.primaryServiceSlug.trim()
+    : normalizeServiceTagSlugs(body.tagSlugs)[0];
+
+  if (!primaryServiceSlug || !isServiceTagSlug(primaryServiceSlug)) {
+    return NextResponse.json(
+      { ok: false, error: "A valid primary service is required." },
+      { status: 400 },
+    );
+  }
+
+  const metadataValidation = validateServiceAssetMetadata(
+    primaryServiceSlug,
+    body.serviceMetadata,
+  );
+  if (!metadataValidation.ok) {
+    return NextResponse.json(
+      { ok: false, error: metadataValidation.errors.join(" ") },
+      { status: 400 },
+    );
+  }
+
+  const tagSlugs = normalizeServiceTagSlugs(
+    body.tagSlugs?.length ? body.tagSlugs : [primaryServiceSlug],
+  );
   const invalid = tagSlugs.filter((slug) => !isServiceTagSlug(slug));
   if (invalid.length > 0) {
     return NextResponse.json(
@@ -122,6 +168,10 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+
+  const description = body.description?.trim() || null;
+  const location = body.location?.trim() || null;
+  const alt = body.alt?.trim() || buildAssetAltText({ title, location, primaryServiceSlug });
 
   try {
     const asset = await db.$transaction(async (tx) => {
@@ -157,7 +207,12 @@ export async function POST(request: NextRequest) {
           duration: body.duration,
           format: body.format,
           bytes: body.bytes,
-          alt: body.alt || null,
+          title,
+          description,
+          location,
+          primaryServiceSlug,
+          serviceMetadata: metadataValidation.data as Prisma.InputJsonValue,
+          alt: alt || null,
           published: Boolean(body.published),
           tags: {
             create: serviceTypes.map((serviceType) => ({

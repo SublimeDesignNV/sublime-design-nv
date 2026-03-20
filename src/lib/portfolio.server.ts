@@ -15,6 +15,11 @@ function mapPublishedAsset(asset: {
   id: string;
   kind: "IMAGE" | "VIDEO";
   secureUrl: string;
+  title: string | null;
+  description: string | null;
+  location: string | null;
+  primaryServiceSlug: string | null;
+  serviceMetadata: unknown;
   alt: string | null;
   createdAt: Date;
   tags: Array<{ serviceType: PortfolioTag }>;
@@ -23,6 +28,14 @@ function mapPublishedAsset(asset: {
     id: asset.id,
     kind: asset.kind,
     secureUrl: asset.secureUrl,
+    title: asset.title,
+    description: asset.description,
+    location: asset.location,
+    primaryServiceSlug: asset.primaryServiceSlug,
+    serviceMetadata:
+      asset.serviceMetadata && typeof asset.serviceMetadata === "object"
+        ? (asset.serviceMetadata as Record<string, unknown>)
+        : null,
     alt: asset.alt,
     createdAt: asset.createdAt.toISOString(),
     tags: asset.tags.map((tag) => ({
@@ -42,7 +55,17 @@ export async function getPublishedAssets(): Promise<PublishedAsset[]> {
       where: {
         published: true,
       },
-      include: {
+      select: {
+        id: true,
+        kind: true,
+        secureUrl: true,
+        title: true,
+        description: true,
+        location: true,
+        primaryServiceSlug: true,
+        serviceMetadata: true,
+        alt: true,
+        createdAt: true,
         tags: {
           include: {
             serviceType: {
@@ -79,19 +102,38 @@ export async function getPublishedAssetsByServiceSlug(
         published: true,
         ...(slug
           ? {
-              tags: {
-                some: {
-                  serviceType: {
-                    slug: {
-                      in: lookupSlugs,
+              OR: [
+                {
+                  primaryServiceSlug: {
+                    in: lookupSlugs,
+                  },
+                },
+                {
+                  tags: {
+                    some: {
+                      serviceType: {
+                        slug: {
+                          in: lookupSlugs,
+                        },
+                      },
                     },
                   },
                 },
-              },
+              ],
             }
           : {}),
       },
-      include: {
+      select: {
+        id: true,
+        kind: true,
+        secureUrl: true,
+        title: true,
+        description: true,
+        location: true,
+        primaryServiceSlug: true,
+        serviceMetadata: true,
+        alt: true,
+        createdAt: true,
         tags: {
           include: {
             serviceType: {
@@ -258,6 +300,9 @@ export type ServiceGalleryAsset = {
   publicId?: string;
   secureUrl: string;
   alt: string;
+  title?: string;
+  location?: string;
+  primaryServiceSlug?: string | null;
   isFeatured: boolean;
   source: AssetSource;
 };
@@ -275,6 +320,9 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
         serviceSlug: slug,
         explicitAlt: asset.alt,
       }),
+      title: asset.title ?? undefined,
+      location: asset.location ?? undefined,
+      primaryServiceSlug: asset.primaryServiceSlug,
       isFeatured: index === 0,
       source: "cloudinary" as const,
     }));

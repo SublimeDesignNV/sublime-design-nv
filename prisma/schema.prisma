@@ -22,20 +22,25 @@ model ServiceType {
 }
 
 model Asset {
-  id        String    @id @default(cuid())
-  kind      AssetKind
-  publicId  String    @unique
-  secureUrl String
-  width     Int?
-  height    Int?
-  duration  Float?
-  format    String?
-  bytes     Int?
-  alt       String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  published Boolean   @default(false)
-  tags      AssetTag[]
+  id                 String    @id @default(cuid())
+  kind               AssetKind
+  publicId           String    @unique
+  secureUrl          String
+  width              Int?
+  height             Int?
+  duration           Float?
+  format             String?
+  bytes              Int?
+  title              String?
+  description        String?
+  location           String?
+  primaryServiceSlug String?
+  serviceMetadata    Json?
+  alt                String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  published          Boolean   @default(false)
+  tags               AssetTag[]
 }
 
 model AssetTag {

@@ -7,6 +7,10 @@ type AdminAsset = {
   id: string;
   kind: "IMAGE" | "VIDEO";
   secureUrl: string;
+  title: string | null;
+  location: string | null;
+  primaryServiceSlug: string | null;
+  primaryServiceLabel: string | null;
   published: boolean;
   createdAt: string;
   tags: Array<{ slug: string; title: string }>;
@@ -124,10 +128,10 @@ export default function AssetTable() {
                   Preview
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Kind
+                  Asset
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Tags
+                  Service
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Published
@@ -154,17 +158,20 @@ export default function AssetTable() {
                     )}
                   </td>
                   <td className="font-ui py-2 pr-3 text-sm text-charcoal">
-                    <span className="inline-flex items-center gap-1">
+                    <div className="inline-flex items-center gap-1">
                       {asset.kind === "IMAGE" ? (
                         <ImageIcon className="h-4 w-4 text-gray-mid" />
                       ) : (
                         <Video className="h-4 w-4 text-gray-mid" />
                       )}
-                      {asset.kind}
-                    </span>
+                      <span>{asset.title || "Untitled asset"}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-mid">
+                      {asset.location || asset.kind}
+                    </p>
                   </td>
                   <td className="font-ui py-2 pr-3 text-sm text-charcoal">
-                    {asset.tags.map((tag) => tag.title).join(", ")}
+                    {asset.primaryServiceLabel || asset.tags.map((tag) => tag.title).join(", ")}
                   </td>
                   <td className="py-2 pr-3">
                     <label className="font-ui inline-flex items-center gap-2 text-sm text-charcoal">

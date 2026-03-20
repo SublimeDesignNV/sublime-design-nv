@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { AssetKind } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getServiceLookupSlugs } from "@/content/services";
 import type { PortfolioResponse } from "@/lib/portfolio.types";
 
 function parseKind(kind: string | null): AssetKind | undefined {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const service = searchParams.get("service");
   const kind = parseKind(searchParams.get("kind"));
+  const serviceLookupSlugs = service ? getServiceLookupSlugs(service) : undefined;
 
   const assets = await db.asset.findMany({
     where: {
@@ -28,13 +30,24 @@ export async function GET(request: NextRequest) {
       ...(kind ? { kind } : {}),
       ...(service
         ? {
-            tags: {
-              some: {
-                serviceType: {
-                  slug: service,
+            OR: [
+              {
+                primaryServiceSlug: {
+                  in: serviceLookupSlugs,
                 },
               },
-            },
+              {
+                tags: {
+                  some: {
+                    serviceType: {
+                      slug: {
+                        in: serviceLookupSlugs,
+                      },
+                    },
+                  },
+                },
+              },
+            ],
           }
         : {}),
     },
@@ -63,6 +76,14 @@ export async function GET(request: NextRequest) {
       width: asset.width,
       height: asset.height,
       duration: asset.duration,
+      title: asset.title,
+      description: asset.description,
+      location: asset.location,
+      primaryServiceSlug: asset.primaryServiceSlug,
+      serviceMetadata:
+        asset.serviceMetadata && typeof asset.serviceMetadata === "object"
+          ? (asset.serviceMetadata as Record<string, unknown>)
+          : null,
       alt: asset.alt,
       createdAt: asset.createdAt,
       tags: asset.tags.map((tag) => ({

@@ -3,6 +3,11 @@
 import { FormEvent, useMemo, useState } from "react";
 import { uploadFileToCloudinary } from "@/lib/cloudinaryUpload";
 import { SERVICE_TAGS } from "@/lib/serviceTags";
+import {
+  getServiceAssetMetadataConfig,
+  getVisibleServiceMetadataFields,
+  type ServiceMetadataField,
+} from "@/lib/serviceAssetMetadata";
 
 type UploadStatus = {
   name: string;
@@ -12,22 +17,43 @@ type UploadStatus = {
 
 export default function AssetUploader() {
   const [files, setFiles] = useState<File[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [alt, setAlt] = useState("");
+  const [primaryService, setPrimaryService] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const metadataConfig = useMemo(
+    () => getServiceAssetMetadataConfig(primaryService),
+    [primaryService],
+  );
+  const visibleFields = useMemo(
+    () => getVisibleServiceMetadataFields(primaryService, serviceMetadata),
+    [primaryService, serviceMetadata],
+  );
+
   const canUpload = useMemo(
-    () => files.length > 0 && selectedTags.length > 0 && !isUploading,
-    [files.length, isUploading, selectedTags.length],
+    () => files.length > 0 && Boolean(primaryService) && Boolean(title.trim()) && !isUploading,
+    [files.length, isUploading, primaryService, title],
   );
 
   function updateStatus(name: string, next: Partial<UploadStatus>) {
     setStatuses((current) =>
       current.map((item) => (item.name === name ? { ...item, ...next } : item)),
     );
+  }
+
+  function handleServiceChange(nextService: string) {
+    setPrimaryService(nextService);
+    setServiceMetadata({});
+  }
+
+  function updateMetadataField(key: string, value: string | number | boolean) {
+    setServiceMetadata((current) => ({ ...current, [key]: value }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -57,9 +83,13 @@ export default function AssetUploader() {
           },
           body: JSON.stringify({
             ...uploadResult,
-            alt: alt || undefined,
+            title: title.trim(),
+            description: description.trim() || undefined,
+            location: location.trim() || undefined,
+            primaryServiceSlug: primaryService,
+            serviceMetadata,
             published,
-            tagSlugs: selectedTags,
+            tagSlugs: [primaryService],
           }),
         });
 
@@ -87,21 +117,33 @@ export default function AssetUploader() {
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <h2 className="text-2xl text-charcoal">Upload Assets</h2>
-      <p className="font-ui mt-2 text-sm text-gray-mid">
-        Upload images or videos directly to Cloudinary, then save metadata and tags to
-        the portfolio database.
-      </p>
-      <p className="font-ui mt-2 text-xs text-gray-mid">
-        Public service pages only show assets that are tagged to a canonical service and marked
-        published. Use &ldquo;Publish immediately&rdquo; here or turn publishing on in the asset list
-        below after upload.
-      </p>
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
+        <fieldset>
+          <legend className="font-ui text-sm font-semibold text-charcoal">Service</legend>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {SERVICE_TAGS.map((service) => {
+              const active = primaryService === service.slug;
+              return (
+                <button
+                  key={service.slug}
+                  type="button"
+                  onClick={() => handleServiceChange(service.slug)}
+                  className={`font-ui rounded-sm border px-3 py-2 text-sm transition ${
+                    active
+                      ? "border-red bg-red text-white"
+                      : "border-gray-warm text-charcoal hover:border-red hover:text-red"
+                  }`}
+                >
+                  {service.label}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
         <label className="block">
-          <span className="font-ui text-sm font-semibold text-charcoal">
-            Files (images/videos)
-          </span>
+          <span className="font-ui text-sm font-semibold text-charcoal">Files</span>
           <input
             type="file"
             multiple
@@ -114,49 +156,55 @@ export default function AssetUploader() {
           />
         </label>
 
-        <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">
-            Service Tags
-          </legend>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {SERVICE_TAGS.map((service) => {
-              const checked = selectedTags.includes(service.slug);
-              return (
-                <label
-                  key={service.slug}
-                  className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm px-2 py-1 text-sm text-charcoal"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(event) => {
-                      setSelectedTags((current) => {
-                        if (event.target.checked) {
-                          return [...current, service.slug];
-                        }
-                        return current.filter((slug) => slug !== service.slug);
-                      });
-                    }}
-                  />
-                  {service.label}
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-
         <label className="block">
-          <span className="font-ui text-sm font-semibold text-charcoal">
-            Alt Text (optional)
-          </span>
+          <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
           <input
             type="text"
-            value={alt}
-            onChange={(event) => setAlt(event.target.value)}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
             className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
-            placeholder="e.g. Floating shelf install in Summerlin"
+            placeholder="Double barn door install in Anthem"
           />
         </label>
+
+        <label className="block">
+          <span className="font-ui text-sm font-semibold text-charcoal">Description</span>
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            className="mt-1 min-h-[96px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
+            placeholder="Short scope summary, finish notes, or install details"
+          />
+        </label>
+
+        <label className="block">
+          <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
+          <input
+            type="text"
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
+            placeholder="Summerlin, Henderson, Anthem, etc."
+          />
+        </label>
+
+        {metadataConfig ? (
+          <div className="rounded-lg border border-gray-warm/70 bg-cream/60 p-4">
+            <p className="font-ui text-sm font-semibold text-charcoal">
+              {metadataConfig.label} Metadata
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {visibleFields.map((field) => (
+                <ServiceMetadataInput
+                  key={field.key}
+                  field={field}
+                  value={serviceMetadata[field.key]}
+                  onChange={(value) => updateMetadataField(field.key, value)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
           <input
@@ -192,5 +240,80 @@ export default function AssetUploader() {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ServiceMetadataInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: ServiceMetadataField;
+  value: unknown;
+  onChange: (value: string | number | boolean) => void;
+}) {
+  const inputClass =
+    "mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy";
+
+  if (field.type === "select") {
+    return (
+      <label className="block">
+        <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
+        <select
+          value={typeof value === "string" ? value : ""}
+          onChange={(event) => onChange(event.target.value)}
+          className={inputClass}
+        >
+          <option value="">Select</option>
+          {field.options?.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  if (field.type === "boolean") {
+    return (
+      <label className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal">
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        {field.label}
+      </label>
+    );
+  }
+
+  if (field.type === "number") {
+    return (
+      <label className="block">
+        <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
+        <input
+          type="number"
+          min={field.min}
+          step={field.step ?? 1}
+          value={typeof value === "number" ? value : typeof value === "string" ? value : ""}
+          onChange={(event) => onChange(event.target.value)}
+          className={inputClass}
+        />
+      </label>
+    );
+  }
+
+  return (
+    <label className="block">
+      <span className="font-ui text-sm font-semibold text-charcoal">{field.label}</span>
+      <input
+        type="text"
+        value={typeof value === "string" ? value : ""}
+        onChange={(event) => onChange(event.target.value)}
+        className={inputClass}
+        placeholder={field.placeholder}
+      />
+    </label>
   );
 }

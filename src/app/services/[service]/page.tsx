@@ -83,12 +83,26 @@ function GalleryImage({
   );
 }
 
+function GalleryMeta({ asset }: { asset: ServiceGalleryAsset }) {
+  if (!asset.title && !asset.location) return null;
+
+  return (
+    <div className="border-t border-gray-200 bg-white px-4 py-3">
+      {asset.title ? <p className="text-sm font-medium text-charcoal">{asset.title}</p> : null}
+      {asset.location ? (
+        <p className="mt-1 text-xs uppercase tracking-widest text-gray-mid">{asset.location}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function HeroGallery({ asset }: { asset: ServiceGalleryAsset }) {
   return (
     <div className="mt-8 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
       <div className="relative h-[420px] w-full sm:h-[520px]">
         <GalleryImage asset={asset} sizes="100vw" />
       </div>
+      <GalleryMeta asset={asset} />
     </div>
   );
 }
@@ -97,20 +111,28 @@ function MasonryGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
   const [first, ...rest] = assets;
   return (
     <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div
-        className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-        style={{ minHeight: "320px" }}
-      >
-        <GalleryImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
+      <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+        <div
+          className="relative"
+          style={{ minHeight: "320px" }}
+        >
+          <GalleryImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
+        </div>
+        <GalleryMeta asset={first} />
       </div>
       <div className="flex flex-col gap-4">
         {rest.map((asset) => (
           <div
             key={asset.secureUrl}
-            className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-            style={{ minHeight: "148px" }}
+            className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
           >
-            <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+            <div
+              className="relative"
+              style={{ minHeight: "148px" }}
+            >
+              <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+            </div>
+            <GalleryMeta asset={asset} />
           </div>
         ))}
       </div>
@@ -124,10 +146,15 @@ function TwoUpGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
       {assets.map((asset) => (
         <div
           key={asset.secureUrl}
-          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-          style={{ minHeight: "260px" }}
+          className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
         >
-          <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+          <div
+            className="relative"
+            style={{ minHeight: "260px" }}
+          >
+            <GalleryImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
+          </div>
+          <GalleryMeta asset={asset} />
         </div>
       ))}
     </div>
@@ -140,13 +167,18 @@ function FullGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
       {assets.map((asset) => (
         <div
           key={asset.secureUrl}
-          className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-          style={{ height: "260px" }}
+          className="overflow-hidden rounded-xl border border-gray-200 shadow-sm"
         >
-          <GalleryImage
-            asset={asset}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
+          <div
+            className="relative"
+            style={{ height: "260px" }}
+          >
+            <GalleryImage
+              asset={asset}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          </div>
+          <GalleryMeta asset={asset} />
         </div>
       ))}
     </div>
@@ -165,6 +197,7 @@ function ServiceGallery({ assets }: { assets: ServiceGalleryAsset[] }) {
 export default async function ServiceDetailPage({ params }: Props) {
   const service = findService(params.service);
   if (!service) notFound();
+  const quoteHref = `/quote?service=${service.slug}`;
 
   const [registryProjects, serviceAssets] = await Promise.all([
     Promise.resolve(getProjectsByService(service.slug)),
@@ -182,9 +215,17 @@ export default async function ServiceDetailPage({ params }: Props) {
   const relatedServiceDefs = service.relatedServices
     .map((slug) => ACTIVE_SERVICES.find((s) => s.slug === slug))
     .filter((s): s is NonNullable<typeof s> => Boolean(s));
+  const fallbackProjects = relatedServiceDefs
+    .flatMap((related) => getProjectsByService(related.slug))
+    .filter((project, index, projects) =>
+      projects.findIndex((candidate) => candidate.slug === project.slug) === index,
+    )
+    .slice(0, 3);
   const primaryArea = ACTIVE_AREAS.find((area) =>
     area.relatedServiceSlugs.includes(service.slug),
   );
+  const hasProofGap = !hasServiceAssets || !hasRegistryProjects;
+  const galleryHeading = hasServiceAssets ? "Project Gallery" : "Related Proof";
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -204,6 +245,26 @@ export default async function ServiceDetailPage({ params }: Props) {
         </p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{service.heroHeadline}</h1>
         <p className="mt-4 max-w-3xl text-lg text-gray-mid">{service.heroBody}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <TrackedLink
+            href={quoteHref}
+            eventName="proof_cta_click"
+            eventParams={{
+              page_type: "service",
+              service_slug: service.slug,
+              cta_location: "service_hero_quote_cta",
+            }}
+            className="font-ui rounded-sm bg-red px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {service.ctaLabel}
+          </TrackedLink>
+          <Link
+            href="#service-proof"
+            className="font-ui rounded-sm border border-gray-300 px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-red hover:text-red"
+          >
+            View Proof
+          </Link>
+        </div>
       </section>
 
       {/* ── 2. Intro paragraph ──────────────────────────────────────────── */}
@@ -236,9 +297,14 @@ export default async function ServiceDetailPage({ params }: Props) {
       </section>
 
       {/* ── 4. Gallery / Project cards ──────────────────────────────────── */}
-      <section className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
+      <section id="service-proof" className="mx-auto mt-14 max-w-7xl px-4 md:px-8">
         <div className="flex items-end justify-between gap-4">
-          <h2 className="text-3xl text-charcoal">Project Gallery</h2>
+          <div>
+            <p className="font-ui text-xs uppercase tracking-widest text-red">
+              {hasProofGap ? "Proof" : "Gallery"}
+            </p>
+            <h2 className="mt-2 text-3xl text-charcoal">{galleryHeading}</h2>
+          </div>
           <Link href="/projects" className="font-ui text-sm font-semibold text-red">
             View All Projects →
           </Link>
@@ -247,27 +313,76 @@ export default async function ServiceDetailPage({ params }: Props) {
         {!hasContent ? (
           <div className="mt-6">
             <ProjectSectionEmptyState
-              copy={`Project photos are still being added for ${service.shortTitle.toLowerCase()}. We can share examples when we quote the job.`}
-              ctaLabel="Start with a quote"
+              copy={`${service.shortTitle} photos are still being added, but the category is active and quote-ready. Send the opening, wall, or room details and we will guide the right scope, finish path, and install approach.`}
+              ctaHref={quoteHref}
+              ctaLabel={service.ctaLabel}
+              tracked
+              trackParams={{
+                page_type: "service",
+                service_slug: service.slug,
+                cta_location: "service_empty_state_quote_cta",
+              }}
             />
-          </div>
-        ) : hasRegistryProjects ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {registryProjects.slice(0, 3).map((project) => (
-              <ProjectCard
-                key={project.slug}
-                project={project}
-                pageType="service"
-                sourceSlug={service.slug}
-              />
-            ))}
+            {fallbackProjects.length > 0 ? (
+              <div className="mt-8">
+                <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
+                  Related Project Examples
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {fallbackProjects.map((project) => (
+                    <ProjectCard
+                      key={project.slug}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div>
-            <ServiceGallery assets={serviceAssets} />
-            <p className="mt-4 text-sm text-gray-mid">
-              More project photos coming soon. Start with a quote and we can share examples that fit the space.
-            </p>
+            {hasServiceAssets ? (
+              <ServiceGallery assets={serviceAssets} />
+            ) : null}
+            {hasServiceAssets ? (
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
+                Real project photos tagged to {service.shortTitle.toLowerCase()} will surface here first. If the gallery is still growing, the related project cards below show adjacent proof while the category fills in.
+              </p>
+            ) : null}
+            {hasRegistryProjects ? (
+              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {registryProjects.slice(0, 3).map((project) => (
+                  <ProjectCard
+                    key={project.slug}
+                    project={project}
+                    pageType="service"
+                    sourceSlug={service.slug}
+                  />
+                ))}
+              </div>
+            ) : fallbackProjects.length > 0 ? (
+              <div className="mt-8">
+                <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">
+                  Related Project Examples
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {fallbackProjects.map((project) => (
+                    <ProjectCard
+                      key={project.slug}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-gray-mid">
+                Projects coming soon. Start with a quote and we can share examples that fit the space.
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -442,7 +557,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             Send your details and we will reply with next steps, timeline, and quote options.
           </p>
           <TrackedLink
-            href="/quote"
+            href={quoteHref}
             eventName="proof_cta_click"
             eventParams={{
               page_type: "service",
@@ -451,7 +566,7 @@ export default async function ServiceDetailPage({ params }: Props) {
             }}
             className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
           >
-            Start with a Quote
+            {service.ctaLabel}
           </TrackedLink>
           <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
             {CTA_TRUST_ITEMS.map((item) => (
