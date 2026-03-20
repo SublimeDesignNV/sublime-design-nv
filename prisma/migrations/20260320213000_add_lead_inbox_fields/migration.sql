@@ -1,0 +1,30 @@
+CREATE TYPE "LeadStatus" AS ENUM ('NEW', 'REVIEWED', 'CONTACTED', 'ARCHIVED');
+
+ALTER TABLE "Lead"
+ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN "sourceType" TEXT,
+ADD COLUMN "sourcePath" TEXT,
+ADD COLUMN "projectTitle" TEXT,
+ADD COLUMN "projectSlug" TEXT,
+ADD COLUMN "areaSlug" TEXT,
+ADD COLUMN "internalNotes" TEXT,
+ADD COLUMN "lastContactedAt" TIMESTAMP(3),
+ADD COLUMN "archivedAt" TIMESTAMP(3),
+ADD COLUMN "status_v2" "LeadStatus" NOT NULL DEFAULT 'NEW';
+
+UPDATE "Lead"
+SET "status_v2" = CASE UPPER(COALESCE("status", 'NEW'))
+  WHEN 'NEW' THEN 'NEW'::"LeadStatus"
+  WHEN 'REVIEWED' THEN 'REVIEWED'::"LeadStatus"
+  WHEN 'CONTACTED' THEN 'CONTACTED'::"LeadStatus"
+  WHEN 'ARCHIVED' THEN 'ARCHIVED'::"LeadStatus"
+  WHEN 'QUOTED' THEN 'CONTACTED'::"LeadStatus"
+  WHEN 'CLOSED' THEN 'CONTACTED'::"LeadStatus"
+  ELSE 'NEW'::"LeadStatus"
+END;
+
+ALTER TABLE "Lead" DROP COLUMN "status";
+ALTER TABLE "Lead" RENAME COLUMN "status_v2" TO "status";
+
+ALTER TABLE "Lead"
+ALTER COLUMN "updatedAt" DROP DEFAULT;

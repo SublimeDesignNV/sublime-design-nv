@@ -110,20 +110,36 @@ model ProjectAsset {
 }
 
 model Lead {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  name        String
-  email       String
-  phone       String
-  service     String
-  location    String
-  timeline    String?
-  budget      String?
-  message     String
-  photoUrls   String[]
-  status      String   @default("new")
-  utmSource   String?
-  utmMedium   String?
-  utmCampaign String?
-  referrer    String?
+  id              String     @id @default(cuid())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  name            String
+  email           String
+  phone           String
+  service         String
+  location        String
+  timeline        String?
+  budget          String?
+  message         String
+  photoUrls       String[]
+  status          LeadStatus @default(NEW)
+  sourceType      String?
+  sourcePath      String?
+  projectTitle    String?
+  projectSlug     String?
+  areaSlug        String?
+  internalNotes   String?
+  lastContactedAt DateTime?
+  archivedAt      DateTime?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  referrer        String?
+}
+
+enum LeadStatus {
+  NEW
+  REVIEWED
+  CONTACTED
+  ARCHIVED
 }
