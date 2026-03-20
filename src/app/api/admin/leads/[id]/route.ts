@@ -6,6 +6,9 @@ import { getLeadById, updateLead } from "@/lib/leads";
 type UpdateLeadBody = {
   status?: LeadStatus;
   internalNotes?: string;
+  contactedVia?: string | null;
+  lastContactedAt?: string | null;
+  followUpAt?: string | null;
 };
 
 function parseLeadStatus(value: unknown) {
@@ -43,8 +46,40 @@ export async function PATCH(
   const status = parseLeadStatus(body.status);
   const internalNotes =
     typeof body.internalNotes === "string" ? body.internalNotes.trim().slice(0, 4000) : undefined;
+  const contactedVia =
+    body.contactedVia === null
+      ? null
+      : typeof body.contactedVia === "string" &&
+          ["email", "phone", "sms", "other"].includes(body.contactedVia)
+        ? body.contactedVia
+        : undefined;
+  const lastContactedAt =
+    body.lastContactedAt === null
+      ? null
+      : typeof body.lastContactedAt === "string"
+        ? new Date(body.lastContactedAt)
+        : undefined;
+  const followUpAt =
+    body.followUpAt === null
+      ? null
+      : typeof body.followUpAt === "string"
+        ? new Date(body.followUpAt)
+        : undefined;
 
-  if (!status && internalNotes === undefined) {
+  if (lastContactedAt instanceof Date && Number.isNaN(lastContactedAt.getTime())) {
+    return NextResponse.json({ ok: false, error: "Invalid lastContactedAt value." }, { status: 400 });
+  }
+  if (followUpAt instanceof Date && Number.isNaN(followUpAt.getTime())) {
+    return NextResponse.json({ ok: false, error: "Invalid followUpAt value." }, { status: 400 });
+  }
+
+  if (
+    !status &&
+    internalNotes === undefined &&
+    contactedVia === undefined &&
+    lastContactedAt === undefined &&
+    followUpAt === undefined
+  ) {
     return NextResponse.json(
       { ok: false, error: "Nothing to update." },
       { status: 400 },
@@ -53,7 +88,10 @@ export async function PATCH(
 
   const lead = await updateLead(params.id, {
     status,
-    internalNotes: internalNotes ?? undefined,
+    internalNotes: internalNotes === undefined ? undefined : internalNotes,
+    contactedVia: contactedVia === undefined ? undefined : contactedVia,
+    lastContactedAt,
+    followUpAt,
   });
 
   if (!lead) {

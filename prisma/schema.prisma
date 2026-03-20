@@ -130,6 +130,8 @@ model Lead {
   areaSlug        String?
   internalNotes   String?
   lastContactedAt DateTime?
+  contactedVia    String?
+  followUpAt      DateTime?
   archivedAt      DateTime?
   utmSource       String?
   utmMedium       String?

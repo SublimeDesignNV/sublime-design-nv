@@ -12,7 +12,7 @@ export default async function AdminLeadsPage() {
   const hasDb = Boolean(process.env.DATABASE_URL);
   const [initialLeads, initialSummary] = hasDb
     ? await Promise.all([listLeads({ status: "ACTIVE" }), getLeadSummary()])
-    : [[], { totalActive: 0, newCount: 0, reviewedCount: 0, contactedCount: 0, archivedCount: 0, thisWeekCount: 0 }];
+    : [[], { totalActive: 0, newCount: 0, reviewedCount: 0, contactedCount: 0, archivedCount: 0, thisWeekCount: 0, staleCount: 0, followUpDueCount: 0 }];
 
   return (
     <main className="bg-cream pt-24 pb-20">

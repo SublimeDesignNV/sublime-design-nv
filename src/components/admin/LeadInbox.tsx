@@ -50,6 +50,25 @@ function formatDate(value: string | Date) {
   });
 }
 
+function formatDateTimeInput(value?: string | Date) {
+  if (!value) return "";
+  const date = new Date(value);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function formatRelativeTime(value?: string | Date) {
+  if (!value) return "Never contacted";
+  const date = new Date(value);
+  const diff = Date.now() - date.getTime();
+  const minutes = Math.round(diff / 60000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
 function statusClass(status: LeadStatus) {
   switch (status) {
     case "NEW":
@@ -91,11 +110,17 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
   const [service, setService] = useState("");
   const [timeframe, setTimeframe] = useState("");
   const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [staleOnly, setStaleOnly] = useState(false);
+  const [followUpDueOnly, setFollowUpDueOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [savingLeadId, setSavingLeadId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [copiedField, setCopiedField] = useState("");
   const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>(
     Object.fromEntries(initialLeads.map((lead) => [lead.id, lead.internalNotes ?? ""])),
+  );
+  const [followUpDrafts, setFollowUpDrafts] = useState<Record<string, string>>(
+    Object.fromEntries(initialLeads.map((lead) => [lead.id, formatDateTimeInput(lead.followUpAt)])),
   );
 
   const selectedLead = useMemo(
@@ -112,6 +137,8 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
     if (service) params.set("service", service);
     if (timeframe) params.set("timeframe", timeframe);
     if (showArchivedOnly) params.set("archived", "true");
+    if (staleOnly) params.set("stale", "true");
+    if (followUpDueOnly) params.set("followUpDue", "true");
 
     setLoading(true);
     setError("");
@@ -136,6 +163,10 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
           ...prev,
           ...Object.fromEntries(data.leads.map((lead) => [lead.id, lead.internalNotes ?? ""])),
         }));
+        setFollowUpDrafts((prev) => ({
+          ...prev,
+          ...Object.fromEntries(data.leads.map((lead) => [lead.id, formatDateTimeInput(lead.followUpAt)])),
+        }));
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
@@ -148,9 +179,18 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
       });
 
     return () => controller.abort();
-  }, [query, service, showArchivedOnly, sourceType, status, timeframe]);
+  }, [followUpDueOnly, query, service, showArchivedOnly, sourceType, staleOnly, status, timeframe]);
 
-  async function updateLead(id: string, payload: { status?: LeadStatus; internalNotes?: string }) {
+  async function updateLead(
+    id: string,
+    payload: {
+      status?: LeadStatus;
+      internalNotes?: string;
+      contactedVia?: string;
+      lastContactedAt?: string | null;
+      followUpAt?: string | null;
+    },
+  ) {
     setSavingLeadId(id);
     setError("");
     try {
@@ -169,6 +209,7 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
 
       setLeads((prev) => prev.map((lead) => (lead.id === id ? data.lead : lead)));
       setNotesDrafts((prev) => ({ ...prev, [id]: data.lead.internalNotes ?? "" }));
+      setFollowUpDrafts((prev) => ({ ...prev, [id]: formatDateTimeInput(data.lead.followUpAt) }));
       setSummary((prev) => {
         const current = leads.find((lead) => lead.id === id);
         if (!current || current.status === data.lead.status) return prev;
@@ -198,6 +239,35 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
     }
   }
 
+  async function handleContactAction(
+    lead: LeadRecord,
+    via: "email" | "phone",
+    markContacted = false,
+  ) {
+    await updateLead(lead.id, {
+      status: markContacted ? "CONTACTED" : undefined,
+      contactedVia: via,
+      lastContactedAt: new Date().toISOString(),
+    });
+  }
+
+  async function copyValue(kind: "email" | "phone", value: string, leadId: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(`${kind}:${leadId}`);
+      window.setTimeout(() => setCopiedField(""), 1500);
+    } catch {
+      setError(`Unable to copy ${kind}.`);
+    }
+  }
+
+  function setQuickFollowUp(leadId: string, days: number) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    date.setHours(9, 0, 0, 0);
+    setFollowUpDrafts((prev) => ({ ...prev, [leadId]: formatDateTimeInput(date) }));
+  }
+
   return (
     <div className="mt-8 space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -208,6 +278,8 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
           ["Contacted", summary.contactedCount],
           ["Archived", summary.archivedCount],
           ["This Week", summary.thisWeekCount],
+          ["Stale", summary.staleCount],
+          ["Due Follow-ups", summary.followUpDueCount],
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">{label}</p>
@@ -217,7 +289,7 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-8">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -278,6 +350,24 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
             />
             Archived only
           </label>
+          <label className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal">
+            <input
+              type="checkbox"
+              checked={staleOnly}
+              onChange={(event) => setStaleOnly(event.target.checked)}
+              className="h-4 w-4 accent-red"
+            />
+            Stale
+          </label>
+          <label className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal">
+            <input
+              type="checkbox"
+              checked={followUpDueOnly}
+              onChange={(event) => setFollowUpDueOnly(event.target.checked)}
+              className="h-4 w-4 accent-red"
+            />
+            Due follow-ups
+          </label>
         </div>
         {error ? (
           <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -297,38 +387,92 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
             </div>
           ) : (
             leads.map((lead) => (
-              <button
+              <div
                 key={lead.id}
-                type="button"
-                onClick={() => setSelectedLeadId(lead.id)}
                 className={`w-full rounded-xl border p-5 text-left shadow-sm transition ${
                   selectedLeadId === lead.id
                     ? "border-red bg-red/5"
-                    : "border-gray-200 bg-white hover:border-red/40"
+                    : lead.isStale
+                      ? "border-amber-200 bg-amber-50/50 hover:border-amber-300"
+                      : "border-gray-200 bg-white hover:border-red/40"
                 }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-semibold text-charcoal">{lead.name}</p>
-                    <p className="mt-1 text-sm text-gray-mid">
-                      {lead.email} · {lead.phone}
-                    </p>
+                <button type="button" onClick={() => setSelectedLeadId(lead.id)} className="w-full text-left">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-semibold text-charcoal">{lead.name}</p>
+                      <p className="mt-1 text-sm text-gray-mid">
+                        {lead.email} · {lead.phone}
+                      </p>
+                    </div>
+                    <span className={`rounded-full border px-2.5 py-1 font-ui text-xs ${statusClass(lead.status as LeadStatus)}`}>
+                      {lead.status}
+                    </span>
                   </div>
-                  <span className={`rounded-full border px-2.5 py-1 font-ui text-xs ${statusClass(lead.status as LeadStatus)}`}>
-                    {lead.status}
-                  </span>
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-mid">
+                    <span>{lead.service === "other" ? "Other / Not sure" : lead.service}</span>
+                    <span>{lead.location}</span>
+                    {lead.sourceType ? <span>{SOURCE_LABELS[lead.sourceType] ?? lead.sourceType}</span> : null}
+                    <span>{formatDate(lead.createdAt)}</span>
+                    <span>{lead.lastContactedAt ? `Last contacted ${formatRelativeTime(lead.lastContactedAt)}` : "Never contacted"}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {lead.isStale ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-amber-700">
+                        Stale
+                      </span>
+                    ) : null}
+                    {lead.isFollowUpDue ? (
+                      <span className="rounded-full border border-red-200 bg-red-50 px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                        Follow-up due
+                      </span>
+                    ) : null}
+                    {lead.contactedVia ? (
+                      <span className="rounded-full border border-gray-200 bg-white px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                        via {lead.contactedVia}
+                      </span>
+                    ) : null}
+                  </div>
+                  {lead.projectTitle ? (
+                    <p className="mt-3 text-sm font-medium text-charcoal">{lead.projectTitle}</p>
+                  ) : null}
+                  <p className="mt-2 text-sm leading-6 text-charcoal/80">{messagePreview(lead.message)}</p>
+                </button>
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4">
+                  <a
+                    href={`mailto:${lead.email}`}
+                    onClick={() => {
+                      void handleContactAction(lead, "email", false);
+                    }}
+                    className="rounded-sm bg-red px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                  >
+                    Email
+                  </a>
+                  <a
+                    href={`tel:${lead.phone.replace(/\D/g, "")}`}
+                    onClick={() => {
+                      void handleContactAction(lead, "phone", false);
+                    }}
+                    className="rounded-sm bg-navy px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                  >
+                    Call
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void copyValue("email", lead.email, lead.id)}
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-xs text-charcoal hover:border-red hover:text-red"
+                  >
+                    {copiedField === `email:${lead.id}` ? "Copied email" : "Copy email"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyValue("phone", lead.phone, lead.id)}
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-xs text-charcoal hover:border-red hover:text-red"
+                  >
+                    {copiedField === `phone:${lead.id}` ? "Copied phone" : "Copy phone"}
+                  </button>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-mid">
-                  <span>{lead.service === "other" ? "Other / Not sure" : lead.service}</span>
-                  <span>{lead.location}</span>
-                  {lead.sourceType ? <span>{SOURCE_LABELS[lead.sourceType] ?? lead.sourceType}</span> : null}
-                  <span>{formatDate(lead.createdAt)}</span>
-                </div>
-                {lead.projectTitle ? (
-                  <p className="mt-3 text-sm font-medium text-charcoal">{lead.projectTitle}</p>
-                ) : null}
-                <p className="mt-2 text-sm leading-6 text-charcoal/80">{messagePreview(lead.message)}</p>
-              </button>
+              </div>
             ))
           )}
         </div>
@@ -362,6 +506,77 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
                 <div className="rounded-lg border border-gray-200 bg-cream px-3 py-3">
                   <span className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">Location</span>
                   <span className="mt-1 block">{selectedLead.location}</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">Actions</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={`mailto:${selectedLead.email}`}
+                    onClick={() => {
+                      void handleContactAction(selectedLead, "email", false);
+                    }}
+                    className="rounded-sm bg-red px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    Email
+                  </a>
+                  <a
+                    href={`tel:${selectedLead.phone.replace(/\D/g, "")}`}
+                    onClick={() => {
+                      void handleContactAction(selectedLead, "phone", false);
+                    }}
+                    className="rounded-sm bg-navy px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    Call
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void copyValue("email", selectedLead.email, selectedLead.id)}
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-sm text-charcoal hover:border-red hover:text-red"
+                  >
+                    {copiedField === `email:${selectedLead.id}` ? "Copied email" : "Copy email"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyValue("phone", selectedLead.phone, selectedLead.id)}
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-sm text-charcoal hover:border-red hover:text-red"
+                  >
+                    {copiedField === `phone:${selectedLead.id}` ? "Copied phone" : "Copy phone"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateLead(selectedLead.id, {
+                        status: "CONTACTED",
+                        lastContactedAt: new Date().toISOString(),
+                        contactedVia: selectedLead.contactedVia ?? "other",
+                      })
+                    }
+                    disabled={savingLeadId === selectedLead.id}
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-sm text-charcoal hover:border-red hover:text-red disabled:opacity-50"
+                  >
+                    Mark Contacted
+                  </button>
+                  <a
+                    href={`mailto:${selectedLead.email}`}
+                    onClick={() =>
+                      void handleContactAction(selectedLead, "email", true)
+                    }
+                    className="rounded-sm border border-gray-200 px-3 py-2 text-sm text-charcoal hover:border-red hover:text-red"
+                  >
+                    Contact + Mark Contacted
+                  </a>
+                </div>
+                <div className="mt-3 text-sm text-gray-mid">
+                  {selectedLead.lastContactedAt ? (
+                    <span>
+                      Last contacted {formatRelativeTime(selectedLead.lastContactedAt)}
+                      {selectedLead.contactedVia ? ` via ${selectedLead.contactedVia}` : ""}.
+                    </span>
+                  ) : (
+                    <span>Never contacted.</span>
+                  )}
                 </div>
               </div>
 
@@ -436,6 +651,75 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
                 >
                   Save notes
                 </button>
+              </div>
+
+              <div className="space-y-3">
+                <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">Follow-up</p>
+                <div className="rounded-lg border border-gray-200 bg-cream px-4 py-4">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuickFollowUp(selectedLead.id, 1)}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-charcoal hover:border-red hover:text-red"
+                    >
+                      Tomorrow
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickFollowUp(selectedLead.id, 3)}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-charcoal hover:border-red hover:text-red"
+                    >
+                      3 days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuickFollowUp(selectedLead.id, 7)}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-charcoal hover:border-red hover:text-red"
+                    >
+                      1 week
+                    </button>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <input
+                      type="datetime-local"
+                      value={followUpDrafts[selectedLead.id] ?? ""}
+                      onChange={(event) =>
+                        setFollowUpDrafts((prev) => ({ ...prev, [selectedLead.id]: event.target.value }))
+                      }
+                      className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void updateLead(selectedLead.id, {
+                          followUpAt: followUpDrafts[selectedLead.id]
+                            ? new Date(followUpDrafts[selectedLead.id]).toISOString()
+                            : null,
+                        })
+                      }
+                      disabled={savingLeadId === selectedLead.id}
+                      className="rounded-sm bg-navy px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    >
+                      Save follow-up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFollowUpDrafts((prev) => ({ ...prev, [selectedLead.id]: "" }));
+                        void updateLead(selectedLead.id, { followUpAt: null });
+                      }}
+                      disabled={savingLeadId === selectedLead.id}
+                      className="rounded-sm border border-gray-200 px-4 py-2 text-sm text-charcoal hover:border-red hover:text-red disabled:opacity-50"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm text-gray-mid">
+                    {selectedLead.followUpAt
+                      ? `Follow up on ${formatDate(selectedLead.followUpAt)}${selectedLead.isFollowUpDue ? " · due now" : ""}.`
+                      : "No follow-up reminder set."}
+                  </p>
+                </div>
               </div>
 
               {selectedLead.photoUrls.length > 0 ? (

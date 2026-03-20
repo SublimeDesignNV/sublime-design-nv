@@ -1,0 +1,3 @@
+ALTER TABLE "Lead"
+ADD COLUMN "contactedVia" TEXT,
+ADD COLUMN "followUpAt" TIMESTAMP(3);

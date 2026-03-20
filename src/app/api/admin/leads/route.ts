@@ -31,10 +31,12 @@ export async function GET(request: NextRequest) {
   const timeframe =
     timeframeValue === "today" || timeframeValue === "week" ? timeframeValue : undefined;
   const archived = url.searchParams.get("archived") === "true";
+  const stale = url.searchParams.get("stale") === "true";
+  const followUpDue = url.searchParams.get("followUpDue") === "true";
   const status = parseLeadStatus(url.searchParams.get("status"));
 
   const [leads, summary] = await Promise.all([
-    listLeads({ q, status, sourceType, service, timeframe, archived }),
+    listLeads({ q, status, sourceType, service, timeframe, archived, stale, followUpDue }),
     getLeadSummary(),
   ]);
 

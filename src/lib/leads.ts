@@ -42,7 +42,11 @@ export type LeadRecord = {
   areaSlug?: string;
   internalNotes?: string;
   lastContactedAt?: Date;
+  contactedVia?: string;
+  followUpAt?: Date;
   archivedAt?: Date;
+  isStale: boolean;
+  isFollowUpDue: boolean;
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
@@ -56,6 +60,8 @@ export type LeadFilters = {
   service?: string;
   timeframe?: "today" | "week";
   archived?: boolean;
+  stale?: boolean;
+  followUpDue?: boolean;
   take?: number;
 };
 
@@ -66,7 +72,11 @@ export type LeadSummary = {
   contactedCount: number;
   archivedCount: number;
   thisWeekCount: number;
+  staleCount: number;
+  followUpDueCount: number;
 };
+
+export const LEAD_STALE_DAYS = 2;
 
 function mapLead(row: {
   id: string;
@@ -89,6 +99,8 @@ function mapLead(row: {
   areaSlug: string | null;
   internalNotes: string | null;
   lastContactedAt: Date | null;
+  contactedVia: string | null;
+  followUpAt: Date | null;
   archivedAt: Date | null;
   utmSource: string | null;
   utmMedium: string | null;
@@ -116,12 +128,32 @@ function mapLead(row: {
     areaSlug: row.areaSlug ?? undefined,
     internalNotes: row.internalNotes ?? undefined,
     lastContactedAt: row.lastContactedAt ?? undefined,
+    contactedVia: row.contactedVia ?? undefined,
+    followUpAt: row.followUpAt ?? undefined,
     archivedAt: row.archivedAt ?? undefined,
+    isStale: computeIsStale(row.status, row.lastContactedAt),
+    isFollowUpDue: computeIsFollowUpDue(row.status, row.followUpAt),
     utmSource: row.utmSource ?? undefined,
     utmMedium: row.utmMedium ?? undefined,
     utmCampaign: row.utmCampaign ?? undefined,
     referrer: row.referrer ?? undefined,
   };
+}
+
+function staleThresholdDate() {
+  return new Date(Date.now() - LEAD_STALE_DAYS * 24 * 60 * 60 * 1000);
+}
+
+function computeIsStale(status: LeadStatus, lastContactedAt: Date | null) {
+  if (status === LeadStatus.ARCHIVED) return false;
+  if (!lastContactedAt) return true;
+  return lastContactedAt < staleThresholdDate();
+}
+
+function computeIsFollowUpDue(status: LeadStatus, followUpAt: Date | null) {
+  if (status === LeadStatus.ARCHIVED) return false;
+  if (!followUpAt) return false;
+  return followUpAt <= new Date();
 }
 
 function getTimeframeDate(timeframe?: LeadFilters["timeframe"]) {
@@ -196,6 +228,19 @@ export async function listLeads(filters: LeadFilters = {}) {
   if (filters.service) {
     and.push({ service: filters.service });
   }
+  if (filters.stale) {
+    and.push({
+      OR: [
+        { lastContactedAt: null },
+        { lastContactedAt: { lt: staleThresholdDate() } },
+      ],
+    });
+    and.push({ status: { not: LeadStatus.ARCHIVED } });
+  }
+  if (filters.followUpDue) {
+    and.push({ followUpAt: { lte: new Date() } });
+    and.push({ status: { not: LeadStatus.ARCHIVED } });
+  }
   if (timeframeDate) {
     and.push({ createdAt: { gte: timeframeDate } });
   }
@@ -234,6 +279,9 @@ export async function updateLead(
   updates: {
     status?: LeadStatus;
     internalNotes?: string | null;
+    contactedVia?: string | null;
+    lastContactedAt?: Date | null;
+    followUpAt?: Date | null;
   },
 ) {
   const db = await getDb();
@@ -251,7 +299,13 @@ export async function updateLead(
             ? null
             : undefined,
       lastContactedAt:
-        updates.status === LeadStatus.CONTACTED ? new Date() : undefined,
+        updates.lastContactedAt !== undefined
+          ? updates.lastContactedAt
+          : updates.status === LeadStatus.CONTACTED
+            ? new Date()
+            : undefined,
+      contactedVia: updates.contactedVia,
+      followUpAt: updates.followUpAt,
     },
   });
 
@@ -268,11 +322,24 @@ export async function getLeadSummary(): Promise<LeadSummary> {
       contactedCount: 0,
       archivedCount: 0,
       thisWeekCount: 0,
+      staleCount: 0,
+      followUpDueCount: 0,
     };
   }
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const [totalActive, newCount, reviewedCount, contactedCount, archivedCount, thisWeekCount] =
+  const threshold = staleThresholdDate();
+  const now = new Date();
+  const [
+    totalActive,
+    newCount,
+    reviewedCount,
+    contactedCount,
+    archivedCount,
+    thisWeekCount,
+    staleCount,
+    followUpDueCount,
+  ] =
     await Promise.all([
       db.lead.count({ where: { status: { not: LeadStatus.ARCHIVED } } }),
       db.lead.count({ where: { status: LeadStatus.NEW } }),
@@ -280,6 +347,18 @@ export async function getLeadSummary(): Promise<LeadSummary> {
       db.lead.count({ where: { status: LeadStatus.CONTACTED } }),
       db.lead.count({ where: { status: LeadStatus.ARCHIVED } }),
       db.lead.count({ where: { createdAt: { gte: weekAgo } } }),
+      db.lead.count({
+        where: {
+          status: { not: LeadStatus.ARCHIVED },
+          OR: [{ lastContactedAt: null }, { lastContactedAt: { lt: threshold } }],
+        },
+      }),
+      db.lead.count({
+        where: {
+          status: { not: LeadStatus.ARCHIVED },
+          followUpAt: { lte: now },
+        },
+      }),
     ]);
 
   return {
@@ -289,6 +368,8 @@ export async function getLeadSummary(): Promise<LeadSummary> {
     contactedCount,
     archivedCount,
     thisWeekCount,
+    staleCount,
+    followUpDueCount,
   };
 }
 
