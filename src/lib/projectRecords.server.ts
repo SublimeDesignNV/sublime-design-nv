@@ -6,6 +6,7 @@ import { findService } from "@/content/services";
 import { buildCanonicalAssetFields, getAssetTagBuckets } from "@/lib/assetContract";
 import { db } from "@/lib/db";
 import type { PortfolioTag } from "@/lib/portfolio.types";
+import { buildQuoteHref, type LeadSourceType } from "@/lib/publicLeadCtas";
 import { slugify } from "@/lib/seo";
 
 export type ProjectVisibilityDiagnosis =
@@ -373,13 +374,19 @@ export function getProjectExcerpt(
 }
 
 export function getProjectQuoteHref(
-  project: Pick<CanonicalProject, "serviceSlug" | "areaSlug">,
+  project: Pick<CanonicalProject, "serviceSlug" | "areaSlug" | "slug" | "title" | "location">,
+  context: { sourceType: LeadSourceType; sourcePath?: string; ctaLabel?: string },
 ) {
-  const params = new URLSearchParams();
-  if (project.serviceSlug) params.set("service", project.serviceSlug);
-  if (project.areaSlug) params.set("location", project.areaSlug);
-  const query = params.toString();
-  return query ? `/quote?${query}` : "/quote";
+  return buildQuoteHref({
+    sourceType: context.sourceType,
+    sourcePath: context.sourcePath,
+    projectTitle: project.title,
+    projectSlug: project.slug,
+    serviceSlug: project.serviceSlug,
+    areaSlug: project.areaSlug,
+    location: project.location,
+    ctaLabel: context.ctaLabel,
+  });
 }
 
 export function getValidatedProjectPrimaryCta(

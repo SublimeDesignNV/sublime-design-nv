@@ -273,7 +273,11 @@ export default async function ProjectDetailPage({ params }: Props) {
       limit: 2,
     });
     const customCta = getValidatedProjectPrimaryCta(linkedProject);
-    const quoteHref = getProjectQuoteHref(linkedProject);
+    const quoteHref = getProjectQuoteHref(linkedProject, {
+      sourceType: "project-page",
+      sourcePath: `/projects/${linkedProject.slug}`,
+      ctaLabel: customCta?.label ?? "Start Your Project",
+    });
     const summaryCopy =
       linkedProject.description?.trim() ||
       "This published project page is driven by explicit linked assets, deterministic gallery order, and project-level cover selection.";

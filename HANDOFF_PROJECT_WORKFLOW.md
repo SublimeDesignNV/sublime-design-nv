@@ -324,3 +324,120 @@ Admin workflow smoke check after public changes
   - `ok: true`
   - `projects_count: 1`
   - `uploadBatches_count: 0`
+
+Lead capture flow update
+
+Shared CTA routing helper behavior
+- Public conversion CTA routing is now centralized in:
+  - `src/lib/publicLeadCtas.ts`
+- Shared helper responsibilities:
+  - build safe quote URLs with prefills
+  - sanitize outgoing source/context params
+  - read/sanitize incoming quote-page params
+- Supported quote context fields:
+  - `sourceType`
+  - `sourcePath`
+  - `projectTitle`
+  - `projectSlug`
+  - `service`
+  - `area`
+  - `location`
+  - `ctaLabel`
+- Invalid or malformed slug/path values are dropped instead of rendered.
+
+Project-aware and service-aware prefill behavior
+- Homepage spotlight, project pages, project cards, gallery cards, area cards, service-page hero CTAs, and homepage hero now route into `/quote` through the shared helper.
+- Project-driven quote links now carry:
+  - project title
+  - project slug
+  - service slug
+  - area slug
+  - location
+  - source type
+  - source path
+  - CTA label
+- Service-page quote links now carry:
+  - service slug
+  - source type
+  - source path
+  - CTA label
+- Quote page now reads these params safely and:
+  - prefills service when valid
+  - prefills location when present
+  - shows a small contextual cue when project/service context exists
+
+Quote/contact integration details
+- Quote page integration lives in:
+  - `src/app/quote/page.tsx`
+- Quote API integration lives in:
+  - `src/app/api/quote/route.ts`
+- Lightweight source attribution is included in the email payload via:
+  - `sourceType`
+  - `sourcePath`
+  - `projectTitle`
+  - `projectSlug`
+  - `areaSlug`
+  - `ctaLabel`
+- Existing lead persistence schema was not changed in this pass.
+- Direct quote-page visits still work normally without contextual params.
+
+Service-page compatibility notes
+- Standalone service asset galleries remain unchanged.
+- Service-page quote CTAs now use the shared quote helper but do not alter gallery or project-card precedence.
+- Project-backed service cards, when used, still inherit the shared project-card lead CTA behavior.
+
+Additional verification completed
+
+Scenario A: homepage spotlight to quote flow
+- Local homepage rendered quote URLs for:
+  - homepage hero
+  - homepage spotlight
+- Verified homepage spotlight quote URL included:
+  - `sourceType=homepage-spotlight`
+  - `sourcePath=/`
+  - project title
+  - project slug
+  - service
+  - area
+  - location
+  - `ctaLabel=Start Your Project`
+- Verified homepage hero quote URL included:
+  - `sourceType=homepage-hero`
+  - `sourcePath=/`
+
+Scenario B: project page to quote flow
+- Local published project page rendered quote URLs including:
+  - `sourceType=project-page`
+  - `sourcePath=/projects/workflow-verification-summerlin-laundry-cabinets`
+  - project title
+  - project slug
+  - service
+  - area
+  - location
+  - CTA label
+
+Scenario C: shared card consistency
+- Local `/projects` quote URLs included:
+  - `sourceType=projects-card`
+  - `sourcePath=/projects`
+- Local `/gallery` quote URLs included:
+  - `sourceType=gallery-card`
+  - `sourcePath=/gallery`
+- Local `/areas/summerlin` quote URLs included:
+  - `sourceType=area-card`
+  - `sourcePath=/areas/summerlin`
+- All of them carried the same project-aware prefill fields and `Start Your Project` CTA label.
+
+Scenario D: service page stability
+- Local `/services/barn-doors` still rendered the standalone service-gallery flow.
+- Service-page quote URLs now include:
+  - `sourceType=service-page`
+  - `sourcePath=/services/barn-doors`
+  - `service=barn-doors`
+  - service CTA label
+
+Scenario E: direct quote page fallback
+- Local `/quote` still rendered:
+  - `Tell Us About Your Project`
+  - `Start with a Quote`
+- No context block rendered when query params were absent.

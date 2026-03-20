@@ -14,6 +14,7 @@ import { getProjectsByService } from "@/content/projects";
 import { getServiceContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
+import { buildQuoteHref } from "@/lib/publicLeadCtas";
 import { listPublicProjects } from "@/lib/projectRecords.server";
 import { buildFacetCanonical } from "@/lib/seo";
 
@@ -209,7 +210,12 @@ export default async function ServiceDetailPage({ params }: Props) {
   const service = findService(params.service);
   if (!service) notFound();
 
-  const quoteHref = `/quote?service=${service.slug}`;
+  const quoteHref = buildQuoteHref({
+    sourceType: "service-page",
+    sourcePath: `/services/${service.slug}`,
+    serviceSlug: service.slug,
+    ctaLabel: service.ctaLabel,
+  });
 
   const [linkedProjects, registryProjects, serviceAssets] = await Promise.all([
     listPublicProjects({ serviceSlug: service.slug, limit: 3 }),

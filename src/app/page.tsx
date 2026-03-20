@@ -75,7 +75,11 @@ export default async function HomePage() {
     ? getValidatedProjectPrimaryCta(leadSpotlightProject)
     : null;
   const leadProjectQuoteHref = leadSpotlightProject
-    ? getProjectQuoteHref(leadSpotlightProject)
+    ? getProjectQuoteHref(leadSpotlightProject, {
+        sourceType: "homepage-spotlight",
+        sourcePath: "/",
+        ctaLabel: leadProjectCta?.label ?? "Start Your Project",
+      })
     : "/quote";
 
   return (

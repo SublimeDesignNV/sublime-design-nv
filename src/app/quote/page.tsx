@@ -5,6 +5,7 @@ import Link from "next/link";
 import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 import { trackEvent } from "@/lib/analytics";
 import { SERVICES, findService } from "@/content/services";
+import { readQuotePrefill, type QuotePrefillContext } from "@/lib/publicLeadCtas";
 
 // ─── Service options ──────────────────────────────────────────────────────────
 const SERVICE_OPTIONS = SERVICES;
@@ -96,6 +97,12 @@ function serviceSuccessCopy(slug: string): string {
   const service = findService(slug);
   if (!service) return "We'll review your request and reach out shortly with next steps.";
   return `We'll review your ${service.shortTitle.toLowerCase()} request and reach out shortly with next steps.`;
+}
+
+function buildContextMessage(context: QuotePrefillContext) {
+  if (context.projectTitle) return `Inquiry about: ${context.projectTitle}`;
+  if (context.serviceLabel) return `Interested in: ${context.serviceLabel}`;
+  return "";
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -315,23 +322,35 @@ export default function QuotePage() {
     utmCampaign: "",
     referrer: "",
   });
+  const [quoteContext, setQuoteContext] = useState<QuotePrefillContext>({
+    sourceType: null,
+    sourcePath: "",
+    projectTitle: "",
+    projectSlug: "",
+    serviceSlug: "",
+    serviceLabel: "",
+    areaSlug: "",
+    location: "",
+    ctaLabel: "",
+  });
 
   useEffect(() => {
     setUtm(captureUtm());
   }, []);
 
   useEffect(() => {
-    const selectedService =
-      typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("service")
-        : null;
-    if (!selectedService) return;
-    if (!SERVICE_OPTIONS.some((service) => service.slug === selectedService)) return;
+    if (typeof window === "undefined") return;
+    const context = readQuotePrefill(new URLSearchParams(window.location.search));
+    setQuoteContext(context);
 
-    setForm((prev) => {
-      if (prev.service === selectedService) return prev;
-      return { ...prev, service: selectedService };
-    });
+    setForm((prev) => ({
+      ...prev,
+      service:
+        !prev.service && context.serviceSlug && SERVICE_OPTIONS.some((service) => service.slug === context.serviceSlug)
+          ? context.serviceSlug
+          : prev.service,
+      location: !prev.location && context.location ? context.location : prev.location,
+    }));
   }, []);
 
   const uploadsEnabled = Boolean(
@@ -483,6 +502,12 @@ export default function QuotePage() {
           utmMedium: utm.utmMedium || undefined,
           utmCampaign: utm.utmCampaign || undefined,
           referrer: utm.referrer || undefined,
+          sourceType: quoteContext.sourceType || undefined,
+          sourcePath: quoteContext.sourcePath || undefined,
+          projectTitle: quoteContext.projectTitle || undefined,
+          projectSlug: quoteContext.projectSlug || undefined,
+          areaSlug: quoteContext.areaSlug || undefined,
+          ctaLabel: quoteContext.ctaLabel || undefined,
         }),
       });
 
@@ -497,6 +522,9 @@ export default function QuotePage() {
         utm_source: utm.utmSource || undefined,
         utm_medium: utm.utmMedium || undefined,
         utm_campaign: utm.utmCampaign || undefined,
+        source_type: quoteContext.sourceType || undefined,
+        project_slug: quoteContext.projectSlug || undefined,
+        area_slug: quoteContext.areaSlug || undefined,
       });
 
       setSubmitStatus("success");
@@ -529,6 +557,17 @@ export default function QuotePage() {
           Share a few details and we will follow up with next steps, timeline, and pricing — no
           commitment required.
         </p>
+        {buildContextMessage(quoteContext) ? (
+          <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">Context</p>
+            <p className="mt-2 text-sm text-charcoal">{buildContextMessage(quoteContext)}</p>
+            <p className="mt-1 text-sm text-gray-mid">
+              {quoteContext.sourcePath
+                ? `Started from ${quoteContext.sourcePath}.`
+                : "We carried over the page context so your inquiry stays specific."}
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-8 space-y-6">
           <QuoteTrustSection />

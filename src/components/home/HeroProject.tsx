@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { HeroAsset } from "@/lib/portfolio.server";
+import { buildQuoteHref } from "@/lib/publicLeadCtas";
 
 type HeroProjectProps = {
   heroAsset: HeroAsset | null;
@@ -12,6 +13,11 @@ const FALLBACK_HERO =
 export default function HeroProject({ heroAsset }: HeroProjectProps) {
   const imageSrc = heroAsset?.imageUrl || heroAsset?.secureUrl || FALLBACK_HERO;
   const imageAlt = heroAsset?.alt || "Custom floating shelves and feature wall carpentry in Las Vegas";
+  const quoteHref = buildQuoteHref({
+    sourceType: "homepage-hero",
+    sourcePath: "/",
+    ctaLabel: "Start with a Quote",
+  });
 
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
@@ -39,7 +45,7 @@ export default function HeroProject({ heroAsset }: HeroProjectProps) {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/quote"
+              href={quoteHref}
               className="font-ui rounded-sm bg-red px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-dark"
             >
               Start with a Quote

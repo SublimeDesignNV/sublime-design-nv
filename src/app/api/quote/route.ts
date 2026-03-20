@@ -20,6 +20,12 @@ type QuotePayload = {
   utmMedium?: unknown;
   utmCampaign?: unknown;
   referrer?: unknown;
+  sourceType?: unknown;
+  sourcePath?: unknown;
+  projectTitle?: unknown;
+  projectSlug?: unknown;
+  areaSlug?: unknown;
+  ctaLabel?: unknown;
 };
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
@@ -48,6 +54,18 @@ function serviceLabel(slug: string) {
   return ACTIVE_SERVICES.find((s) => s.slug === slug)?.shortTitle ?? slug;
 }
 
+function sanitizeSlug(v: string) {
+  return /^[a-z0-9-]{1,80}$/.test(v) ? v : "";
+}
+
+function sanitizeShort(v: string, max = 120) {
+  return v.slice(0, max);
+}
+
+function sanitizePath(v: string) {
+  return /^\/[a-z0-9\-/_?=&]*$/i.test(v) ? v.slice(0, 200) : "";
+}
+
 // ─── Email HTML builder ───────────────────────────────────────────────────────
 
 function buildHtmlEmail(fields: {
@@ -65,6 +83,12 @@ function buildHtmlEmail(fields: {
   utmMedium?: string;
   utmCampaign?: string;
   referrer?: string;
+  sourceType?: string;
+  sourcePath?: string;
+  projectTitle?: string;
+  projectSlug?: string;
+  areaSlug?: string;
+  ctaLabel?: string;
 }) {
   const svcLabel = serviceLabel(fields.service);
 
@@ -157,6 +181,16 @@ function buildHtmlEmail(fields: {
             ${fields.referrer ? ` · Referrer: ${fields.referrer}` : ""}
            </p>`
         : ""}
+      ${(fields.sourceType || fields.sourcePath || fields.projectSlug || fields.areaSlug)
+        ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;">
+            ${fields.sourceType ? `<div>Lead Source: ${fields.sourceType}</div>` : ""}
+            ${fields.sourcePath ? `<div>Source Path: ${fields.sourcePath}</div>` : ""}
+            ${fields.projectTitle ? `<div>Project: ${fields.projectTitle}</div>` : ""}
+            ${fields.projectSlug ? `<div>Project Slug: ${fields.projectSlug}</div>` : ""}
+            ${fields.areaSlug ? `<div>Area Slug: ${fields.areaSlug}</div>` : ""}
+            ${fields.ctaLabel ? `<div>CTA Label: ${fields.ctaLabel}</div>` : ""}
+          </div>`
+        : ""}
     </div>
   </div>
 </body>
@@ -173,6 +207,12 @@ function buildTextEmail(fields: {
   budget: string;
   message: string;
   photoUrls: string[];
+  sourceType?: string;
+  sourcePath?: string;
+  projectTitle?: string;
+  projectSlug?: string;
+  areaSlug?: string;
+  ctaLabel?: string;
 }) {
   const svcLabel = serviceLabel(fields.service);
   const lines = [
@@ -199,6 +239,16 @@ function buildTextEmail(fields: {
     fields.photoUrls.forEach((url, i) => lines.push(`${i + 1}. ${url}`));
   }
 
+  if (fields.sourceType || fields.sourcePath || fields.projectSlug || fields.areaSlug) {
+    lines.push("", "SOURCE");
+    if (fields.sourceType) lines.push(`Source Type: ${fields.sourceType}`);
+    if (fields.sourcePath) lines.push(`Source Path: ${fields.sourcePath}`);
+    if (fields.projectTitle) lines.push(`Project: ${fields.projectTitle}`);
+    if (fields.projectSlug) lines.push(`Project Slug: ${fields.projectSlug}`);
+    if (fields.areaSlug) lines.push(`Area Slug: ${fields.areaSlug}`);
+    if (fields.ctaLabel) lines.push(`CTA Label: ${fields.ctaLabel}`);
+  }
+
   return lines.join("\n");
 }
 
@@ -222,6 +272,12 @@ export async function POST(request: Request) {
     const utmMedium = str(body.utmMedium);
     const utmCampaign = str(body.utmCampaign);
     const referrer = str(body.referrer);
+    const sourceType = sanitizeShort(str(body.sourceType), 40);
+    const sourcePath = sanitizePath(str(body.sourcePath));
+    const projectTitle = sanitizeShort(str(body.projectTitle), 120);
+    const projectSlug = sanitizeSlug(str(body.projectSlug));
+    const areaSlug = sanitizeSlug(str(body.areaSlug));
+    const ctaLabel = sanitizeShort(str(body.ctaLabel), 60);
 
     // Required field validation
     const missing: string[] = [];
@@ -302,6 +358,12 @@ export async function POST(request: Request) {
       utmMedium: utmMedium || undefined,
       utmCampaign: utmCampaign || undefined,
       referrer: referrer || undefined,
+      sourceType: sourceType || undefined,
+      sourcePath: sourcePath || undefined,
+      projectTitle: projectTitle || undefined,
+      projectSlug: projectSlug || undefined,
+      areaSlug: areaSlug || undefined,
+      ctaLabel: ctaLabel || undefined,
     };
 
     const { error: sendError } = await resend.emails.send({

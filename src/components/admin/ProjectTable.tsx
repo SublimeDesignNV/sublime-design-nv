@@ -561,6 +561,9 @@ export default function ProjectTable() {
                     <input type="text" value={editForm.primaryCtaHref} onChange={(event) => setEditForm((current) => current ? { ...current, primaryCtaHref: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                   </label>
                 </div>
+                <p className="text-xs leading-6 text-gray-mid">
+                  Valid internal CTA metadata can show up as an optional secondary public button. The standard site quote CTA still appears as the main fallback when these fields are blank or invalid.
+                </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className="font-ui text-sm font-semibold text-charcoal">Completion Year</span>

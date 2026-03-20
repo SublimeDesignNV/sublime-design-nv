@@ -93,7 +93,29 @@ export default function ProjectRecordCard({
   sourceSlug,
 }: ProjectRecordCardProps) {
   const customCta = getValidatedProjectPrimaryCta(project);
-  const quoteHref = getProjectQuoteHref(project);
+  const quoteHref = getProjectQuoteHref(project, {
+    sourceType:
+      pageType === "home"
+        ? "homepage-card"
+        : pageType === "gallery"
+          ? "gallery-card"
+          : pageType === "area"
+            ? "area-card"
+            : pageType === "service"
+              ? "service-card"
+              : "projects-card",
+    sourcePath:
+      pageType === "home"
+        ? "/"
+        : pageType === "gallery"
+          ? "/gallery"
+          : pageType === "area" && sourceSlug
+            ? `/areas/${sourceSlug}`
+            : pageType === "service" && sourceSlug
+              ? `/services/${sourceSlug}`
+              : "/projects",
+    ctaLabel: customCta?.label ?? "Start Your Project",
+  });
   const description = getProjectExcerpt(project, pageType === "home" ? 170 : 140);
   const showEditorialCallout = pageType === "home" && Boolean(project.featuredReason?.trim());
 
