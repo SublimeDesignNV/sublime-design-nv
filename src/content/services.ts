@@ -447,6 +447,8 @@ export const HOMEPAGE_PRIMARY_SERVICES = ACTIVE_SERVICES.slice(0, 4);
 /** Secondary services shown as a compact link row on the homepage */
 export const HOMEPAGE_SECONDARY_SERVICES = ACTIVE_SERVICES.slice(4);
 
+export type CanonicalServiceSlug = ServiceDef["slug"];
+
 /**
  * Find a service by its canonical slug or any alias.
  * Returns the canonical ServiceDef in both cases.
