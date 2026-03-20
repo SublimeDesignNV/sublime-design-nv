@@ -505,7 +505,6 @@ export async function listRenderableOrphanAssets() {
         width: asset.width,
         height: asset.height,
         published: asset.published,
-        requireProjectLink: true,
       });
 
       return {
@@ -517,7 +516,7 @@ export async function listRenderableOrphanAssets() {
         imageUrl: canonical.imageUrl,
         thumbnailUrl: canonical.thumbnailUrl,
         renderable: canonical.renderable,
-        diagnosis: canonical.diagnosis,
+        diagnosis: canonical.renderable ? "unlinked_to_project" : canonical.diagnosis,
         createdAt: asset.createdAt.toISOString(),
         uploadBatchId: asset.uploadBatchId,
         serviceTags,
