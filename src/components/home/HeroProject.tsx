@@ -10,8 +10,8 @@ const FALLBACK_HERO =
   "https://images.unsplash.com/photo-1750268746263-52cdef61e177?auto=format&fit=crop&w=2200&q=80";
 
 export default function HeroProject({ heroAsset }: HeroProjectProps) {
-  const imageSrc = heroAsset?.secureUrl || FALLBACK_HERO;
-  const imageAlt = heroAsset?.alt || "Custom built-ins and floating shelves in Las Vegas";
+  const imageSrc = heroAsset?.imageUrl || heroAsset?.secureUrl || FALLBACK_HERO;
+  const imageAlt = heroAsset?.alt || "Custom floating shelves and feature wall carpentry in Las Vegas";
 
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
@@ -31,10 +31,10 @@ export default function HeroProject({ heroAsset }: HeroProjectProps) {
             Finish Carpentry • Las Vegas Valley
           </p>
           <h1 className="mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl">
-            Custom Built-Ins &amp; Floating Shelves
+            Premium Finish Carpentry for the Signature Spaces
           </h1>
           <p className="mt-5 max-w-2xl text-sm text-white/85 sm:text-base md:text-lg">
-            Designed, built, and installed in Las Vegas.
+            Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim upgrades designed, built, and installed in Las Vegas Valley.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

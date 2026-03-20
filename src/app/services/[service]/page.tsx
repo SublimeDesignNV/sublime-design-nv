@@ -71,7 +71,7 @@ function GalleryImage({
 
   return (
     <Image
-      src={asset.secureUrl}
+      src={asset.imageUrl}
       alt={asset.alt}
       fill
       sizes={sizes}

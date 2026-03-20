@@ -4,6 +4,7 @@ import { findContext } from "@/content/contexts";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { findService } from "@/content/services";
 import { db } from "@/lib/db";
+import { buildCanonicalAssetFields, getAssetTagBuckets } from "@/lib/assetContract";
 import {
   buildAssetTagDefinitions,
   isServiceTagSlug,
@@ -15,6 +16,7 @@ import { buildAssetAltText, validateServiceAssetMetadata } from "@/lib/serviceAs
 type CreateAssetBody = {
   kind?: AssetKind;
   publicId?: string;
+  imageUrl?: string;
   secureUrl?: string;
   width?: number;
   height?: number;
@@ -78,18 +80,30 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     title: tag.serviceType.title,
     tagType: tag.serviceType.tagType,
   }));
-  const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
-  const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
-
-  return {
-    id: asset.id,
+  const { serviceTags, contextTags, contextSlugs } = getAssetTagBuckets(tags);
+  const canonical = buildCanonicalAssetFields({
     kind: asset.kind,
     publicId: asset.publicId,
     secureUrl: asset.secureUrl,
+    format: asset.format,
     width: asset.width,
     height: asset.height,
+    published: asset.published,
+  });
+
+  return {
+    id: asset.id,
+    slug: canonical.slug,
+    kind: asset.kind,
+    publicId: canonical.publicId,
+    imageUrl: canonical.imageUrl,
+    thumbnailUrl: canonical.thumbnailUrl,
+    secureUrl: canonical.imageUrl,
+    resourceType: canonical.resourceType,
+    width: canonical.width,
+    height: canonical.height,
     duration: asset.duration,
-    format: asset.format,
+    format: canonical.format,
     bytes: asset.bytes,
     title: asset.title,
     description: asset.description,
@@ -105,10 +119,14 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     alt: asset.alt,
     published: asset.published,
     createdAt: asset.createdAt,
+    projectId: canonical.projectId,
+    projectSlug: canonical.projectSlug,
+    renderable: canonical.renderable,
+    diagnosis: canonical.diagnosis,
     tags,
     serviceTags,
     contextTags,
-    contextSlugs: contextTags.map((tag) => tag.slug),
+    contextSlugs,
   };
 }
 
@@ -129,8 +147,22 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  const serializedAssets = assets.map(serializeAdminAsset);
+  for (const asset of serializedAssets) {
+    console.info("admin_asset_row", {
+      assetId: asset.id,
+      title: asset.title,
+      published: asset.published,
+      hasPublicId: Boolean(asset.publicId),
+      hasImageUrl: Boolean(asset.imageUrl),
+      hasThumbnailUrl: Boolean(asset.thumbnailUrl),
+      hasProjectLinkage: Boolean(asset.projectSlug || asset.projectId),
+      diagnosis: asset.diagnosis,
+    });
+  }
+
   return NextResponse.json({
-    assets: assets.map(serializeAdminAsset),
+    assets: serializedAssets,
   });
 }
 
@@ -145,9 +177,11 @@ export async function POST(request: NextRequest) {
 
   const body = (await request.json().catch(() => ({}))) as CreateAssetBody;
 
-  if (!body.publicId || !body.secureUrl) {
+  const imageUrl = body.imageUrl?.trim() || body.secureUrl?.trim();
+
+  if (!body.publicId || !imageUrl) {
     return NextResponse.json(
-      { ok: false, error: "publicId and secureUrl are required." },
+      { ok: false, error: "publicId and imageUrl are required." },
       { status: 400 },
     );
   }
@@ -161,7 +195,7 @@ export async function POST(request: NextRequest) {
 
   const kind: AssetKind = body.kind;
   const publicId = body.publicId;
-  const secureUrl = body.secureUrl;
+  const secureUrl = imageUrl;
 
   const title = body.title?.trim();
   if (!title) {

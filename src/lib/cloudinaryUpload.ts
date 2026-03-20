@@ -1,6 +1,7 @@
 export type CloudinaryUploadResult = {
   kind: "IMAGE" | "VIDEO";
   publicId: string;
+  imageUrl: string;
   secureUrl: string;
   width?: number;
   height?: number;
@@ -58,6 +59,7 @@ async function uploadToCloudinary(
   return {
     kind,
     publicId: data.public_id,
+    imageUrl: data.secure_url,
     secureUrl: data.secure_url,
     width: data.width,
     height: data.height,

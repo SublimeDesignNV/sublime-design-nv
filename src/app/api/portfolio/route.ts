@@ -3,6 +3,7 @@ import { AssetKind } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getServiceLookupSlugs } from "@/content/services";
 import type { PortfolioResponse } from "@/lib/portfolio.types";
+import { buildCanonicalAssetFields, getAssetTagBuckets } from "@/lib/assetContract";
 
 function parseKind(kind: string | null): AssetKind | undefined {
   if (!kind) return undefined;
@@ -76,15 +77,30 @@ export async function GET(request: NextRequest) {
       title: tag.serviceType.title,
       tagType: tag.serviceType.tagType,
     }));
-    const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
-    const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
+    const { contextTags, serviceTags, contextSlugs } = getAssetTagBuckets(tags);
+    const canonical = buildCanonicalAssetFields({
+      kind: asset.kind,
+      publicId: asset.publicId,
+      secureUrl: asset.secureUrl,
+      format: asset.format,
+      width: asset.width,
+      height: asset.height,
+      published: asset.published,
+    });
 
     return {
       id: asset.id,
+      slug: canonical.slug,
       kind: asset.kind,
-      secureUrl: asset.secureUrl,
-      width: asset.width,
-      height: asset.height,
+      published: asset.published,
+      publicId: canonical.publicId,
+      imageUrl: canonical.imageUrl,
+      thumbnailUrl: canonical.thumbnailUrl,
+      secureUrl: canonical.imageUrl,
+      resourceType: canonical.resourceType,
+      format: canonical.format,
+      width: canonical.width,
+      height: canonical.height,
       duration: asset.duration,
       title: asset.title,
       description: asset.description,
@@ -96,10 +112,12 @@ export async function GET(request: NextRequest) {
           : null,
       alt: asset.alt,
       createdAt: asset.createdAt,
+      projectId: canonical.projectId,
+      projectSlug: canonical.projectSlug,
       tags,
       serviceTags,
       contextTags,
-      contextSlugs: contextTags.map((tag) => tag.slug),
+      contextSlugs,
     };
   });
 

@@ -10,12 +10,16 @@ import {
   getSeedImages,
 } from "@/lib/seedImages.server";
 import type { PortfolioTag, PublishedAsset } from "@/lib/portfolio.types";
+import { buildCanonicalAssetFields, getAssetTagBuckets } from "@/lib/assetContract";
 
 function mapPublishedAsset(asset: {
   id: string;
   kind: "IMAGE" | "VIDEO";
   publicId: string;
   secureUrl: string;
+  width: number | null;
+  height: number | null;
+  format: string | null;
   title: string | null;
   description: string | null;
   location: string | null;
@@ -30,14 +34,30 @@ function mapPublishedAsset(asset: {
     title: tag.serviceType.title,
     tagType: tag.serviceType.tagType,
   }));
-  const serviceTags = tags.filter((tag) => tag.tagType === "SERVICE");
-  const contextTags = tags.filter((tag) => tag.tagType === "CONTEXT");
-
-  return {
-    id: asset.id,
+  const { serviceTags, contextTags, contextSlugs } = getAssetTagBuckets(tags);
+  const canonical = buildCanonicalAssetFields({
     kind: asset.kind,
     publicId: asset.publicId,
     secureUrl: asset.secureUrl,
+    format: asset.format,
+    width: asset.width,
+    height: asset.height,
+    published: true,
+  });
+
+  return {
+    id: asset.id,
+    slug: canonical.slug,
+    kind: asset.kind,
+    published: true,
+    publicId: canonical.publicId,
+    imageUrl: canonical.imageUrl,
+    thumbnailUrl: canonical.thumbnailUrl,
+    secureUrl: canonical.imageUrl,
+    resourceType: canonical.resourceType,
+    format: canonical.format,
+    width: canonical.width,
+    height: canonical.height,
     title: asset.title,
     description: asset.description,
     location: asset.location,
@@ -48,10 +68,12 @@ function mapPublishedAsset(asset: {
         : null,
     alt: asset.alt,
     createdAt: asset.createdAt.toISOString(),
+    projectId: canonical.projectId,
+    projectSlug: canonical.projectSlug,
     tags,
     serviceTags,
     contextTags,
-    contextSlugs: contextTags.map((tag) => tag.slug),
+    contextSlugs,
   };
 }
 
@@ -70,6 +92,9 @@ export async function getPublishedAssets(): Promise<PublishedAsset[]> {
         kind: true,
         publicId: true,
         secureUrl: true,
+        width: true,
+        height: true,
+        format: true,
         title: true,
         description: true,
         location: true,
@@ -141,6 +166,9 @@ export async function getPublishedAssetsByServiceSlug(
         kind: true,
         publicId: true,
         secureUrl: true,
+        width: true,
+        height: true,
+        format: true,
         title: true,
         description: true,
         location: true,
@@ -172,6 +200,7 @@ export async function getPublishedAssetsByServiceSlug(
 }
 
 export type HeroAsset = {
+  imageUrl: string;
   secureUrl: string;
   alt: string;
   publicId?: string;
@@ -200,6 +229,7 @@ export async function getHeroAsset(): Promise<HeroAsset | null> {
 
     if (selected?.secure_url) {
       return {
+        imageUrl: selected.secure_url,
         secureUrl: selected.secure_url,
         alt: selected.context?.alt || "Custom finish carpentry installation by Sublime Design NV in Las Vegas Valley",
         publicId: selected.public_id,
@@ -214,6 +244,7 @@ export async function getHeroAsset(): Promise<HeroAsset | null> {
     getServiceSeedPreviewAsset("cabinets");
   if (seedHero) {
     return {
+      imageUrl: seedHero.src,
       secureUrl: seedHero.src,
       alt: seedHero.alt,
     };
@@ -228,6 +259,7 @@ export type AssetSource = "cloudinary" | "seed";
 export type ServicePreviewAsset = {
   /** Present for cloudinary assets; absent for seed images. */
   publicId?: string;
+  imageUrl: string;
   secureUrl: string;
   alt: string;
   source: AssetSource;
@@ -272,8 +304,9 @@ export async function getServiceCardPreviewAsset(
 
   if (publishedAsset) {
     return {
-      publicId: publishedAsset.publicId,
-      secureUrl: publishedAsset.secureUrl,
+      publicId: publishedAsset.publicId ?? undefined,
+      imageUrl: publishedAsset.imageUrl ?? publishedAsset.secureUrl ?? "",
+      secureUrl: publishedAsset.imageUrl ?? publishedAsset.secureUrl ?? "",
       alt: getServiceImageAlt({
         serviceSlug: slug,
         explicitAlt: publishedAsset.alt,
@@ -288,6 +321,7 @@ export async function getServiceCardPreviewAsset(
   if (asset?.secure_url) {
     return {
       publicId: asset.public_id,
+      imageUrl: asset.secure_url,
       secureUrl: asset.secure_url,
       alt: getServiceImageAlt({
         serviceSlug: slug,
@@ -300,6 +334,7 @@ export async function getServiceCardPreviewAsset(
   const seed = getServiceSeedPreviewAsset(slug);
   if (seed) {
     return {
+      imageUrl: seed.src,
       secureUrl: seed.src,
       alt: getServiceImageAlt({
         serviceSlug: slug,
@@ -314,6 +349,7 @@ export async function getServiceCardPreviewAsset(
 
 export type ServiceGalleryAsset = {
   publicId?: string;
+  imageUrl: string;
   secureUrl: string;
   alt: string;
   title?: string;
@@ -334,8 +370,9 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
   const publishedAssets = await getPublishedAssetsByServiceSlug(slug);
   if (publishedAssets.length) {
     return publishedAssets.map((asset, index) => ({
-      publicId: asset.publicId,
-      secureUrl: asset.secureUrl,
+      publicId: asset.publicId ?? undefined,
+      imageUrl: asset.imageUrl ?? asset.secureUrl ?? "",
+      secureUrl: asset.imageUrl ?? asset.secureUrl ?? "",
       alt: getServiceImageAlt({
         serviceSlug: slug,
         explicitAlt: asset.alt,
@@ -356,6 +393,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
   if (assets.length) {
     return assets.map((asset) => ({
       publicId: asset.public_id,
+      imageUrl: asset.secure_url,
       secureUrl: asset.secure_url,
       alt: getServiceImageAlt({
         serviceSlug: slug,
@@ -368,6 +406,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
 
   const seedImages = getServiceSeedImages(slug);
   return seedImages.map((img, index) => ({
+    imageUrl: img.src,
     secureUrl: img.src,
     alt: getServiceImageAlt({
       serviceSlug: slug,
@@ -380,6 +419,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
 
 export type ProjectImageAsset = {
   publicId?: string;
+  imageUrl: string;
   secureUrl: string;
   alt: string;
   source: AssetSource;
@@ -434,6 +474,7 @@ export async function getProjectImages(
   if (cloudinaryProject?.images.length) {
     return orderProjectAssetsByPreference(cloudinaryProject.images, projectSlug).map((img, index) => ({
       publicId: img.public_id,
+      imageUrl: img.secure_url,
       secureUrl: img.secure_url,
       alt: getProjectImageAltBySlug({
         projectSlug,
@@ -455,6 +496,7 @@ export async function getProjectImages(
   if (serviceAssets.length) {
     return orderProjectAssetsByPreference(serviceAssets, projectSlug).map((asset, index) => ({
       publicId: asset.public_id,
+      imageUrl: asset.secure_url,
       secureUrl: asset.secure_url,
       alt: getProjectImageAltBySlug({
         projectSlug,
@@ -474,6 +516,7 @@ export async function getProjectImages(
   // 3. Seed images
   const seeds = getSeedImages(serviceSlug);
   return seeds.map((img, index) => ({
+    imageUrl: img.src,
     secureUrl: img.src,
     alt: getProjectImageAltBySlug({
       projectSlug,
@@ -520,6 +563,7 @@ export async function getHomepageFeaturedAssets(max = 6): Promise<ServicePreview
       seen.add(asset.public_id);
       result.push({
         publicId: asset.public_id,
+        imageUrl: asset.secure_url,
         secureUrl: asset.secure_url,
         alt: asset.context?.alt ?? "Custom finish carpentry project by Sublime Design NV in Las Vegas Valley",
         source: "cloudinary",
@@ -545,7 +589,7 @@ export async function getHomepageFeaturedAssets(max = 6): Promise<ServicePreview
   for (const slug of seedSlugOrder) {
     const seed = getServiceSeedPreviewAsset(slug);
     if (seed) {
-      seedResult.push({ secureUrl: seed.src, alt: seed.alt, source: "seed" });
+      seedResult.push({ imageUrl: seed.src, secureUrl: seed.src, alt: seed.alt, source: "seed" });
     }
     if (seedResult.length >= max) break;
   }

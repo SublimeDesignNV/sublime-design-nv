@@ -1,6 +1,6 @@
 import "server-only";
 import { v2 as cloudinary } from "cloudinary";
-import { SERVICES } from "@/lib/services.config";
+import { findService } from "@/content/services";
 import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
 import { slugify, titleCaseFromSlug } from "@/lib/seo";
 
@@ -9,11 +9,19 @@ function required(name: string, value: string | undefined) {
   return value;
 }
 
-cloudinary.config({
-  cloud_name: required("CLOUDINARY_CLOUD_NAME", process.env.CLOUDINARY_CLOUD_NAME),
-  api_key: required("CLOUDINARY_API_KEY", process.env.CLOUDINARY_API_KEY),
-  api_secret: required("CLOUDINARY_API_SECRET", process.env.CLOUDINARY_API_SECRET),
-});
+let cloudinaryConfigured = false;
+
+function ensureCloudinaryConfigured() {
+  if (cloudinaryConfigured) return;
+
+  cloudinary.config({
+    cloud_name: required("CLOUDINARY_CLOUD_NAME", process.env.CLOUDINARY_CLOUD_NAME),
+    api_key: required("CLOUDINARY_API_KEY", process.env.CLOUDINARY_API_KEY),
+    api_secret: required("CLOUDINARY_API_SECRET", process.env.CLOUDINARY_API_SECRET),
+  });
+
+  cloudinaryConfigured = true;
+}
 
 export const PROJECTS_ROOT_FOLDER = "Sublime/Projects";
 
@@ -172,6 +180,8 @@ function isFeatured(value: string | undefined) {
 }
 
 async function searchByExpression(expression: string, maxResults = 500) {
+  ensureCloudinaryConfigured();
+
   try {
     const result = await cloudinary.search
       .expression(expression)
@@ -380,9 +390,7 @@ export async function listProjectsIndex(maxProjects = 200): Promise<ProjectIndex
         state: first.context?.state || "NV",
         serviceSlug,
         serviceLabel: serviceSlug
-          ? SERVICES.includes(serviceSlug as (typeof SERVICES)[number])
-            ? titleCaseFromSlug(serviceSlug)
-            : titleCaseFromSlug(serviceSlug)
+          ? findService(serviceSlug)?.shortTitle ?? titleCaseFromSlug(serviceSlug)
           : first.context?.service,
         materialSlug,
         materialLabel: materialSlug
@@ -498,6 +506,8 @@ function normalizeContextForCloudinary(context: Record<string, string>) {
 }
 
 export async function updateAssetContext(publicId: string, context: Record<string, string>) {
+  ensureCloudinaryConfigured();
+
   const contextString = normalizeContextForCloudinary(context);
   if (!contextString) return;
 
@@ -529,6 +539,8 @@ export async function listAssetsByServiceTag(
 }
 
 export async function addAssetTags(publicId: string, tags: string[]) {
+  ensureCloudinaryConfigured();
+
   const cleanTags = Array.from(
     new Set(
       tags
@@ -557,5 +569,22 @@ export async function addAssetTags(publicId: string, tags: string[]) {
   } catch (error) {
     const details = error instanceof Error ? error.message : "unknown error";
     throw new Error(`Failed to add tags for "${publicId}": ${details}`);
+  }
+}
+
+export async function getAssetByPublicId(publicId: string): Promise<CloudinaryAsset | null> {
+  ensureCloudinaryConfigured();
+
+  try {
+    const resource = (await cloudinary.api.resource(publicId, {
+      resource_type: "image",
+      type: "upload",
+      context: true,
+      tags: true,
+    })) as CloudinarySearchResource;
+
+    return mapResource(resource);
+  } catch {
+    return null;
   }
 }

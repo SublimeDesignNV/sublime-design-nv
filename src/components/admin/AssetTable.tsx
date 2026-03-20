@@ -8,8 +8,14 @@ import { sanitizeServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
 
 type AdminAsset = {
   id: string;
+  slug: string | null;
   kind: "IMAGE" | "VIDEO";
-  secureUrl: string;
+  publicId: string | null;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  secureUrl: string | null;
+  resourceType: "image" | "video";
+  format: string | null;
   title: string | null;
   description: string | null;
   location: string | null;
@@ -18,6 +24,10 @@ type AdminAsset = {
   serviceMetadata: Record<string, unknown> | null;
   published: boolean;
   createdAt: string;
+  projectId: string | null;
+  projectSlug: string | null;
+  renderable: boolean;
+  diagnosis: string;
   tags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
   serviceTags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
   contextTags: Array<{ slug: string; title: string; tagType: "SERVICE" | "CONTEXT" }>;
@@ -326,7 +336,7 @@ export default function AssetTable() {
                   <td className="py-2 pr-3">
                     {asset.kind === "IMAGE" ? (
                       <img
-                        src={asset.secureUrl}
+                        src={asset.thumbnailUrl || asset.imageUrl || asset.secureUrl || ""}
                         alt={asset.serviceTags[0]?.title || asset.contextTags[0]?.title || "Asset preview"}
                         className="h-16 w-16 rounded-sm bg-cream object-contain p-1"
                       />
@@ -412,6 +422,14 @@ export default function AssetTable() {
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
+                      <a
+                        href={`/api/admin/assets/${asset.id}/debug`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy"
+                      >
+                        Debug
+                      </a>
                       <button
                         type="button"
                         onClick={() => void deleteAsset(asset)}
