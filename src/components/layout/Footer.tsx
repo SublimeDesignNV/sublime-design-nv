@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
-import { SERVICES, SITE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
+import { ACTIVE_SERVICES } from "@/content/services";
 
 function FooterLogo() {
   const [failed, setFailed] = useState(false);
@@ -53,7 +54,7 @@ export default function Footer() {
         <div>
           <h3 className="font-ui text-base font-semibold text-white">Services</h3>
           <ul className="mt-4 space-y-2">
-            {SERVICES.map((service) => (
+            {ACTIVE_SERVICES.map((service) => (
               <li key={service.slug}>
                 <Link
                   href={`/services/${service.slug}`}

@@ -4,30 +4,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 import { trackEvent } from "@/lib/analytics";
-import { ACTIVE_SERVICES } from "@/content/services";
+import { SERVICES, findService } from "@/content/services";
 
 // ─── Service options ──────────────────────────────────────────────────────────
-const QUOTE_SERVICE_SLUGS = [
-  "barn-doors",
-  "floating-shelves",
-  "mantels",
-  "media-walls",
-  "faux-beams",
-  "cabinets",
-  "trim",
-] as const;
-
-const SERVICE_OPTIONS = QUOTE_SERVICE_SLUGS.map((slug) => {
-  const service = ACTIVE_SERVICES.find((entry) => entry.slug === slug);
-  if (!service) {
-    throw new Error(`Missing quote service config for slug "${slug}"`);
-  }
-
-  return {
-    slug: service.slug,
-    label: service.shortTitle,
-  };
-});
+const SERVICE_OPTIONS = SERVICES;
 
 const TIMELINE_OPTIONS = [
   { value: "", label: "No preference" },
@@ -113,7 +93,7 @@ function validateFields(f: FormFields): FieldErrors {
 }
 
 function serviceSuccessCopy(slug: string): string {
-  const service = ACTIVE_SERVICES.find((entry) => entry.slug === slug);
+  const service = findService(slug);
   if (!service) return "We'll review your request and reach out shortly with next steps.";
   return `We'll review your ${service.shortTitle.toLowerCase()} request and reach out shortly with next steps.`;
 }

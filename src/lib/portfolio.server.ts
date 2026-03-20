@@ -308,6 +308,7 @@ export type ServiceGalleryAsset = {
   title?: string;
   location?: string;
   primaryServiceSlug?: string | null;
+  tags?: PortfolioTag[];
   isFeatured: boolean;
   source: AssetSource;
 };
@@ -329,6 +330,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
       title: asset.title ?? undefined,
       location: asset.location ?? undefined,
       primaryServiceSlug: asset.primaryServiceSlug,
+      tags: asset.tags,
       isFeatured: index === 0,
       source: "cloudinary" as const,
     }));

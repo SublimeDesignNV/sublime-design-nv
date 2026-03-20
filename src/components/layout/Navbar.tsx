@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
-import { SERVICES, SITE } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
+import { ACTIVE_SERVICES } from "@/content/services";
 
 function Logo() {
   const [failed, setFailed] = useState(false);
@@ -92,7 +93,7 @@ export default function Navbar() {
             {servicesOpen ? (
               <div className="absolute left-1/2 top-full mt-3 w-[28rem] -translate-x-1/2 rounded-sm border border-gray-warm bg-white p-4 shadow-lg">
                 <div className="grid grid-cols-2 gap-2">
-                  {SERVICES.map((service) => (
+                  {ACTIVE_SERVICES.map((service) => (
                     <Link
                       key={service.slug}
                       href={`/services/${service.slug}`}
@@ -163,7 +164,7 @@ export default function Navbar() {
                 SERVICES
               </p>
               <div className="flex flex-col gap-2 pl-4">
-                {SERVICES.map((service) => (
+                {ACTIVE_SERVICES.map((service) => (
                   <Link
                     key={service.slug}
                     href={`/services/${service.slug}`}

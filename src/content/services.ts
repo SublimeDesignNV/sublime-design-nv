@@ -395,11 +395,36 @@ export const SERVICE_LIST: ServiceDef[] = [
   },
 ];
 
-export const ACTIVE_SERVICES = SERVICE_LIST.filter((service) => service.status === "active");
+const SERVICE_ORDER = [
+  "barn-doors",
+  "floating-shelves",
+  "mantels",
+  "media-walls",
+  "faux-beams",
+  "cabinets",
+  "trim",
+] as const;
+
+const SERVICE_ORDER_INDEX = new Map(
+  SERVICE_ORDER.map((slug, index) => [slug, index] as const),
+);
+
+export const ACTIVE_SERVICES = [...SERVICE_LIST]
+  .filter((service) => service.status === "active")
+  .sort(
+    (a, b) =>
+      (SERVICE_ORDER_INDEX.get(a.slug as (typeof SERVICE_ORDER)[number]) ?? Number.MAX_SAFE_INTEGER) -
+      (SERVICE_ORDER_INDEX.get(b.slug as (typeof SERVICE_ORDER)[number]) ?? Number.MAX_SAFE_INTEGER),
+  );
 
 export const HOMEPAGE_PRIMARY_SERVICES = ACTIVE_SERVICES.slice(0, 4);
 
 export const HOMEPAGE_SECONDARY_SERVICES = ACTIVE_SERVICES.slice(4);
+
+export const SERVICES = ACTIVE_SERVICES.map((service) => ({
+  slug: service.slug,
+  label: service.shortTitle,
+}));
 
 export const CANONICAL_SERVICE_SLUGS = ACTIVE_SERVICES.map((service) => service.slug);
 

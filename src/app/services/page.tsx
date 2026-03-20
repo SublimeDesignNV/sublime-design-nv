@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Custom Finish Carpentry Services | Sublime Design NV",
   description:
-    "Custom floating shelves, built-ins, pantry pullouts, closet systems, cabinetry, and mantels — designed and installed throughout Las Vegas, Henderson, and Summerlin.",
+    "Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim work designed and installed throughout Las Vegas Valley.",
   alternates: {
     canonical: buildFacetCanonical("/services"),
   },
@@ -103,9 +103,9 @@ export default async function ServicesIndexPage() {
         <p className="font-ui text-sm uppercase tracking-widest text-red">Finish Carpentry</p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Services</h1>
         <p className="mt-4 max-w-3xl text-base text-gray-mid">
-          We design, build, and install custom finish carpentry throughout Las Vegas, Henderson,
-          Summerlin, and the surrounding valley. Every job is measured, shop-built, and installed
-          to fit your exact space.
+          We design, build, and install premium finish carpentry throughout Las Vegas, Henderson,
+          Summerlin, and the surrounding valley. The service structure stays focused on the high-value
+          specialties homeowners ask for most.
         </p>
       </section>
 
@@ -117,7 +117,7 @@ export default async function ServicesIndexPage() {
               key={service.slug}
               slug={service.slug}
               shortTitle={service.shortTitle}
-              description={service.description}
+              description={service.shortDescription}
             />
           ))}
         </div>

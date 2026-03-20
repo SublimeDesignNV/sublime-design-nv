@@ -1,35 +1,27 @@
-export const SERVICE_TAGS = [
-  { slug: "barn-doors", label: "Barn Doors", title: "Barn Doors" },
-  { slug: "cabinets", label: "Cabinets", title: "Cabinets" },
-  { slug: "closets", label: "Closets", title: "Closets" },
-  { slug: "faux-beams", label: "Faux Beams", title: "Faux Beams" },
-  { slug: "floating-shelves", label: "Floating Shelves", title: "Floating Shelves" },
-  { slug: "mantels", label: "Mantels", title: "Mantels" },
-  { slug: "trim-work", label: "Trim Work", title: "Trim Work" },
-] as const;
+import { CANONICAL_SERVICE_SLUGS, SERVICES } from "@/content/services";
 
-export type ServiceTag = (typeof SERVICE_TAGS)[number];
-export type ServiceTagSlug = ServiceTag["slug"];
+export const SERVICE_TAGS = SERVICES.map((service) => ({
+  slug: service.slug,
+  label: service.label,
+  title: service.label,
+}));
 
-const SERVICE_TAG_MAP = new Map(SERVICE_TAGS.map((tag) => [tag.slug, tag]));
+export type ServiceTagSlug = (typeof CANONICAL_SERVICE_SLUGS)[number];
 
 export function getServiceTagBySlug(slug: string) {
-  return SERVICE_TAG_MAP.get(slug as ServiceTagSlug) || null;
+  return SERVICE_TAGS.find((tag) => tag.slug === slug);
 }
 
 export function isServiceTagSlug(slug: string): slug is ServiceTagSlug {
-  return SERVICE_TAG_MAP.has(slug as ServiceTagSlug);
+  return CANONICAL_SERVICE_SLUGS.includes(slug as ServiceTagSlug);
 }
 
-export function normalizeServiceTagSlugs(tagSlugs: unknown) {
-  if (!Array.isArray(tagSlugs)) return [];
-
+export function normalizeServiceTagSlugs(values: Iterable<string> | undefined | null) {
   return Array.from(
     new Set(
-      tagSlugs
-        .filter((tag): tag is string => typeof tag === "string")
+      Array.from(values ?? [])
         .map((tag) => tag.trim())
-        .filter(Boolean),
+        .filter((tag): tag is ServiceTagSlug => isServiceTagSlug(tag)),
     ),
   );
 }

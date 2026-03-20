@@ -18,6 +18,7 @@ type UploadStatus = {
 export default function AssetUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [primaryService, setPrimaryService] = useState("");
+  const [secondaryServices, setSecondaryServices] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -49,11 +50,20 @@ export default function AssetUploader() {
 
   function handleServiceChange(nextService: string) {
     setPrimaryService(nextService);
+    setSecondaryServices((current) => current.filter((slug) => slug !== nextService));
     setServiceMetadata({});
   }
 
   function updateMetadataField(key: string, value: string | number | boolean) {
     setServiceMetadata((current) => ({ ...current, [key]: value }));
+  }
+
+  function toggleSecondaryService(slug: string) {
+    setSecondaryServices((current) =>
+      current.includes(slug)
+        ? current.filter((currentSlug) => currentSlug !== slug)
+        : [...current, slug],
+    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -76,6 +86,7 @@ export default function AssetUploader() {
         const uploadResult = await uploadFileToCloudinary(file);
 
         updateStatus(file.name, { state: "saving" });
+        const tagSlugs = [primaryService, ...secondaryServices].filter(Boolean);
         const saveResponse = await fetch("/api/admin/assets", {
           method: "POST",
           headers: {
@@ -89,7 +100,7 @@ export default function AssetUploader() {
             primaryServiceSlug: primaryService,
             serviceMetadata,
             published,
-            tagSlugs: [primaryService],
+            tagSlugs,
           }),
         });
 
@@ -120,7 +131,7 @@ export default function AssetUploader() {
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
         <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">Service</legend>
+          <legend className="font-ui text-sm font-semibold text-charcoal">Primary Service</legend>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {SERVICE_TAGS.map((service) => {
               const active = primaryService === service.slug;
@@ -140,6 +151,33 @@ export default function AssetUploader() {
               );
             })}
           </div>
+          <p className="mt-2 text-xs text-gray-mid">
+            Choose the main service this asset should lead with.
+          </p>
+        </fieldset>
+
+        <fieldset>
+          <legend className="font-ui text-sm font-semibold text-charcoal">
+            Secondary Services
+          </legend>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {SERVICE_TAGS.filter((service) => service.slug !== primaryService).map((service) => (
+              <label
+                key={service.slug}
+                className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 text-sm text-charcoal"
+              >
+                <input
+                  type="checkbox"
+                  checked={secondaryServices.includes(service.slug)}
+                  onChange={() => toggleSecondaryService(service.slug)}
+                />
+                <span>{service.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-mid">
+            Add any other service pages where this hybrid project should appear.
+          </p>
         </fieldset>
 
         <label className="block">
