@@ -1,12 +1,14 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, ProjectStatus } from "@prisma/client";
 import { NextResponse, type NextRequest } from "next/server";
 import { findArea } from "@/content/areas";
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import {
   createProjectRecord,
   listAdminProjects,
+  listRecentPublishingActions,
   listRenderableOrphanAssets,
   listProjectOptions,
+  listUploadBatchSummaries,
 } from "@/lib/projectRecords.server";
 import { isServiceTagSlug } from "@/lib/serviceTags";
 
@@ -17,9 +19,18 @@ type CreateProjectBody = {
   serviceSlug?: string;
   areaSlug?: string;
   location?: string;
+  status?: ProjectStatus;
   published?: boolean;
   featured?: boolean;
+  homepageSpotlight?: boolean;
+  heroEligible?: boolean;
   spotlightRank?: number | null;
+  primaryCtaLabel?: string;
+  primaryCtaHref?: string;
+  testimonialPresent?: boolean;
+  completionYear?: number | null;
+  internalNotes?: string;
+  featuredReason?: string;
   coverAssetId?: string;
   assetIds?: string[];
 };
@@ -58,10 +69,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const [projects, orphanAssets, projectOptions] = await Promise.all([
+  const url = new URL(request.url);
+  const recentFilter = url.searchParams.get("recent");
+  const uploadedSince =
+    recentFilter === "today"
+      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : recentFilter === "week"
+        ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        : undefined;
+
+  const [projects, orphanAssets, projectOptions, uploadBatches, recentPublishingActions] = await Promise.all([
     listAdminProjects(),
-    listRenderableOrphanAssets(),
+    listRenderableOrphanAssets({ uploadedSince }),
     listProjectOptions(),
+    listUploadBatchSummaries({ uploadedSince }),
+    listRecentPublishingActions(),
   ]);
 
   return NextResponse.json({
@@ -69,6 +91,8 @@ export async function GET(request: NextRequest) {
     projects,
     orphanAssets,
     projectOptions,
+    uploadBatches,
+    recentPublishingActions,
   });
 }
 
@@ -98,10 +122,20 @@ export async function POST(request: NextRequest) {
       serviceSlug: body.serviceSlug?.trim() || null,
       areaSlug: body.areaSlug?.trim() || null,
       location: body.location?.trim() || null,
+      status: body.status,
       published: Boolean(body.published),
       featured: Boolean(body.featured),
+      homepageSpotlight: Boolean(body.homepageSpotlight),
+      heroEligible: Boolean(body.heroEligible),
       spotlightRank:
         typeof body.spotlightRank === "number" ? body.spotlightRank : null,
+      primaryCtaLabel: body.primaryCtaLabel?.trim() || null,
+      primaryCtaHref: body.primaryCtaHref?.trim() || null,
+      testimonialPresent: Boolean(body.testimonialPresent),
+      completionYear:
+        typeof body.completionYear === "number" ? body.completionYear : null,
+      internalNotes: body.internalNotes?.trim() || null,
+      featuredReason: body.featuredReason?.trim() || null,
       coverAssetId: body.coverAssetId?.trim() || null,
       assetIds: body.assetIds,
     });

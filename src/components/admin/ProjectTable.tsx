@@ -1,25 +1,51 @@
 "use client";
-
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Bug, Pencil, Trash2, Unlink, Wrench, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AREA_LIST } from "@/content/areas";
 import { SERVICE_TAGS } from "@/lib/serviceTags";
 
 type ProjectAsset = {
   id: string;
+  position: number;
   title: string | null;
   location: string | null;
   imageUrl: string | null;
   thumbnailUrl: string | null;
   published: boolean;
+  renderable: boolean;
+};
+
+type ProjectReadinessChecklist = {
+  hasTitle: boolean;
+  hasSlug: boolean;
+  hasService: boolean;
+  hasCoverImage: boolean;
+  hasLinkedAssets: boolean;
+  hasDescription: boolean;
+  hasAreaOrLocation: boolean;
+  readyForHomepageFeature: boolean;
+};
+
+type ProjectPlacements = {
+  projectsIndex: boolean;
+  projectPage: boolean;
+  galleryPage: boolean;
+  servicePage: boolean;
+  areaPage: boolean;
+  homepageFeatured: boolean;
+  homepageSpotlight: boolean;
+  homepageHeroEligible: boolean;
 };
 
 type ProjectRecord = {
   id: string;
   title: string;
   slug: string;
+  status: "DRAFT" | "READY" | "PUBLISHED";
   published: boolean;
   featured: boolean;
+  homepageSpotlight: boolean;
+  heroEligible: boolean;
   spotlightRank: number | null;
   serviceSlug: string | null;
   serviceLabel: string | null;
@@ -27,12 +53,21 @@ type ProjectRecord = {
   areaLabel: string | null;
   location: string | null;
   description: string | null;
+  primaryCtaLabel: string | null;
+  primaryCtaHref: string | null;
+  testimonialPresent: boolean;
+  completionYear: number | null;
+  internalNotes: string | null;
+  featuredReason: string | null;
   coverAssetId: string | null;
   coverImageUrl: string | null;
+  coverThumbnailUrl: string | null;
   assetCount: number;
   publishedAssetCount: number;
   assets: ProjectAsset[];
   diagnosis: string;
+  readiness: ProjectReadinessChecklist;
+  placements: ProjectPlacements;
   updatedAt: string;
 };
 
@@ -43,10 +78,28 @@ type OrphanAsset = {
   thumbnailUrl: string | null;
 };
 
+type RecentPublishingAction = {
+  id: string;
+  title: string;
+  slug: string;
+  status: "DRAFT" | "READY" | "PUBLISHED";
+  coverImageUrl: string | null;
+  serviceSlug: string | null;
+  serviceLabel: string | null;
+  areaSlug: string | null;
+  areaLabel: string | null;
+  assetCount: number;
+  featured: boolean;
+  homepageSpotlight: boolean;
+  updatedAt: string;
+  diagnosis: string;
+};
+
 type ProjectsResponse = {
   ok: boolean;
   projects: ProjectRecord[];
   orphanAssets: OrphanAsset[];
+  recentPublishingActions: RecentPublishingAction[];
 };
 
 type ProjectEditForm = {
@@ -57,9 +110,17 @@ type ProjectEditForm = {
   serviceSlug: string;
   areaSlug: string;
   location: string;
-  published: boolean;
+  status: "DRAFT" | "READY" | "PUBLISHED";
   featured: boolean;
+  homepageSpotlight: boolean;
+  heroEligible: boolean;
   spotlightRank: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  testimonialPresent: boolean;
+  completionYear: string;
+  internalNotes: string;
+  featuredReason: string;
   coverAssetId: string;
   assetIds: string[];
 };
@@ -81,9 +142,17 @@ function toEditForm(project: ProjectRecord): ProjectEditForm {
     serviceSlug: project.serviceSlug || "",
     areaSlug: project.areaSlug || "",
     location: project.location || "",
-    published: project.published,
+    status: project.status,
     featured: project.featured,
+    homepageSpotlight: project.homepageSpotlight,
+    heroEligible: project.heroEligible,
     spotlightRank: project.spotlightRank?.toString() || "",
+    primaryCtaLabel: project.primaryCtaLabel || "",
+    primaryCtaHref: project.primaryCtaHref || "",
+    testimonialPresent: project.testimonialPresent,
+    completionYear: project.completionYear?.toString() || "",
+    internalNotes: project.internalNotes || "",
+    featuredReason: project.featuredReason || "",
     coverAssetId: project.coverAssetId || project.assets[0]?.id || "",
     assetIds: project.assets.map((asset) => asset.id),
   };
@@ -98,9 +167,14 @@ function moveItem(ids: string[], index: number, direction: -1 | 1) {
   return copy;
 }
 
+function readinessLabel(value: boolean) {
+  return value ? "Ready" : "Missing";
+}
+
 export default function ProjectTable() {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [orphans, setOrphans] = useState<OrphanAsset[]>([]);
+  const [recentPublishingActions, setRecentPublishingActions] = useState<RecentPublishingAction[]>([]);
   const [editForm, setEditForm] = useState<ProjectEditForm | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -119,6 +193,7 @@ export default function ProjectTable() {
       const data = (await response.json()) as ProjectsResponse;
       setProjects(data.projects ?? []);
       setOrphans(data.orphanAssets ?? []);
+      setRecentPublishingActions(data.recentPublishingActions ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unknown error.");
     } finally {
@@ -143,6 +218,14 @@ export default function ProjectTable() {
     [projects, editForm],
   );
 
+  const spotlightProjects = useMemo(
+    () =>
+      projects
+        .filter((project) => project.featured)
+        .sort((a, b) => (a.spotlightRank ?? 999) - (b.spotlightRank ?? 999)),
+    [projects],
+  );
+
   async function saveProject() {
     if (!editForm) return;
     setIsSaving(true);
@@ -151,14 +234,25 @@ export default function ProjectTable() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...editForm,
         title: editForm.title.trim(),
         slug: editForm.slug.trim() || undefined,
         description: editForm.description.trim() || undefined,
         serviceSlug: editForm.serviceSlug || undefined,
         areaSlug: editForm.areaSlug || undefined,
         location: editForm.location.trim() || undefined,
+        status: editForm.status,
+        featured: editForm.featured,
+        homepageSpotlight: editForm.homepageSpotlight,
+        heroEligible: editForm.heroEligible,
         spotlightRank: editForm.spotlightRank ? Number(editForm.spotlightRank) : null,
+        primaryCtaLabel: editForm.primaryCtaLabel.trim() || undefined,
+        primaryCtaHref: editForm.primaryCtaHref.trim() || undefined,
+        testimonialPresent: editForm.testimonialPresent,
+        completionYear: editForm.completionYear ? Number(editForm.completionYear) : null,
+        internalNotes: editForm.internalNotes.trim() || undefined,
+        featuredReason: editForm.featuredReason.trim() || undefined,
+        coverAssetId: editForm.coverAssetId || undefined,
+        assetIds: editForm.assetIds,
       }),
     });
     setIsSaving(false);
@@ -174,7 +268,9 @@ export default function ProjectTable() {
   }
 
   async function deleteProject(project: ProjectRecord) {
-    const confirmed = window.confirm(`Delete project "${project.title}"? Linked assets will remain in the asset library.`);
+    const confirmed = window.confirm(
+      `Delete project "${project.title}"? Linked assets will remain in the asset library.`,
+    );
     if (!confirmed) return;
 
     const response = await fetch(`/api/admin/projects/${project.id}`, {
@@ -216,7 +312,7 @@ export default function ProjectTable() {
         <div>
           <h2 className="text-2xl text-charcoal">Projects</h2>
           <p className="font-ui mt-1 text-xs uppercase tracking-[0.16em] text-gray-mid">
-            Public gallery, project pages, and homepage spotlight now read from explicit project records.
+            Explicit status, readiness, homepage spotlight control, and visibility preview for every project.
           </p>
         </div>
         <button
@@ -230,6 +326,88 @@ export default function ProjectTable() {
         </button>
       </div>
 
+      <div className="mt-5 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+        <div className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
+          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+            Homepage Spotlight Queue
+          </p>
+          <div className="mt-3 space-y-3">
+            {spotlightProjects.slice(0, 5).map((project) => (
+              <div key={project.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
+                {project.coverThumbnailUrl || project.coverImageUrl ? (
+                  <img
+                    src={project.coverThumbnailUrl || project.coverImageUrl || ""}
+                    alt={project.title}
+                    className="h-12 w-12 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                    No cover
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-ui text-sm font-semibold text-charcoal">{project.title}</p>
+                  <p className="mt-1 text-xs text-gray-mid">
+                    {project.status.toLowerCase()} • spotlight {project.spotlightRank ?? "n/a"} • {project.placements.homepageSpotlight ? "appears on homepage" : "not eligible"}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {!spotlightProjects.length ? (
+              <p className="font-ui text-sm text-gray-mid">No featured projects yet.</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
+          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+            Recent Publishing QA
+          </p>
+          <div className="mt-3 space-y-3">
+            {recentPublishingActions.map((action) => (
+              <div key={action.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                <div className="flex items-center gap-3">
+                  {action.coverImageUrl ? (
+                    <img
+                      src={action.coverImageUrl}
+                      alt={action.title}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-ui text-sm font-semibold text-charcoal">{action.title}</p>
+                    <p className="mt-1 text-xs text-gray-mid">
+                      {action.status.toLowerCase()} • {action.diagnosis} • updated {new Date(action.updatedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a href={`/projects/${action.slug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
+                    Public page
+                  </a>
+                  <a href="/projects" className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
+                    Projects
+                  </a>
+                  {action.serviceSlug ? (
+                    <a href={`/services/${action.serviceSlug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
+                      Service
+                    </a>
+                  ) : null}
+                  {action.areaSlug ? (
+                    <a href={`/areas/${action.areaSlug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
+                      Area
+                    </a>
+                  ) : null}
+                  <a href={`/api/admin/projects/${action.id}/debug`} target="_blank" rel="noreferrer" className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
+                    Debug
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {error ? <p className="mt-4 font-ui text-sm text-red">{error}</p> : null}
       {isLoading ? <p className="mt-4 font-ui text-sm text-gray-mid">Loading...</p> : null}
 
@@ -238,10 +416,13 @@ export default function ProjectTable() {
           {projects.map((project) => (
             <article key={project.id} className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
                       {project.serviceLabel || "No service"}
+                    </span>
+                    <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                      {project.status.toLowerCase()}
                     </span>
                     {project.areaLabel ? (
                       <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
@@ -251,14 +432,29 @@ export default function ProjectTable() {
                     <span className={`rounded-full border px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${project.diagnosis === "renderable_project" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
                       {project.diagnosis}
                     </span>
+                    {project.placements.homepageSpotlight ? (
+                      <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                        Homepage spotlight
+                      </span>
+                    ) : null}
                   </div>
                   <h3 className="mt-3 text-xl text-charcoal">{project.title}</h3>
                   <p className="mt-1 text-sm text-gray-mid">
-                    /projects/{project.slug} • {project.assetCount} linked asset{project.assetCount === 1 ? "" : "s"}
+                    /projects/{project.slug} • {project.assetCount} linked asset{project.assetCount === 1 ? "" : "s"} • cover {project.coverImageUrl ? "set" : "missing"}
                   </p>
                   {project.description ? (
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-mid">{project.description}</p>
                   ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {Object.entries(project.placements).map(([key, value]) => (
+                      <span
+                        key={key}
+                        className={`rounded-full px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${value ? "bg-navy text-white" : "bg-white text-gray-mid border border-gray-200"}`}
+                      >
+                        {key}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => setEditForm(toEditForm(project))} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
@@ -278,14 +474,14 @@ export default function ProjectTable() {
             </article>
           ))}
           {!projects.length ? (
-            <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected assets above.</p>
+            <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected assets or a recent batch.</p>
           ) : null}
           {orphans.length ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="font-ui text-xs uppercase tracking-[0.16em] text-amber-700">Renderable Orphans</p>
               <p className="mt-2 text-sm text-amber-800">
                 {orphans.length} published, renderable asset{orphans.length === 1 ? "" : "s"} still need project linkage.
-                Use the asset table’s `Orphans` filter to create or link projects from them.
+                Use Upload Batches or the asset table’s `Orphans` filter to turn them into public projects.
               </p>
             </div>
           ) : null}
@@ -294,12 +490,12 @@ export default function ProjectTable() {
 
       {editForm && editProject ? (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-charcoal/55 p-4 md:p-8">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-2xl text-charcoal">Edit Project</h3>
                 <p className="mt-1 font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-                  Reorder assets, pick the cover image, and control where the project appears publicly
+                  Status, readiness, homepage controls, cover image, ordering, and visibility preview
                 </p>
               </div>
               <button type="button" onClick={() => setEditForm(null)} className="rounded-full border border-gray-200 p-2 text-gray-mid transition hover:border-red hover:text-red">
@@ -307,7 +503,7 @@ export default function ProjectTable() {
               </button>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_1fr]">
+            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
               <div className="space-y-4">
                 <label className="block">
                   <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
@@ -341,61 +537,130 @@ export default function ProjectTable() {
                     </select>
                   </label>
                 </div>
-                <label className="block">
-                  <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
-                  <input type="text" value={editForm.location} onChange={(event) => setEditForm((current) => current ? { ...current, location: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
-                </label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
-                    <input type="checkbox" checked={editForm.published} onChange={(event) => setEditForm((current) => current ? { ...current, published: event.target.checked } : current)} />
-                    Published
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
+                    <input type="text" value={editForm.location} onChange={(event) => setEditForm((current) => current ? { ...current, location: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                   </label>
-                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
-                    <input type="checkbox" checked={editForm.featured} onChange={(event) => setEditForm((current) => current ? { ...current, featured: event.target.checked } : current)} />
-                    Homepage featured
+                  <label className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Status</span>
+                    <select value={editForm.status} onChange={(event) => setEditForm((current) => current ? { ...current, status: event.target.value as ProjectEditForm["status"] } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy">
+                      <option value="DRAFT">Draft</option>
+                      <option value="READY">Ready</option>
+                      <option value="PUBLISHED">Published</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Primary CTA Label</span>
+                    <input type="text" value={editForm.primaryCtaLabel} onChange={(event) => setEditForm((current) => current ? { ...current, primaryCtaLabel: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                  </label>
+                  <label className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Primary CTA Route</span>
+                    <input type="text" value={editForm.primaryCtaHref} onChange={(event) => setEditForm((current) => current ? { ...current, primaryCtaHref: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Completion Year</span>
+                    <input type="number" min="2000" max="2100" value={editForm.completionYear} onChange={(event) => setEditForm((current) => current ? { ...current, completionYear: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                   </label>
                   <label className="block">
                     <span className="font-ui text-sm font-semibold text-charcoal">Spotlight Rank</span>
                     <input type="number" min="1" value={editForm.spotlightRank} onChange={(event) => setEditForm((current) => current ? { ...current, spotlightRank: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                   </label>
                 </div>
+                <label className="block">
+                  <span className="font-ui text-sm font-semibold text-charcoal">Featured Reason / Spotlight Note</span>
+                  <textarea value={editForm.featuredReason} onChange={(event) => setEditForm((current) => current ? { ...current, featuredReason: event.target.value } : current)} className="mt-1 min-h-[72px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                </label>
+                <label className="block">
+                  <span className="font-ui text-sm font-semibold text-charcoal">Internal Notes</span>
+                  <textarea value={editForm.internalNotes} onChange={(event) => setEditForm((current) => current ? { ...current, internalNotes: event.target.value } : current)} className="mt-1 min-h-[72px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                </label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                    <input type="checkbox" checked={editForm.featured} onChange={(event) => setEditForm((current) => current ? { ...current, featured: event.target.checked } : current)} />
+                    Homepage featured
+                  </label>
+                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                    <input type="checkbox" checked={editForm.homepageSpotlight} onChange={(event) => setEditForm((current) => current ? { ...current, homepageSpotlight: event.target.checked } : current)} />
+                    Homepage spotlight
+                  </label>
+                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                    <input type="checkbox" checked={editForm.heroEligible} onChange={(event) => setEditForm((current) => current ? { ...current, heroEligible: event.target.checked } : current)} />
+                    Hero eligible
+                  </label>
+                  <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                    <input type="checkbox" checked={editForm.testimonialPresent} onChange={(event) => setEditForm((current) => current ? { ...current, testimonialPresent: event.target.checked } : current)} />
+                    Testimonial / quote present
+                  </label>
+                </div>
               </div>
 
-              <div>
-                <p className="font-ui text-sm font-semibold text-charcoal">Ordered Assets</p>
-                <div className="mt-3 space-y-2">
-                  {editForm.assetIds.map((assetId, index) => {
-                    const asset = editProject.assets.find((item) => item.id === assetId);
-                    if (!asset) return null;
-                    return (
-                      <div key={asset.id} className="rounded-lg border border-gray-warm bg-cream/40 p-3">
-                        <div className="flex items-start gap-3">
-                          <img src={asset.thumbnailUrl || asset.imageUrl || ""} alt={asset.title || "Asset"} className="h-16 w-16 rounded-sm bg-white object-contain p-1" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate font-ui text-sm font-semibold text-charcoal">{asset.title || "Untitled asset"}</p>
-                              <label className="font-ui inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-red">
-                                <input type="radio" name="projectCoverAssetId" checked={editForm.coverAssetId === asset.id} onChange={() => setEditForm((current) => current ? { ...current, coverAssetId: asset.id } : current)} />
-                                Cover
-                              </label>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-gray-200 bg-cream p-4">
+                  <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Readiness Checklist</p>
+                  <div className="mt-3 space-y-2 text-sm text-charcoal">
+                    <div>Title: {readinessLabel(editProject.readiness.hasTitle)}</div>
+                    <div>Slug: {readinessLabel(editProject.readiness.hasSlug)}</div>
+                    <div>Service: {readinessLabel(editProject.readiness.hasService)}</div>
+                    <div>Cover image: {readinessLabel(editProject.readiness.hasCoverImage)}</div>
+                    <div>Linked assets: {readinessLabel(editProject.readiness.hasLinkedAssets)}</div>
+                    <div>Description: {readinessLabel(editProject.readiness.hasDescription)}</div>
+                    <div>Area/location: {readinessLabel(editProject.readiness.hasAreaOrLocation)}</div>
+                    <div>Homepage feature: {readinessLabel(editProject.readiness.readyForHomepageFeature)}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-cream p-4">
+                  <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Where This Will Appear</p>
+                  <div className="mt-3 space-y-2 text-sm text-charcoal">
+                    {Object.entries(editProject.placements).map(([key, value]) => (
+                      <div key={key}>{value ? "Yes" : "No"}: {key}</div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-ui text-sm font-semibold text-charcoal">Ordered Assets</p>
+                  <div className="mt-3 space-y-2">
+                    {editForm.assetIds.map((assetId, index) => {
+                      const asset = editProject.assets.find((item) => item.id === assetId);
+                      if (!asset) return null;
+                      return (
+                        <div key={asset.id} className="rounded-lg border border-gray-warm bg-cream/40 p-3">
+                          <div className="flex items-start gap-3">
+                            <img src={asset.thumbnailUrl || asset.imageUrl || ""} alt={asset.title || "Asset"} className="h-16 w-16 rounded-sm bg-white object-contain p-1" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-ui text-sm font-semibold text-charcoal">
+                                  #{index + 1} {asset.title || "Untitled asset"}
+                                </p>
+                                <label className="font-ui inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-red">
+                                  <input type="radio" name="projectCoverAssetId" checked={editForm.coverAssetId === asset.id} onChange={() => setEditForm((current) => current ? { ...current, coverAssetId: asset.id } : current)} />
+                                  Cover
+                                </label>
+                              </div>
+                              <p className="mt-1 text-xs text-gray-mid">{asset.location || "No location"} • {asset.renderable ? "renderable" : "not renderable"}</p>
                             </div>
-                            <p className="mt-1 text-xs text-gray-mid">{asset.location || "No location"}</p>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: moveItem(current.assetIds, index, -1) } : current)} className="rounded-sm border border-gray-warm p-1 text-gray-mid hover:border-navy hover:text-navy">
-                              <ArrowUp className="h-3.5 w-3.5" />
-                            </button>
-                            <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: moveItem(current.assetIds, index, 1) } : current)} className="rounded-sm border border-gray-warm p-1 text-gray-mid hover:border-navy hover:text-navy">
-                              <ArrowDown className="h-3.5 w-3.5" />
-                            </button>
-                            <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: current.assetIds.filter((id) => id !== asset.id), coverAssetId: current.coverAssetId === asset.id ? current.assetIds.find((id) => id !== asset.id) || "" : current.coverAssetId } : current)} className="rounded-sm border border-red/30 p-1 text-red hover:border-red">
-                              <Unlink className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex flex-col gap-1">
+                              <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: moveItem(current.assetIds, index, -1) } : current)} className="rounded-sm border border-gray-warm p-1 text-gray-mid hover:border-navy hover:text-navy">
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: moveItem(current.assetIds, index, 1) } : current)} className="rounded-sm border border-gray-warm p-1 text-gray-mid hover:border-navy hover:text-navy">
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+                              <button type="button" onClick={() => setEditForm((current) => current ? { ...current, assetIds: current.assetIds.filter((id) => id !== asset.id), coverAssetId: current.coverAssetId === asset.id ? current.assetIds.find((id) => id !== asset.id) || "" : current.coverAssetId } : current)} className="rounded-sm border border-red/30 p-1 text-red hover:border-red">
+                                <Unlink className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>

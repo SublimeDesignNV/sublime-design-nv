@@ -17,6 +17,12 @@ enum TagType {
   CONTEXT
 }
 
+enum ProjectStatus {
+  DRAFT
+  READY
+  PUBLISHED
+}
+
 model ServiceType {
   id        String     @id @default(cuid())
   slug      String
@@ -64,21 +70,30 @@ model AssetTag {
 }
 
 model Project {
-  id            String         @id @default(cuid())
-  title         String
-  slug          String         @unique
-  description   String?
-  serviceSlug   String?
-  areaSlug      String?
-  location      String?
-  published     Boolean        @default(false)
-  featured      Boolean        @default(false)
-  spotlightRank Int?
-  coverAssetId  String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  assets        ProjectAsset[]
-  coverAsset    Asset?         @relation("ProjectCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+  id                 String         @id @default(cuid())
+  title              String
+  slug               String         @unique
+  description        String?
+  serviceSlug        String?
+  areaSlug           String?
+  location           String?
+  status             ProjectStatus  @default(DRAFT)
+  published          Boolean        @default(false)
+  featured           Boolean        @default(false)
+  homepageSpotlight  Boolean        @default(false)
+  heroEligible       Boolean        @default(false)
+  spotlightRank      Int?
+  primaryCtaLabel    String?
+  primaryCtaHref     String?
+  testimonialPresent Boolean        @default(false)
+  completionYear     Int?
+  internalNotes      String?
+  featuredReason     String?
+  coverAssetId       String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  assets             ProjectAsset[]
+  coverAsset         Asset?         @relation("ProjectCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
 }
 
 model ProjectAsset {

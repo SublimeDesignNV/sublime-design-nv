@@ -2,6 +2,7 @@ import AdminNav from "@/components/admin/AdminNav";
 import AssetTable from "@/components/admin/AssetTable";
 import ProjectTable from "@/components/admin/ProjectTable";
 import AssetUploader from "@/components/admin/AssetUploader";
+import RecentUploadBatches from "@/components/admin/RecentUploadBatches";
 import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function AdminPage() {
 
         <div className="mt-8 space-y-6">
           <AssetUploader />
+          <RecentUploadBatches />
           <AssetTable />
           <ProjectTable />
         </div>

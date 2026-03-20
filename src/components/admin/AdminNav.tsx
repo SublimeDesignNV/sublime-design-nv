@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 const ADMIN_LINKS = [
   { href: "/admin", label: "Assets" },
   { href: "/admin", label: "Project Workflow" },
+  { href: "/admin/upload-batches", label: "Upload Batches" },
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/content-audit", label: "Content Audit" },
   { href: "/admin/launch-audit", label: "Launch Audit" },

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { uploadFileToCloudinary } from "@/lib/cloudinaryUpload";
@@ -23,6 +24,10 @@ export default function AssetUploader() {
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
+  const [lastCompletedBatch, setLastCompletedBatch] = useState<{
+    uploadBatchId: string;
+    assetIds: string[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canUpload =
     files.length > 0 && Boolean(primaryService) && Boolean(title.trim()) && !isUploading;
@@ -128,6 +133,7 @@ export default function AssetUploader() {
     setIsUploading(false);
     window.dispatchEvent(new Event("admin-assets-refresh"));
     if (createdAssetIds.length > 0) {
+      setLastCompletedBatch({ uploadBatchId, assetIds: createdAssetIds });
       window.dispatchEvent(
         new CustomEvent("admin-assets-created", {
           detail: {
@@ -308,6 +314,41 @@ export default function AssetUploader() {
               {status.message ? ` — ${status.message}` : ""}
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {lastCompletedBatch ? (
+        <div className="mt-6 rounded-xl border border-navy/20 bg-navy/5 p-4">
+          <p className="font-ui text-xs uppercase tracking-[0.18em] text-navy">
+            Batch Uploaded
+          </p>
+          <h3 className="mt-2 text-lg text-charcoal">Finish this project now</h3>
+          <p className="mt-2 text-sm text-gray-mid">
+            {lastCompletedBatch.assetIds.length} asset
+            {lastCompletedBatch.assetIds.length === 1 ? "" : "s"} were saved in one upload
+            batch. Open the batch workflow to create a project, add the batch to an existing
+            project, or leave the assets standalone for service pages.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={`/admin/upload-batches?batch=${lastCompletedBatch.uploadBatchId}`}
+              className="font-ui rounded-sm bg-red px-4 py-2 text-sm font-semibold text-white"
+            >
+              Create Project from This Batch
+            </Link>
+            <Link
+              href={`/admin/upload-batches?batch=${lastCompletedBatch.uploadBatchId}&mode=link`}
+              className="font-ui rounded-sm border border-gray-warm px-4 py-2 text-sm text-charcoal"
+            >
+              Add Batch to Existing Project
+            </Link>
+            <Link
+              href={`/admin/upload-batches?batch=${lastCompletedBatch.uploadBatchId}`}
+              className="font-ui rounded-sm border border-gray-warm px-4 py-2 text-sm text-charcoal"
+            >
+              Leave as Standalone Assets
+            </Link>
+          </div>
         </div>
       ) : null}
     </section>
