@@ -29,6 +29,7 @@ export type PortfolioResponse = {
 export type PublishedAsset = {
   id: string;
   kind: "IMAGE" | "VIDEO";
+  publicId: string;
   secureUrl: string;
   title: string | null;
   description: string | null;

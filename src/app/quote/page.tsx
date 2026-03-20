@@ -4,17 +4,30 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 import { trackEvent } from "@/lib/analytics";
+import { ACTIVE_SERVICES } from "@/content/services";
 
 // ─── Service options ──────────────────────────────────────────────────────────
-// Kept inline so this file has no server imports (it's a client component).
-const SERVICE_OPTIONS = [
-  { slug: "floating-shelves", label: "Floating Shelves" },
-  { slug: "built-ins", label: "Built-Ins & Bookcases" },
-  { slug: "pantry-pullouts", label: "Pantry Pullouts" },
-  { slug: "closet-systems", label: "Closet Systems" },
-  { slug: "custom-cabinetry", label: "Custom Cabinetry" },
-  { slug: "mantels", label: "Fireplace Mantels" },
+const QUOTE_SERVICE_SLUGS = [
+  "barn-doors",
+  "floating-shelves",
+  "mantels",
+  "media-walls",
+  "faux-beams",
+  "cabinets",
+  "trim",
 ] as const;
+
+const SERVICE_OPTIONS = QUOTE_SERVICE_SLUGS.map((slug) => {
+  const service = ACTIVE_SERVICES.find((entry) => entry.slug === slug);
+  if (!service) {
+    throw new Error(`Missing quote service config for slug "${slug}"`);
+  }
+
+  return {
+    slug: service.slug,
+    label: service.shortTitle,
+  };
+});
 
 const TIMELINE_OPTIONS = [
   { value: "", label: "No preference" },
@@ -100,15 +113,9 @@ function validateFields(f: FormFields): FieldErrors {
 }
 
 function serviceSuccessCopy(slug: string): string {
-  const map: Record<string, string> = {
-    "floating-shelves": "We'll review your floating shelves request and reach out shortly with next steps.",
-    "built-ins": "We'll review your built-ins request and reach out shortly with next steps.",
-    "pantry-pullouts": "We'll review your pantry pullout request and reach out shortly with next steps.",
-    "closet-systems": "We'll review your closet system request and reach out shortly with next steps.",
-    "custom-cabinetry": "We'll review your custom cabinetry request and reach out shortly with next steps.",
-    "mantels": "We'll review your mantel request and reach out shortly with next steps.",
-  };
-  return map[slug] ?? "We'll review your request and reach out shortly with next steps.";
+  const service = ACTIVE_SERVICES.find((entry) => entry.slug === slug);
+  if (!service) return "We'll review your request and reach out shortly with next steps.";
+  return `We'll review your ${service.shortTitle.toLowerCase()} request and reach out shortly with next steps.`;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -331,6 +338,20 @@ export default function QuotePage() {
 
   useEffect(() => {
     setUtm(captureUtm());
+  }, []);
+
+  useEffect(() => {
+    const selectedService =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("service")
+        : null;
+    if (!selectedService) return;
+    if (!SERVICE_OPTIONS.some((service) => service.slug === selectedService)) return;
+
+    setForm((prev) => {
+      if (prev.service === selectedService) return prev;
+      return { ...prev, service: selectedService };
+    });
   }, []);
 
   const uploadsEnabled = Boolean(

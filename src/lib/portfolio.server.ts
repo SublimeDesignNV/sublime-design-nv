@@ -14,6 +14,7 @@ import type { PortfolioTag, PublishedAsset } from "@/lib/portfolio.types";
 function mapPublishedAsset(asset: {
   id: string;
   kind: "IMAGE" | "VIDEO";
+  publicId: string;
   secureUrl: string;
   title: string | null;
   description: string | null;
@@ -27,6 +28,7 @@ function mapPublishedAsset(asset: {
   return {
     id: asset.id,
     kind: asset.kind,
+    publicId: asset.publicId,
     secureUrl: asset.secureUrl,
     title: asset.title,
     description: asset.description,
@@ -58,6 +60,7 @@ export async function getPublishedAssets(): Promise<PublishedAsset[]> {
       select: {
         id: true,
         kind: true,
+        publicId: true,
         secureUrl: true,
         title: true,
         description: true,
@@ -126,6 +129,7 @@ export async function getPublishedAssetsByServiceSlug(
       select: {
         id: true,
         kind: true,
+        publicId: true,
         secureUrl: true,
         title: true,
         description: true,
@@ -257,6 +261,7 @@ export async function getServiceCardPreviewAsset(
 
   if (publishedAsset) {
     return {
+      publicId: publishedAsset.publicId,
       secureUrl: publishedAsset.secureUrl,
       alt: getServiceImageAlt({
         serviceSlug: slug,
@@ -315,6 +320,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
   const publishedAssets = await getPublishedAssetsByServiceSlug(slug);
   if (publishedAssets.length) {
     return publishedAssets.map((asset, index) => ({
+      publicId: asset.publicId,
       secureUrl: asset.secureUrl,
       alt: getServiceImageAlt({
         serviceSlug: slug,
