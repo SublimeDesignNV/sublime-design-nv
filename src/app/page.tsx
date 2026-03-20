@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
+import CloudinaryImage from "@/components/CloudinaryImage";
 import HeroProject from "@/components/home/HeroProject";
 import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
-import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
@@ -15,7 +16,13 @@ import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
-import { getHomepageSpotlightProjects } from "@/lib/projectRecords.server";
+import {
+  getHomepageFeaturedProjects,
+  getHomepageSpotlightProjects,
+  getProjectExcerpt,
+  getProjectQuoteHref,
+  getValidatedProjectPrimaryCta,
+} from "@/lib/projectRecords.server";
 import { BUSINESS_PROFILE } from "@/lib/reviews.config";
 
 const SITE_URL =
@@ -55,11 +62,21 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const heroAsset = await getHeroAsset();
-  const [priorityProjects, spotlightProjects] = await Promise.all([
+  const [storyProjects, spotlightProjects] = await Promise.all([
     Promise.resolve(getPriorityProjects(3).slice(0, 3)),
     getHomepageSpotlightProjects(3),
   ]);
-  const homepageProjectsMode = spotlightProjects.length > 0 ? "db" : "static";
+  const leadSpotlightProject = spotlightProjects[0] ?? null;
+  const supportingFeaturedProjects = await getHomepageFeaturedProjects(3, {
+    excludeSlugs: leadSpotlightProject ? [leadSpotlightProject.slug] : [],
+  });
+  const homepageProjectsMode = leadSpotlightProject ? "db" : "empty";
+  const leadProjectCta = leadSpotlightProject
+    ? getValidatedProjectPrimaryCta(leadSpotlightProject)
+    : null;
+  const leadProjectQuoteHref = leadSpotlightProject
+    ? getProjectQuoteHref(leadSpotlightProject)
+    : "/quote";
 
   return (
     <main className="bg-white">
@@ -112,53 +129,103 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-10">
-            {homepageProjectsMode === "db" ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                {spotlightProjects.map((project) => (
-                  <ProjectRecordCard
-                    key={project.id}
-                    project={project}
-                    pageType="home"
-                  />
-                ))}
-              </div>
-            ) : priorityProjects.length ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                {priorityProjects.map((project, index) => (
-                  <ProjectCard
-                    key={project.slug}
-                    project={project}
-                    priorityLabel={index === 0 ? "Flagship" : undefined}
-                    pageType="home"
-                  />
-                ))}
+            {homepageProjectsMode === "db" && leadSpotlightProject ? (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr,0.95fr]">
+                <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,0.8fr]">
+                    <div className="relative min-h-[320px] bg-cream sm:min-h-[420px]">
+                      {leadSpotlightProject.coverPublicId ? (
+                        <CloudinaryImage
+                          src={leadSpotlightProject.coverPublicId}
+                          alt={leadSpotlightProject.title}
+                          width={1400}
+                          height={960}
+                          sizes="(max-width: 1024px) 100vw, 60vw"
+                          crop="pad"
+                          gravity="auto:subject"
+                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                        />
+                      ) : leadSpotlightProject.coverImageUrl ? (
+                        <Image
+                          src={leadSpotlightProject.coverImageUrl}
+                          alt={leadSpotlightProject.title}
+                          fill
+                          sizes="(max-width: 1024px) 100vw, 60vw"
+                          className="object-contain p-2"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center px-6 text-center">
+                          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+                            Project photos coming soon
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-between border-t border-gray-200 p-6 lg:border-l lg:border-t-0">
+                      <div>
+                        <p className="font-ui text-xs uppercase tracking-[0.18em] text-red">
+                          {leadSpotlightProject.featuredReason || "Homepage Spotlight"}
+                        </p>
+                        <h3 className="mt-3 text-3xl text-charcoal">
+                          {leadSpotlightProject.title}
+                        </h3>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {leadSpotlightProject.serviceLabel ? (
+                            <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
+                              {leadSpotlightProject.serviceLabel}
+                            </span>
+                          ) : null}
+                          {leadSpotlightProject.areaLabel ? (
+                            <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                              {leadSpotlightProject.areaLabel}
+                            </span>
+                          ) : null}
+                          {leadSpotlightProject.location ? (
+                            <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                              {leadSpotlightProject.location}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-5 text-sm leading-7 text-gray-mid">
+                          {getProjectExcerpt(leadSpotlightProject, 220)}
+                        </p>
+                      </div>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        <Link
+                          href={`/projects/${leadSpotlightProject.slug}`}
+                          className="font-ui inline-flex items-center rounded-sm bg-red px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                        >
+                          View Project
+                        </Link>
+                        <Link
+                          href={leadProjectCta?.href ?? leadProjectQuoteHref}
+                          className="font-ui inline-flex items-center rounded-sm border border-gray-200 px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-red hover:text-red"
+                        >
+                          {leadProjectCta?.label ?? "Start Your Project"}
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <div className="grid grid-cols-1 gap-6">
+                  {supportingFeaturedProjects.map((project) => (
+                    <ProjectRecordCard key={project.id} project={project} pageType="home" />
+                  ))}
+                </div>
               </div>
             ) : (
               <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples that fit the job." />
             )}
           </div>
-          {homepageProjectsMode === "db" && spotlightProjects.length ? (
+          {homepageProjectsMode === "db" && leadSpotlightProject ? (
             <p className="mt-6 max-w-3xl text-sm text-gray-mid">
-              Homepage spotlight now reads from explicit project records with deterministic cover images and linked galleries.
-            </p>
-          ) : priorityProjects.length ? (
-            <p className="mt-6 max-w-3xl text-sm text-gray-mid">
-              Start with flagship work like{" "}
-              {priorityProjects.slice(0, 2).map((project, index) => (
-                <span key={project.slug}>
-                  {index > 0 ? " and " : ""}
-                  <Link href={`/projects/${project.slug}`} className="font-semibold text-red hover:underline">
-                    {project.title}
-                  </Link>
-                </span>
-              ))}
-              {" "}to see how each job was measured, built, and installed.
+              Homepage spotlight and featured work now read from explicit published project records with deterministic cover images, curated ordering, and project-level CTA metadata.
             </p>
           ) : null}
         </div>
       </section>
 
-      <ProjectStories projects={priorityProjects} />
+      <ProjectStories projects={storyProjects} />
       <BeforeAfterSlider />
 
       <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />

@@ -18,7 +18,13 @@ import { findTestimonial, getTestimonialsByProject } from "@/content/testimonial
 import { getProjectContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
-import { getProjectRecordBySlug, listPublicProjects } from "@/lib/projectRecords.server";
+import {
+  getProjectExcerpt,
+  getProjectQuoteHref,
+  getProjectRecordBySlug,
+  getValidatedProjectPrimaryCta,
+  listPublicProjects,
+} from "@/lib/projectRecords.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
 
 const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
@@ -34,17 +40,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (linkedProject && linkedProject.published && linkedProject.diagnosis === "renderable_project") {
     return {
       title: `${linkedProject.title} | Sublime Design NV`,
-      description:
-        linkedProject.description ??
-        `${linkedProject.assetCount} linked project images for ${linkedProject.serviceLabel ?? "custom finish carpentry"} in ${linkedProject.location ?? "Las Vegas Valley"}.`,
+      description: getProjectExcerpt(linkedProject, 155),
       alternates: {
         canonical: buildFacetCanonical(`/projects/${linkedProject.slug}`),
       },
       openGraph: {
         title: `${linkedProject.title} | Sublime Design NV`,
-        description:
-          linkedProject.description ??
-          `${linkedProject.assetCount} linked project images for ${linkedProject.serviceLabel ?? "custom finish carpentry"}.`,
+        description: getProjectExcerpt(linkedProject, 155),
         url: buildFacetCanonical(`/projects/${linkedProject.slug}`),
         images: linkedProject.coverImageUrl
           ? [{ url: linkedProject.coverImageUrl, alt: linkedProject.title }]
@@ -265,6 +267,16 @@ export default async function ProjectDetailPage({ params }: Props) {
       })
     ).filter((project) => project.slug !== linkedProject.slug);
     const heroImage = images[0];
+    const relatedReviews = getRelatedReviews({
+      projectSlug: linkedProject.slug,
+      serviceSlug: linkedProject.serviceSlug ?? undefined,
+      limit: 2,
+    });
+    const customCta = getValidatedProjectPrimaryCta(linkedProject);
+    const quoteHref = getProjectQuoteHref(linkedProject);
+    const summaryCopy =
+      linkedProject.description?.trim() ||
+      "This published project page is driven by explicit linked assets, deterministic gallery order, and project-level cover selection.";
 
     return (
       <main className="bg-white pb-24 pt-24">
@@ -286,20 +298,20 @@ export default async function ProjectDetailPage({ params }: Props) {
               { label: linkedProject.title, href: `/projects/${linkedProject.slug}` },
             ]}
           />
-          <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
-            {linkedProject.serviceLabel ?? "Project"}{linkedProject.areaLabel ? ` • ${linkedProject.areaLabel}` : ""}
-          </p>
-          {linkedProject.featured ? (
-            <p className="mt-3 inline-flex rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-red">
-              Featured Project
+          <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Published Project</p>
+          {linkedProject.featuredReason ? (
+            <p className="mt-3 font-ui text-xs uppercase tracking-[0.18em] text-red">
+              {linkedProject.featuredReason}
             </p>
           ) : null}
           <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{linkedProject.title}</h1>
-          <p className="mt-3 max-w-3xl text-base text-gray-mid">
-            {linkedProject.description ||
-              "This project album is driven by explicit asset linkage, stable cover image selection, and deterministic gallery order."}
-          </p>
+          <p className="mt-3 max-w-3xl text-base text-gray-mid">{summaryCopy}</p>
           <div className="mt-5 flex flex-wrap gap-2">
+            {linkedProject.featured ? (
+              <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                Featured Project
+              </span>
+            ) : null}
             {linkedProject.serviceLabel ? (
               <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
                 {linkedProject.serviceLabel}
@@ -315,9 +327,40 @@ export default async function ProjectDetailPage({ params }: Props) {
                 {linkedProject.location}
               </span>
             ) : null}
+            {linkedProject.completionYear ? (
+              <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                Completed {linkedProject.completionYear}
+              </span>
+            ) : null}
             <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
               {linkedProject.assetCount} image{linkedProject.assetCount === 1 ? "" : "s"}
             </span>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <TrackedLink
+              href={customCta?.href ?? quoteHref}
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: "project",
+                project_slug: linkedProject.slug,
+                cta_location: "project_primary_cta",
+              }}
+              className="font-ui inline-flex rounded-sm bg-red px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              {customCta?.label ?? "Start Your Project"}
+            </TrackedLink>
+            <TrackedLink
+              href="/projects"
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: "project",
+                project_slug: linkedProject.slug,
+                cta_location: "project_all_projects_cta",
+              }}
+              className="font-ui inline-flex rounded-sm border border-gray-200 px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-red hover:text-red"
+            >
+              View All Projects
+            </TrackedLink>
           </div>
 
           {heroImage ? (
@@ -334,19 +377,140 @@ export default async function ProjectDetailPage({ params }: Props) {
           ) : null}
         </section>
 
+        <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr,0.8fr]">
+            <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Project Story</p>
+              <p className="mt-4 text-base leading-7 text-charcoal/85">{summaryCopy}</p>
+              <p className="mt-4 text-sm leading-6 text-gray-mid">
+                The gallery below follows the exact linked asset order saved in admin, so the public project story stays consistent with the published project record.
+              </p>
+            </article>
+            <aside className="rounded-xl border border-gray-200 bg-cream p-6">
+              <p className="font-ui text-xs uppercase tracking-widest text-red">Project Details</p>
+              <dl className="mt-4 space-y-4">
+                {linkedProject.serviceLabel ? (
+                  <div>
+                    <dt className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Service</dt>
+                    <dd className="mt-1 text-sm text-charcoal">{linkedProject.serviceLabel}</dd>
+                  </div>
+                ) : null}
+                {linkedProject.areaLabel ? (
+                  <div>
+                    <dt className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Area</dt>
+                    <dd className="mt-1 text-sm text-charcoal">{linkedProject.areaLabel}</dd>
+                  </div>
+                ) : null}
+                {linkedProject.location ? (
+                  <div>
+                    <dt className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Location</dt>
+                    <dd className="mt-1 text-sm text-charcoal">{linkedProject.location}</dd>
+                  </div>
+                ) : null}
+                {linkedProject.completionYear ? (
+                  <div>
+                    <dt className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Completion</dt>
+                    <dd className="mt-1 text-sm text-charcoal">{linkedProject.completionYear}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </aside>
+          </div>
+        </section>
+
         {images.length > 1 ? (
           <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
-            <h2 className="text-3xl text-charcoal">Project Gallery</h2>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Gallery</p>
+                <h2 className="mt-2 text-3xl text-charcoal">Ordered Project Gallery</h2>
+              </div>
+              <p className="max-w-xl text-sm text-gray-mid">
+                The lead image sets the story. The remaining linked assets follow in the saved public order without ad hoc reshuffling.
+              </p>
+            </div>
             <div className="mt-6">
               <ProjectGallery images={images.slice(1)} />
             </div>
           </section>
         ) : null}
 
+        {linkedProject.testimonialPresent && relatedReviews.length ? (
+          <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+            <ReviewSourcePlaceholder
+              reviews={relatedReviews}
+              compact
+              eyebrow="Client Review"
+              title="What the client noticed"
+              subheading="Supporting review content tied to this project when review proof is available."
+              emptyBehavior="hide"
+              pageType="project"
+              showCompactCta={false}
+              eventContext="project_review_proof"
+            />
+          </section>
+        ) : null}
+
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <div className="rounded-xl border border-gray-200 bg-cream p-6">
+            <p className="font-ui text-xs uppercase tracking-widest text-red">Explore Related Pages</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {linkedProject.serviceSlug && linkedProject.serviceLabel ? (
+                <TrackedLink
+                  href={`/services/${linkedProject.serviceSlug}`}
+                  eventName="proof_cta_click"
+                  eventParams={{
+                    page_type: "project",
+                    project_slug: linkedProject.slug,
+                    destination_type: "service",
+                    destination_slug: linkedProject.serviceSlug,
+                    cta_location: "project_related_service",
+                  }}
+                  className="font-ui rounded-sm border border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition hover:border-red hover:text-red"
+                >
+                  {linkedProject.serviceLabel}
+                </TrackedLink>
+              ) : null}
+              {linkedProject.areaSlug && linkedProject.areaLabel ? (
+                <TrackedLink
+                  href={`/areas/${linkedProject.areaSlug}`}
+                  eventName="proof_cta_click"
+                  eventParams={{
+                    page_type: "project",
+                    project_slug: linkedProject.slug,
+                    destination_type: "area",
+                    destination_slug: linkedProject.areaSlug,
+                    cta_location: "project_related_area",
+                  }}
+                  className="font-ui rounded-sm border border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition hover:border-red hover:text-red"
+                >
+                  {linkedProject.areaLabel}
+                </TrackedLink>
+              ) : null}
+              <TrackedLink
+                href="/projects"
+                eventName="proof_cta_click"
+                eventParams={{
+                  page_type: "project",
+                  project_slug: linkedProject.slug,
+                  destination_type: "projects",
+                  cta_location: "project_related_projects_index",
+                }}
+                className="font-ui rounded-sm border border-gray-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition hover:border-red hover:text-red"
+              >
+                All Projects
+              </TrackedLink>
+            </div>
+          </div>
+        </section>
+
         {relatedLinkedProjects.length ? (
           <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
             <div className="flex items-end justify-between gap-4">
-              <h2 className="text-2xl text-charcoal">More Projects</h2>
+              <div>
+                <p className="font-ui text-xs uppercase tracking-widest text-red">Related Work</p>
+                <h2 className="mt-2 text-2xl text-charcoal">More Projects</h2>
+              </div>
               <Link href="/projects" className="font-ui text-sm font-semibold text-red">
                 View All →
               </Link>
@@ -361,22 +525,40 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
           <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
-            <h2 className="text-3xl md:text-4xl">Start your project.</h2>
+            <h2 className="text-3xl md:text-4xl">Take the next step.</h2>
             <p className="mt-3 max-w-2xl text-white/90">
-              Tell us what you have in mind and we will reply with scope, timeline, and pricing guidance.
+              Use this project as a starting point if the service, finish, or room direction is close to what you want. We will reply with scope, timeline, and quote guidance.
             </p>
-            <TrackedLink
-              href="/quote"
-              eventName="proof_cta_click"
-              eventParams={{
-                page_type: "project",
-                project_slug: linkedProject.slug,
-                cta_location: "project_quote_cta",
-              }}
-              className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
-            >
-              Start with a Quote
-            </TrackedLink>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <TrackedLink
+                href={customCta?.href ?? quoteHref}
+                eventName="proof_cta_click"
+                eventParams={{
+                  page_type: "project",
+                  project_slug: linkedProject.slug,
+                  cta_location: "project_quote_cta",
+                }}
+                className="font-ui inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
+              >
+                {customCta?.label ?? "Start Your Project"}
+              </TrackedLink>
+              {linkedProject.serviceSlug && linkedProject.serviceLabel ? (
+                <TrackedLink
+                  href={`/services/${linkedProject.serviceSlug}`}
+                  eventName="proof_cta_click"
+                  eventParams={{
+                    page_type: "project",
+                    project_slug: linkedProject.slug,
+                    destination_type: "service",
+                    destination_slug: linkedProject.serviceSlug,
+                    cta_location: "project_service_cta",
+                  }}
+                  className="font-ui inline-block rounded-sm border border-white px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                >
+                  See {linkedProject.serviceLabel}
+                </TrackedLink>
+              ) : null}
+            </div>
           </div>
         </section>
       </main>

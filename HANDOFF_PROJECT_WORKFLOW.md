@@ -212,3 +212,115 @@ Files touched for this workflow layer
 - `src/components/admin/AssetUploader.tsx`
 - `src/components/admin/RecentUploadBatches.tsx`
 - `src/components/admin/ProjectTable.tsx`
+
+Public presentation layer update
+
+Homepage featured and spotlight presentation
+- Homepage featured work remains project-record driven.
+- Spotlight selection still comes from the shared server path:
+  - `getHomepageSpotlightProjects()`
+- Supporting homepage featured cards now come from:
+  - `getHomepageFeaturedProjects()`
+- The homepage spotlight presentation now includes:
+  - larger editorial lead project treatment
+  - project title
+  - service label
+  - area/location chips
+  - description excerpt
+  - `View Project` CTA
+  - optional project-level CTA when `primaryCtaLabel` + `primaryCtaHref` are both valid
+- Homepage fallback stays centralized in the project server layer rather than being rebuilt in the page component.
+
+Project detail page improvements
+- Linked DB-backed project pages now render:
+  - richer project header
+  - featured/editorial eyebrow via `featuredReason` when present
+  - service, area, location, completion year, and asset-count metadata chips
+  - `Project Story` block
+  - `Project Details` block
+  - ordered project gallery presentation copy
+  - related page navigation:
+    - service page
+    - area page
+    - projects index
+  - stronger CTA section at the bottom
+- `internalNotes` remain private and are not rendered publicly.
+- `testimonialPresent` only renders a public review/proof section when safe supporting review content actually exists.
+
+CTA rendering behavior
+- Safe project CTA validation is centralized in:
+  - `getValidatedProjectPrimaryCta()`
+- Only internal route-style hrefs are rendered publicly.
+- If a project-level CTA is absent or invalid:
+  - cards and project pages fall back to a quote CTA using `getProjectQuoteHref()`
+- Shared excerpt behavior is centralized in:
+  - `getProjectExcerpt()`
+
+Shared public project card usage
+- `ProjectRecordCard` is now the richer shared public card for DB-backed projects.
+- It is used consistently on:
+  - homepage supporting featured cards
+  - `/projects`
+  - `/gallery`
+  - `/areas/[area]`
+  - service-page project-card sections when those sections are used
+- The shared card now renders:
+  - cover image
+  - title
+  - service
+  - area/location
+  - completion year when present
+  - excerpt
+  - `View Project`
+  - project CTA or fallback `Start Your Project`
+
+Service-page compatibility notes
+- The current service-page rule is unchanged:
+  - standalone direct service assets still have priority
+  - project placement remains computed and previewable
+- If project cards render on a service page, they use the shared `ProjectRecordCard` presentation.
+- This public presentation pass did not remove or downgrade the working standalone service gallery path.
+
+Additional verification completed
+
+Scenario A: homepage featured project presentation
+- Local `/` rendered:
+  - `Homepage Spotlight`
+  - `Workflow Verification Summerlin Laundry Cabinets`
+  - `View Project`
+  - `Start Your Project`
+- This confirmed the homepage featured section is reading published project records and exposing both project and lead-capture CTAs.
+
+Scenario B: project detail storytelling
+- Local `/projects/workflow-verification-summerlin-laundry-cabinets` rendered:
+  - `Project Story`
+  - `Project Details`
+  - `Explore Related Pages`
+  - `Take the next step`
+  - `Start Your Project`
+  - `View All Projects`
+  - service/area labels including `Cabinets` and `Summerlin`
+- Optional-field behavior stayed safe with no layout breakage when admin CTA/testimonial fields were absent.
+
+Scenario C: related navigation
+- The same local published project page rendered links/labels for:
+  - related service
+  - related area
+  - projects index
+
+Scenario D: service-page stability
+- Local `/services/barn-doors` still rendered the standalone gallery section and `View Recent Work`.
+- The service-page precedence rule remains intact; project-backed cards only appear where that page path chooses project cards.
+
+Scenario E: card consistency
+- Local `/projects`, `/gallery`, and `/areas/summerlin` all rendered:
+  - `Workflow Verification Summerlin Laundry Cabinets`
+  - `View Project`
+  - `Start Your Project`
+- This confirmed the shared project card behavior is consistent across the main public grouped-work pages.
+
+Admin workflow smoke check after public changes
+- Local authenticated `GET /api/admin/projects` still returned:
+  - `ok: true`
+  - `projects_count: 1`
+  - `uploadBatches_count: 0`

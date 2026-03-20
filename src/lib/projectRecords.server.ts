@@ -139,6 +139,11 @@ export type RecentPublishingAction = {
   diagnosis: ProjectVisibilityDiagnosis;
 };
 
+export type ProjectPublicCta = {
+  label: string;
+  href: string;
+};
+
 const PROJECT_ASSET_SELECT = {
   position: true,
   asset: {
@@ -354,6 +359,40 @@ function getProjectDiagnosis(
   if (!project.coverImageUrl) return "missing_cover_image";
   if (context.homepage && !project.featured) return "not_featured_for_homepage";
   return "renderable_project";
+}
+
+export function getProjectExcerpt(
+  project: Pick<CanonicalProject, "description" | "assetCount">,
+  maxLength = 160,
+) {
+  const source =
+    project.description?.trim() ||
+    `${project.assetCount} linked project image${project.assetCount === 1 ? "" : "s"}.`;
+  if (source.length <= maxLength) return source;
+  return `${source.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
+export function getProjectQuoteHref(
+  project: Pick<CanonicalProject, "serviceSlug" | "areaSlug">,
+) {
+  const params = new URLSearchParams();
+  if (project.serviceSlug) params.set("service", project.serviceSlug);
+  if (project.areaSlug) params.set("location", project.areaSlug);
+  const query = params.toString();
+  return query ? `/quote?${query}` : "/quote";
+}
+
+export function getValidatedProjectPrimaryCta(
+  project: Pick<CanonicalProject, "primaryCtaLabel" | "primaryCtaHref">,
+): ProjectPublicCta | null {
+  const label = project.primaryCtaLabel?.trim();
+  const href = project.primaryCtaHref?.trim();
+  if (!label || !href) return null;
+  if (!(href.startsWith("/") && !href.startsWith("//")) && !href.startsWith("#")) {
+    return null;
+  }
+
+  return { label, href };
 }
 
 function mapProjectAsset(project: DbProject, entry: DbProject["assets"][number]): CanonicalProjectAsset {
@@ -743,6 +782,25 @@ export async function getHomepageSpotlightProjects(limit = 3): Promise<Canonical
   const fallback = await listPublicProjects();
   return fallback
     .filter((project) => project.readiness.readyForHomepageFeature)
+    .slice(0, limit)
+    .map((project) => ({
+      ...project,
+      diagnosis: getProjectDiagnosis(project, { homepage: true }),
+    }));
+}
+
+export async function getHomepageFeaturedProjects(
+  limit = 6,
+  options?: { excludeSlugs?: string[] },
+): Promise<CanonicalProject[]> {
+  const excludeSlugs = new Set(options?.excludeSlugs ?? []);
+  const featured = (await listPublicProjects({ featuredOnly: true })).filter(
+    (project) => !excludeSlugs.has(project.slug),
+  );
+  if (featured.length) return featured.slice(0, limit);
+
+  return (await listPublicProjects())
+    .filter((project) => !excludeSlugs.has(project.slug))
     .slice(0, limit)
     .map((project) => ({
       ...project,
