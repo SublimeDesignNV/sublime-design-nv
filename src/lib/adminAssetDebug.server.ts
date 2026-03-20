@@ -21,8 +21,23 @@ export const ASSET_DEBUG_SELECT = {
   serviceMetadata: true,
   alt: true,
   published: true,
+  uploadBatchId: true,
   createdAt: true,
   updatedAt: true,
+  projectLinks: {
+    orderBy: {
+      position: "asc",
+    },
+    select: {
+      project: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+        },
+      },
+    },
+  },
   tags: {
     include: {
       serviceType: {
@@ -45,6 +60,7 @@ export function serializeAdminAssetDebugRow(asset: AdminAssetDebugRow) {
     tagType: tag.serviceType.tagType,
   }));
   const { serviceTags, contextTags, contextSlugs } = getAssetTagBuckets(tags);
+  const linkedProject = asset.projectLinks[0]?.project ?? null;
   const canonical = buildCanonicalAssetFields({
     kind: asset.kind,
     publicId: asset.publicId,
@@ -53,6 +69,9 @@ export function serializeAdminAssetDebugRow(asset: AdminAssetDebugRow) {
     width: asset.width,
     height: asset.height,
     published: asset.published,
+    projectId: linkedProject?.id ?? null,
+    projectSlug: linkedProject?.slug ?? null,
+    projectTitle: linkedProject?.title ?? null,
   });
 
   return {
@@ -120,8 +139,10 @@ export async function buildAssetDebugReport(asset: AdminAssetDebugRow) {
       serviceMetadata: asset.serviceMetadata,
       alt: asset.alt,
       published: asset.published,
+      uploadBatchId: asset.uploadBatchId,
       createdAt: asset.createdAt,
       updatedAt: asset.updatedAt,
+      projectLinks: asset.projectLinks.map((link) => link.project),
       tags: serialized.tags,
     },
     serializedAsset: serialized,
@@ -141,7 +162,7 @@ export async function buildAssetDebugReport(asset: AdminAssetDebugRow) {
       projectSlug: serialized.projectSlug,
       projectTitle: serialized.projectTitle,
       hasProjectDefinition: Boolean(serialized.projectTitle),
-      source: serialized.projectSlug ? "public_id_prefix" : "none",
+      source: serialized.projectSlug ? "project_link" : "none",
     },
     frontendPaths: {
       adminList: Boolean(serialized.imageUrl),

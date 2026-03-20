@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
@@ -17,6 +18,7 @@ import { findTestimonial, getTestimonialsByProject } from "@/content/testimonial
 import { getProjectContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.server";
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
+import { getProjectRecordBySlug, listPublicProjects } from "@/lib/projectRecords.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
 
 const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
@@ -28,6 +30,29 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const linkedProject = await getProjectRecordBySlug(params.slug);
+  if (linkedProject && linkedProject.published && linkedProject.diagnosis === "renderable_project") {
+    return {
+      title: `${linkedProject.title} | Sublime Design NV`,
+      description:
+        linkedProject.description ??
+        `${linkedProject.assetCount} linked project images for ${linkedProject.serviceLabel ?? "custom finish carpentry"} in ${linkedProject.location ?? "Las Vegas Valley"}.`,
+      alternates: {
+        canonical: buildFacetCanonical(`/projects/${linkedProject.slug}`),
+      },
+      openGraph: {
+        title: `${linkedProject.title} | Sublime Design NV`,
+        description:
+          linkedProject.description ??
+          `${linkedProject.assetCount} linked project images for ${linkedProject.serviceLabel ?? "custom finish carpentry"}.`,
+        url: buildFacetCanonical(`/projects/${linkedProject.slug}`),
+        images: linkedProject.coverImageUrl
+          ? [{ url: linkedProject.coverImageUrl, alt: linkedProject.title }]
+          : undefined,
+      },
+    };
+  }
+
   const project = findProject(params.slug);
   if (!project) {
     return {
@@ -87,7 +112,7 @@ function ProjectImage({ asset, sizes }: { asset: ProjectImageAsset; sizes: strin
   }
   return (
     <Image
-      src={asset.secureUrl}
+      src={asset.imageUrl}
       alt={asset.alt}
       fill
       sizes={sizes}
@@ -220,6 +245,144 @@ function ProjectStructuredData({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function ProjectDetailPage({ params }: Props) {
+  const linkedProject = await getProjectRecordBySlug(params.slug);
+  if (linkedProject && linkedProject.published && linkedProject.diagnosis === "renderable_project") {
+    const images: ProjectImageAsset[] = linkedProject.assets
+      .filter((asset) => asset.published && asset.renderable && asset.imageUrl)
+      .map((asset) => ({
+        publicId: asset.publicId ?? undefined,
+        imageUrl: asset.imageUrl ?? "",
+        secureUrl: asset.secureUrl ?? asset.imageUrl ?? "",
+        alt: asset.title || linkedProject.title,
+        source: asset.publicId ? "cloudinary" : "seed",
+        caption: asset.location ?? undefined,
+      }));
+
+    const relatedLinkedProjects = (
+      await listPublicProjects({
+        serviceSlug: linkedProject.serviceSlug ?? undefined,
+        limit: 3,
+      })
+    ).filter((project) => project.slug !== linkedProject.slug);
+    const heroImage = images[0];
+
+    return (
+      <main className="bg-white pb-24 pt-24">
+        <LocalBusinessSchema />
+        <ProjectStructuredData
+          slug={linkedProject.slug}
+          title={linkedProject.title}
+          description={linkedProject.description ?? linkedProject.title}
+          city={linkedProject.areaLabel ?? linkedProject.location ?? "Las Vegas Valley"}
+          state="NV"
+          images={images}
+        />
+
+        <section className="mx-auto max-w-7xl px-4 md:px-8">
+          <BreadcrumbTrail
+            crumbs={[
+              { label: "Home", href: "/" },
+              { label: "Projects", href: "/projects" },
+              { label: linkedProject.title, href: `/projects/${linkedProject.slug}` },
+            ]}
+          />
+          <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">
+            {linkedProject.serviceLabel ?? "Project"}{linkedProject.areaLabel ? ` • ${linkedProject.areaLabel}` : ""}
+          </p>
+          {linkedProject.featured ? (
+            <p className="mt-3 inline-flex rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-red">
+              Featured Project
+            </p>
+          ) : null}
+          <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{linkedProject.title}</h1>
+          <p className="mt-3 max-w-3xl text-base text-gray-mid">
+            {linkedProject.description ||
+              "This project album is driven by explicit asset linkage, stable cover image selection, and deterministic gallery order."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {linkedProject.serviceLabel ? (
+              <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
+                {linkedProject.serviceLabel}
+              </span>
+            ) : null}
+            {linkedProject.areaLabel ? (
+              <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                {linkedProject.areaLabel}
+              </span>
+            ) : null}
+            {linkedProject.location ? (
+              <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                {linkedProject.location}
+              </span>
+            ) : null}
+            <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+              {linkedProject.assetCount} image{linkedProject.assetCount === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          {heroImage ? (
+            <figure className="mt-8">
+              <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+                <ProjectImage asset={heroImage} sizes="100vw" />
+              </div>
+              {heroImage.caption ? (
+                <figcaption className="mt-3 max-w-3xl text-sm leading-6 text-gray-mid">
+                  {heroImage.caption}
+                </figcaption>
+              ) : null}
+            </figure>
+          ) : null}
+        </section>
+
+        {images.length > 1 ? (
+          <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+            <h2 className="text-3xl text-charcoal">Project Gallery</h2>
+            <div className="mt-6">
+              <ProjectGallery images={images.slice(1)} />
+            </div>
+          </section>
+        ) : null}
+
+        {relatedLinkedProjects.length ? (
+          <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="text-2xl text-charcoal">More Projects</h2>
+              <Link href="/projects" className="font-ui text-sm font-semibold text-red">
+                View All →
+              </Link>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              {relatedLinkedProjects.slice(0, 2).map((project) => (
+                <ProjectRecordCard key={project.id} project={project} pageType="projects" />
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+          <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
+            <h2 className="text-3xl md:text-4xl">Start your project.</h2>
+            <p className="mt-3 max-w-2xl text-white/90">
+              Tell us what you have in mind and we will reply with scope, timeline, and pricing guidance.
+            </p>
+            <TrackedLink
+              href="/quote"
+              eventName="proof_cta_click"
+              eventParams={{
+                page_type: "project",
+                project_slug: linkedProject.slug,
+                cta_location: "project_quote_cta",
+              }}
+              className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
+            >
+              Start with a Quote
+            </TrackedLink>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   const project = findProject(params.slug);
   if (!project) notFound();
 

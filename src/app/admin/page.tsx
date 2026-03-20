@@ -1,5 +1,6 @@
 import AdminNav from "@/components/admin/AdminNav";
 import AssetTable from "@/components/admin/AssetTable";
+import ProjectTable from "@/components/admin/ProjectTable";
 import AssetUploader from "@/components/admin/AssetUploader";
 import { requireAdmin } from "@/lib/auth";
 
@@ -20,6 +21,7 @@ export default async function AdminPage() {
         <div className="mt-8 space-y-6">
           <AssetUploader />
           <AssetTable />
+          <ProjectTable />
         </div>
       </div>
     </main>

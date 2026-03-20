@@ -32,6 +32,7 @@ type CreateAssetBody = {
   published?: boolean;
   tagSlugs?: string[];
   contextSlugs?: string[];
+  uploadBatchId?: string;
 };
 
 const ASSET_SELECT = {
@@ -51,7 +52,22 @@ const ASSET_SELECT = {
   serviceMetadata: true,
   alt: true,
   published: true,
+  uploadBatchId: true,
   createdAt: true,
+  projectLinks: {
+    orderBy: {
+      position: "asc",
+    },
+    select: {
+      project: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+        },
+      },
+    },
+  },
   tags: {
     include: {
       serviceType: {
@@ -81,6 +97,7 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     tagType: tag.serviceType.tagType,
   }));
   const { serviceTags, contextTags, contextSlugs } = getAssetTagBuckets(tags);
+  const linkedProject = asset.projectLinks[0]?.project ?? null;
   const canonical = buildCanonicalAssetFields({
     kind: asset.kind,
     publicId: asset.publicId,
@@ -89,6 +106,9 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     width: asset.width,
     height: asset.height,
     published: asset.published,
+    projectId: linkedProject?.id ?? null,
+    projectSlug: linkedProject?.slug ?? null,
+    projectTitle: linkedProject?.title ?? null,
   });
 
   return {
@@ -119,6 +139,7 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     alt: asset.alt,
     published: asset.published,
     createdAt: asset.createdAt,
+    uploadBatchId: asset.uploadBatchId,
     projectId: canonical.projectId,
     projectSlug: canonical.projectSlug,
     renderable: canonical.renderable,
@@ -243,6 +264,7 @@ export async function POST(request: NextRequest) {
   const description = body.description?.trim() || null;
   const location = body.location?.trim() || null;
   const alt = body.alt?.trim() || buildAssetAltText({ title, location, primaryServiceSlug });
+  const uploadBatchId = body.uploadBatchId?.trim() || null;
 
   try {
     const asset = await db.$transaction(async (tx) => {
@@ -289,6 +311,7 @@ export async function POST(request: NextRequest) {
           primaryServiceSlug,
           serviceMetadata: metadataValidation.data as Prisma.InputJsonValue,
           alt: alt || null,
+          uploadBatchId,
           published: Boolean(body.published),
           tags: {
             create: tagRecords.map((tag) => ({

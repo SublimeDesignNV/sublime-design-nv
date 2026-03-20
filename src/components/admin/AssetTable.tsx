@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ImageIcon, Pencil, Trash2, Video, X } from "lucide-react";
+import { ImageIcon, Link2, Pencil, Plus, Trash2, Video, X } from "lucide-react";
+import { ACTIVE_AREAS } from "@/content/areas";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { sanitizeServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
@@ -24,6 +25,7 @@ type AdminAsset = {
   serviceMetadata: Record<string, unknown> | null;
   published: boolean;
   createdAt: string;
+  uploadBatchId?: string | null;
   projectId: string | null;
   projectSlug: string | null;
   renderable: boolean;
@@ -34,11 +36,38 @@ type AdminAsset = {
   contextSlugs: string[];
 };
 
+type AdminProject = {
+  id: string;
+  title: string;
+  slug: string;
+  published: boolean;
+  featured: boolean;
+  spotlightRank: number | null;
+  serviceSlug: string | null;
+  areaSlug: string | null;
+  location: string | null;
+  description: string | null;
+  coverAssetId: string | null;
+  assets: Array<{ id: string; position: number }>;
+};
+
 type AssetsResponse = {
   assets: AdminAsset[];
 };
 
-type Filter = "all" | "published" | "unpublished";
+type ProjectsResponse = {
+  ok: boolean;
+  projects: AdminProject[];
+  projectOptions: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    published: boolean;
+    assetCount: number;
+  }>;
+};
+
+type Filter = "all" | "published" | "unpublished" | "orphans";
 
 type EditFormState = {
   id: string;
@@ -50,6 +79,34 @@ type EditFormState = {
   contextSlugs: string[];
   serviceMetadata: Record<string, unknown>;
   published: boolean;
+};
+
+type ProjectFormState = {
+  title: string;
+  slug: string;
+  serviceSlug: string;
+  areaSlug: string;
+  location: string;
+  description: string;
+  published: boolean;
+  featured: boolean;
+  spotlightRank: string;
+  coverAssetId: string;
+  assetIds: string[];
+};
+
+const EMPTY_PROJECT_FORM: ProjectFormState = {
+  title: "",
+  slug: "",
+  serviceSlug: "",
+  areaSlug: "",
+  location: "",
+  description: "",
+  published: false,
+  featured: false,
+  spotlightRank: "",
+  coverAssetId: "",
+  assetIds: [],
 };
 
 function toEditForm(asset: AdminAsset): EditFormState {
@@ -70,8 +127,27 @@ function toEditForm(asset: AdminAsset): EditFormState {
   };
 }
 
+function toProjectForm(assets: AdminAsset[]): ProjectFormState {
+  const lead = assets[0];
+  const title = lead?.title ?? "";
+  return {
+    ...EMPTY_PROJECT_FORM,
+    title,
+    slug: title
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""),
+    serviceSlug: lead?.primaryServiceSlug ?? "",
+    location: lead?.location ?? "",
+    coverAssetId: lead?.id ?? "",
+    assetIds: assets.map((asset) => asset.id),
+  };
+}
+
 export default function AssetTable() {
   const [assets, setAssets] = useState<AdminAsset[]>([]);
+  const [projects, setProjects] = useState<AdminProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -79,18 +155,34 @@ export default function AssetTable() {
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [createProjectForm, setCreateProjectForm] = useState<ProjectFormState | null>(null);
+  const [linkProjectId, setLinkProjectId] = useState("");
+  const [isProjectSaving, setIsProjectSaving] = useState(false);
 
   const loadAssets = useCallback(async () => {
     setError(null);
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/assets", { cache: "no-store" });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error || "Failed to load assets.");
+      const [assetsResponse, projectsResponse] = await Promise.all([
+        fetch("/api/admin/assets", { cache: "no-store" }),
+        fetch("/api/admin/projects", { cache: "no-store" }),
+      ]);
+
+      const assetsBody = (await assetsResponse.json()) as AssetsResponse & { error?: string };
+      if (!assetsResponse.ok) {
+        throw new Error(assetsBody.error || "Failed to load assets.");
       }
-      const data = (await response.json()) as AssetsResponse;
-      setAssets(data.assets);
+
+      const projectsBody = (await projectsResponse.json().catch(() => ({}))) as ProjectsResponse & {
+        error?: string;
+      };
+      if (!projectsResponse.ok || !projectsBody.ok) {
+        throw new Error(projectsBody.error || "Failed to load project options.");
+      }
+
+      setAssets(assetsBody.assets);
+      setProjects(projectsBody.projects);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unknown error.");
     } finally {
@@ -106,15 +198,38 @@ export default function AssetTable() {
     function onRefresh() {
       void loadAssets();
     }
+
+    function onCreated(event: Event) {
+      const detail = (event as CustomEvent<{ assetIds?: string[] }>).detail;
+      const assetIds = detail?.assetIds ?? [];
+      if (assetIds.length) {
+        setSelectedAssetIds(assetIds);
+        setFilter("orphans");
+      }
+      void loadAssets();
+    }
+
     window.addEventListener("admin-assets-refresh", onRefresh);
-    return () => window.removeEventListener("admin-assets-refresh", onRefresh);
+    window.addEventListener("admin-projects-refresh", onRefresh);
+    window.addEventListener("admin-assets-created", onCreated as EventListener);
+    return () => {
+      window.removeEventListener("admin-assets-refresh", onRefresh);
+      window.removeEventListener("admin-projects-refresh", onRefresh);
+      window.removeEventListener("admin-assets-created", onCreated as EventListener);
+    };
   }, [loadAssets]);
 
   const filteredAssets = useMemo(() => {
     if (filter === "published") return assets.filter((asset) => asset.published);
     if (filter === "unpublished") return assets.filter((asset) => !asset.published);
+    if (filter === "orphans") return assets.filter((asset) => !asset.projectId);
     return assets;
   }, [assets, filter]);
+
+  const selectedAssets = useMemo(
+    () => filteredAssets.filter((asset) => selectedAssetIds.includes(asset.id)),
+    [filteredAssets, selectedAssetIds],
+  );
 
   async function togglePublished(id: string, nextPublished: boolean) {
     const response = await fetch(`/api/admin/assets/${id}/publish`, {
@@ -264,17 +379,164 @@ export default function AssetTable() {
     }
 
     setAssets((current) => current.filter((item) => item.id !== asset.id));
+    setSelectedAssetIds((current) => current.filter((id) => id !== asset.id));
     if (editingAssetId === asset.id) {
       closeEditor();
     }
   }
 
+  function toggleAssetSelection(id: string) {
+    setSelectedAssetIds((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
+  }
+
+  function toggleSelectVisible() {
+    const visibleIds = filteredAssets.map((asset) => asset.id);
+    const allSelected = visibleIds.every((id) => selectedAssetIds.includes(id));
+    setSelectedAssetIds((current) =>
+      allSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds])),
+    );
+  }
+
+  function moveProjectAsset(assetId: string, direction: -1 | 1) {
+    setCreateProjectForm((current) => {
+      if (!current) return current;
+      const currentIndex = current.assetIds.indexOf(assetId);
+      const nextIndex = currentIndex + direction;
+      if (currentIndex === -1 || nextIndex < 0 || nextIndex >= current.assetIds.length) {
+        return current;
+      }
+      const assetIds = [...current.assetIds];
+      const [item] = assetIds.splice(currentIndex, 1);
+      assetIds.splice(nextIndex, 0, item);
+      return { ...current, assetIds };
+    });
+  }
+
+  async function createProjectFromSelection() {
+    if (selectedAssets.length === 0) {
+      setError("Select at least one asset to create a project.");
+      return;
+    }
+
+    setCreateProjectForm(toProjectForm(selectedAssets));
+    setError(null);
+  }
+
+  async function submitCreateProject() {
+    if (!createProjectForm) return;
+    if (!createProjectForm.title.trim() || createProjectForm.assetIds.length === 0) {
+      setError("Project title and at least one asset are required.");
+      return;
+    }
+
+    setIsProjectSaving(true);
+    setError(null);
+
+    const response = await fetch("/api/admin/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: createProjectForm.title.trim(),
+        slug: createProjectForm.slug.trim() || undefined,
+        serviceSlug: createProjectForm.serviceSlug || undefined,
+        areaSlug: createProjectForm.areaSlug || undefined,
+        location: createProjectForm.location.trim() || undefined,
+        description: createProjectForm.description.trim() || undefined,
+        published: createProjectForm.published,
+        featured: createProjectForm.featured,
+        spotlightRank: createProjectForm.spotlightRank
+          ? Number(createProjectForm.spotlightRank)
+          : null,
+        coverAssetId:
+          createProjectForm.coverAssetId || createProjectForm.assetIds[0] || undefined,
+        assetIds: createProjectForm.assetIds,
+      }),
+    });
+
+    setIsProjectSaving(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(body.error || "Failed to create project.");
+      return;
+    }
+
+    setCreateProjectForm(null);
+    setSelectedAssetIds([]);
+    await loadAssets();
+    window.dispatchEvent(new Event("admin-projects-refresh"));
+  }
+
+  async function linkSelectionToProject() {
+    if (!linkProjectId) {
+      setError("Choose a project to link the selected assets.");
+      return;
+    }
+
+    const project = projects.find((item) => item.id === linkProjectId);
+    if (!project) {
+      setError("Project not found.");
+      return;
+    }
+
+    const mergedAssetIds = Array.from(
+      new Set([...project.assets.map((asset) => asset.id), ...selectedAssetIds]),
+    );
+
+    setIsProjectSaving(true);
+    setError(null);
+
+    const response = await fetch(`/api/admin/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: project.title,
+        slug: project.slug,
+        serviceSlug: project.serviceSlug || undefined,
+        areaSlug: project.areaSlug || undefined,
+        location: project.location || undefined,
+        description: project.description || undefined,
+        published: project.published,
+        featured: project.featured,
+        spotlightRank: project.spotlightRank,
+        coverAssetId: project.coverAssetId || mergedAssetIds[0],
+        assetIds: mergedAssetIds,
+      }),
+    });
+
+    setIsProjectSaving(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(body.error || "Failed to link assets to project.");
+      return;
+    }
+
+    setLinkProjectId("");
+    setSelectedAssetIds([]);
+    await loadAssets();
+    window.dispatchEvent(new Event("admin-projects-refresh"));
+  }
+
+  const allVisibleSelected =
+    filteredAssets.length > 0 &&
+    filteredAssets.every((asset) => selectedAssetIds.includes(asset.id));
+
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl text-charcoal">Assets</h2>
+        <div>
+          <h2 className="text-2xl text-charcoal">Assets</h2>
+          <p className="mt-2 font-ui text-sm text-gray-mid">
+            Service pages use published assets directly. Projects, gallery views, and homepage spotlight require explicit project linkage.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-2">
-          {(["all", "published", "unpublished"] as const).map((value) => (
+          {(["all", "published", "unpublished", "orphans"] as const).map((value) => (
             <button
               key={value}
               type="button"
@@ -289,7 +551,9 @@ export default function AssetTable() {
                 ? "All"
                 : value === "published"
                   ? "Published"
-                  : "Unpublished"}
+                  : value === "unpublished"
+                    ? "Unpublished"
+                    : "Orphans"}
             </button>
           ))}
           <button
@@ -302,6 +566,57 @@ export default function AssetTable() {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+            Bulk Project Actions
+          </p>
+          <p className="mt-1 text-sm text-charcoal">
+            {selectedAssetIds.length} selected. Use this to create one album/project or repair orphaned assets in bulk.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void createProjectFromSelection()}
+            disabled={selectedAssetIds.length === 0}
+            className="inline-flex items-center gap-1 rounded-sm bg-red px-3 py-2 font-ui text-xs font-semibold text-white disabled:opacity-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Create Project
+          </button>
+          <select
+            value={linkProjectId}
+            onChange={(event) => setLinkProjectId(event.target.value)}
+            className="rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-xs text-charcoal"
+          >
+            <option value="">Link to existing project</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.title}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => void linkSelectionToProject()}
+            disabled={selectedAssetIds.length === 0 || !linkProjectId}
+            className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
+          >
+            <Link2 className="h-3.5 w-3.5" />
+            Link Assets
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedAssetIds([])}
+            disabled={selectedAssetIds.length === 0}
+            className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+
       {isLoading ? <p className="font-ui mt-4 text-sm text-gray-mid">Loading...</p> : null}
       {error ? <p className="font-ui mt-4 text-sm text-red">{error}</p> : null}
 
@@ -310,6 +625,14 @@ export default function AssetTable() {
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="border-b border-gray-warm text-left">
+                <th className="py-2 pr-3">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectVisible}
+                    aria-label="Select visible assets"
+                  />
+                </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Preview
                 </th>
@@ -318,6 +641,9 @@ export default function AssetTable() {
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Services / Context
+                </th>
+                <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
+                  Project
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Published
@@ -333,6 +659,14 @@ export default function AssetTable() {
             <tbody>
               {filteredAssets.map((asset) => (
                 <tr key={asset.id} className="border-b border-gray-warm/60 align-top">
+                  <td className="py-2 pr-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedAssetIds.includes(asset.id)}
+                      onChange={() => toggleAssetSelection(asset.id)}
+                      aria-label={`Select ${asset.title || "asset"}`}
+                    />
+                  </td>
                   <td className="py-2 pr-3">
                     {asset.kind === "IMAGE" ? (
                       <img
@@ -361,6 +695,7 @@ export default function AssetTable() {
                     {asset.description ? (
                       <p className="mt-1 max-w-md text-xs text-gray-mid">{asset.description}</p>
                     ) : null}
+                    <p className="mt-1 text-[11px] text-gray-mid">diagnosis: {asset.diagnosis}</p>
                   </td>
                   <td className="font-ui py-2 pr-3 text-sm text-charcoal">
                     <p>{asset.primaryServiceLabel || "Unassigned"}</p>
@@ -388,6 +723,19 @@ export default function AssetTable() {
                         ))}
                       </div>
                     ) : null}
+                  </td>
+                  <td className="font-ui py-2 pr-3 text-sm text-charcoal">
+                    {asset.projectSlug ? (
+                      <>
+                        <p>{asset.projectSlug}</p>
+                        <p className="mt-1 text-xs text-gray-mid">Linked project</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-red">Orphaned</p>
+                        <p className="mt-1 text-xs text-gray-mid">Visible on service pages only</p>
+                      </>
+                    )}
                   </td>
                   <td className="py-2 pr-3">
                     <label className="font-ui inline-flex items-center gap-2 text-sm text-charcoal">
@@ -611,6 +959,235 @@ export default function AssetTable() {
                 className="rounded-sm bg-red px-4 py-2 font-ui text-sm font-semibold text-white transition hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {createProjectForm ? (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-charcoal/55 p-4 md:p-8">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-2xl text-charcoal">Create Project from Selected Assets</h3>
+                <p className="mt-1 font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+                  Set the public project record, cover image, and ordered gallery
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateProjectForm(null)}
+                className="rounded-full border border-gray-200 p-2 text-gray-mid transition hover:border-red hover:text-red"
+                aria-label="Close create project modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
+                <input
+                  type="text"
+                  value={createProjectForm.title}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, title: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </label>
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Slug</span>
+                <input
+                  type="text"
+                  value={createProjectForm.slug}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, slug: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </label>
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Service</span>
+                <select
+                  value={createProjectForm.serviceSlug}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, serviceSlug: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                >
+                  <option value="">Select a service</option>
+                  {SERVICE_TAGS.map((service) => (
+                    <option key={service.slug} value={service.slug}>
+                      {service.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Area</span>
+                <select
+                  value={createProjectForm.areaSlug}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, areaSlug: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                >
+                  <option value="">Select an area</option>
+                  {ACTIVE_AREAS.map((area) => (
+                    <option key={area.slug} value={area.slug}>
+                      {area.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
+                <input
+                  type="text"
+                  value={createProjectForm.location}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, location: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </label>
+              <label className="block">
+                <span className="font-ui text-sm font-semibold text-charcoal">Spotlight Rank</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={createProjectForm.spotlightRank}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, spotlightRank: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 w-full rounded-sm border border-gray-warm px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="font-ui text-sm font-semibold text-charcoal">Description</span>
+                <textarea
+                  value={createProjectForm.description}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, description: event.target.value } : current,
+                    )
+                  }
+                  className="mt-1 min-h-[96px] w-full rounded-sm border border-gray-warm px-3 py-2 text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </label>
+              <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={createProjectForm.published}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, published: event.target.checked } : current,
+                    )
+                  }
+                />
+                Publish project immediately
+              </label>
+              <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={createProjectForm.featured}
+                  onChange={(event) =>
+                    setCreateProjectForm((current) =>
+                      current ? { ...current, featured: event.target.checked } : current,
+                    )
+                  }
+                />
+                Feature on homepage
+              </label>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <p className="font-ui text-sm font-semibold text-charcoal">Asset Order</p>
+              {createProjectForm.assetIds.map((assetId, index) => {
+                const asset = assets.find((item) => item.id === assetId);
+                if (!asset) return null;
+                return (
+                  <div
+                    key={asset.id}
+                    className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-3 md:flex-row md:items-center"
+                  >
+                    <img
+                      src={asset.thumbnailUrl || asset.imageUrl || ""}
+                      alt={asset.title || "Selected asset"}
+                      className="h-20 w-20 rounded-lg bg-white object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-ui text-sm font-semibold text-charcoal">
+                        {asset.title || "Untitled asset"}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-mid">
+                        {asset.location || "No location"} • position {index + 1}
+                      </p>
+                      <label className="mt-2 inline-flex items-center gap-2 font-ui text-xs text-charcoal">
+                        <input
+                          type="radio"
+                          checked={createProjectForm.coverAssetId === asset.id}
+                          onChange={() =>
+                            setCreateProjectForm((current) =>
+                              current ? { ...current, coverAssetId: asset.id } : current,
+                            )
+                          }
+                        />
+                        Use as cover
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moveProjectAsset(asset.id, -1)}
+                        disabled={index === 0}
+                        className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-40"
+                      >
+                        Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveProjectAsset(asset.id, 1)}
+                        disabled={index === createProjectForm.assetIds.length - 1}
+                        className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-40"
+                      >
+                        Down
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCreateProjectForm(null)}
+                className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitCreateProject()}
+                disabled={isProjectSaving || !createProjectForm.title.trim()}
+                className="rounded-sm bg-red px-4 py-2 font-ui text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {isProjectSaving ? "Creating..." : "Create Project"}
               </button>
             </div>
           </div>

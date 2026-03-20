@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
@@ -13,6 +14,7 @@ import { getProjectsByService } from "@/content/projects";
 import { getServiceContentAuditRowBySlug } from "@/lib/contentAudit.server";
 import { getServiceAssets } from "@/lib/portfolio.server";
 import type { ServiceGalleryAsset } from "@/lib/portfolio.server";
+import { listPublicProjects } from "@/lib/projectRecords.server";
 import { buildFacetCanonical } from "@/lib/seo";
 
 const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
@@ -209,12 +211,13 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   const quoteHref = `/quote?service=${service.slug}`;
 
-  const [registryProjects, serviceAssets] = await Promise.all([
+  const [linkedProjects, registryProjects, serviceAssets] = await Promise.all([
+    listPublicProjects({ serviceSlug: service.slug, limit: 3 }),
     Promise.resolve(getProjectsByService(service.slug)),
     getServiceAssets(service.slug).catch(() => []),
   ]);
 
-  const hasRegistryProjects = registryProjects.length > 0;
+  const hasRegistryProjects = linkedProjects.length > 0 || registryProjects.length > 0;
   const hasServiceAssets = serviceAssets.length > 0;
   const hasContent = hasRegistryProjects || hasServiceAssets;
 
@@ -229,7 +232,11 @@ export default async function ServiceDetailPage({ params }: Props) {
     )
     .slice(0, 3);
 
-  const visibleProjectCards = hasRegistryProjects ? registryProjects.slice(0, 3) : fallbackProjects;
+  const visibleProjectCards = linkedProjects.length
+    ? linkedProjects
+    : registryProjects.length > 0
+      ? registryProjects.slice(0, 3)
+      : fallbackProjects;
 
   return (
     <main className="bg-white pb-24 pt-24">
@@ -288,14 +295,23 @@ export default async function ServiceDetailPage({ params }: Props) {
             />
             {visibleProjectCards.length > 0 ? (
               <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleProjectCards.map((project) => (
-                  <ProjectCard
-                    key={project.slug}
-                    project={project}
-                    pageType="service"
-                    sourceSlug={service.slug}
-                  />
-                ))}
+                {visibleProjectCards.map((project) =>
+                  "assets" in project ? (
+                    <ProjectRecordCard
+                      key={project.id}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ) : (
+                    <ProjectCard
+                      key={project.slug}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ),
+                )}
               </div>
             ) : null}
           </div>
@@ -304,14 +320,23 @@ export default async function ServiceDetailPage({ params }: Props) {
             {hasServiceAssets ? <ServiceGallery assets={serviceAssets} /> : null}
             {!hasServiceAssets && visibleProjectCards.length > 0 ? (
               <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleProjectCards.map((project) => (
-                  <ProjectCard
-                    key={project.slug}
-                    project={project}
-                    pageType="service"
-                    sourceSlug={service.slug}
-                  />
-                ))}
+                {visibleProjectCards.map((project) =>
+                  "assets" in project ? (
+                    <ProjectRecordCard
+                      key={project.id}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ) : (
+                    <ProjectCard
+                      key={project.slug}
+                      project={project}
+                      pageType="service"
+                      sourceSlug={service.slug}
+                    />
+                  ),
+                )}
               </div>
             ) : null}
           </div>

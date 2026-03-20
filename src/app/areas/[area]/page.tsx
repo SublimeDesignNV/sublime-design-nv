@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { findArea, getAreaProjects, getAreaReviews, getAreaServices } from "@/content/areas";
 import { getAreaContentAuditRowBySlug, getProjectContentAuditRows } from "@/lib/contentAudit.server";
 import { getServiceCardPreviewAsset, type ServicePreviewAsset } from "@/lib/portfolio.server";
+import { listPublicProjects } from "@/lib/projectRecords.server";
 import { buildFacetCanonical } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +127,7 @@ export default async function AreaDetailPage({ params }: Props) {
   const area = findArea(params.area);
   if (!area || (area.status ?? "active") !== "active") notFound();
 
+  const linkedProjects = await listPublicProjects({ areaSlug: area.slug, limit: 3 });
   const areaServices = getAreaServices(area.slug).slice(0, 6);
   const projectReadinessRows = await getProjectContentAuditRows();
   const areaProjects = getAreaProjects(area.slug)
@@ -136,8 +139,9 @@ export default async function AreaDetailPage({ params }: Props) {
       return 0;
     })
     .slice(0, 3);
+  const visibleProjects = linkedProjects.length ? linkedProjects : areaProjects;
   const areaReviews = getAreaReviews(area.slug).slice(0, 3);
-  const leadProject = areaProjects[0];
+  const leadProject = visibleProjects[0];
   const nearbyAreas = area.nearbyAreas
     .map((slug) => findArea(slug))
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
@@ -210,16 +214,25 @@ export default async function AreaDetailPage({ params }: Props) {
             View All Projects →
           </TrackedLink>
         </div>
-        {areaProjects.length ? (
+        {visibleProjects.length ? (
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {areaProjects.map((project) => (
-              <ProjectCard
-                key={project.slug}
-                project={project}
-                pageType="area"
-                sourceSlug={area.slug}
-              />
-            ))}
+            {visibleProjects.map((project) =>
+              "assets" in project ? (
+                <ProjectRecordCard
+                  key={project.id}
+                  project={project}
+                  pageType="area"
+                  sourceSlug={area.slug}
+                />
+              ) : (
+                <ProjectCard
+                  key={project.slug}
+                  project={project}
+                  pageType="area"
+                  sourceSlug={area.slug}
+                />
+              ),
+            )}
           </div>
         ) : (
           <div className="mt-8 rounded-xl border border-gray-200 bg-cream p-6">

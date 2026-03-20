@@ -30,9 +30,9 @@ model ServiceType {
 }
 
 model Asset {
-  id                 String    @id @default(cuid())
+  id                 String         @id @default(cuid())
   kind               AssetKind
-  publicId           String    @unique
+  publicId           String         @unique
   secureUrl          String
   width              Int?
   height             Int?
@@ -45,10 +45,13 @@ model Asset {
   primaryServiceSlug String?
   serviceMetadata    Json?
   alt                String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  published          Boolean   @default(false)
+  uploadBatchId      String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  published          Boolean        @default(false)
   tags               AssetTag[]
+  projectLinks       ProjectAsset[]
+  coverForProjects   Project[]      @relation("ProjectCoverAsset")
 }
 
 model AssetTag {
@@ -58,6 +61,37 @@ model AssetTag {
   serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
 
   @@id([assetId, serviceTypeId])
+}
+
+model Project {
+  id            String         @id @default(cuid())
+  title         String
+  slug          String         @unique
+  description   String?
+  serviceSlug   String?
+  areaSlug      String?
+  location      String?
+  published     Boolean        @default(false)
+  featured      Boolean        @default(false)
+  spotlightRank Int?
+  coverAssetId  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  assets        ProjectAsset[]
+  coverAsset    Asset?         @relation("ProjectCoverAsset", fields: [coverAssetId], references: [id], onDelete: SetNull)
+}
+
+model ProjectAsset {
+  projectId String
+  assetId   String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, assetId])
+  @@unique([projectId, position])
+  @@index([assetId])
 }
 
 model Lead {

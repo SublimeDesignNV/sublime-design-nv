@@ -129,10 +129,14 @@ export function buildCanonicalAssetFields(input: {
   height?: number | null;
   published: boolean;
   requireProjectLink?: boolean;
+  projectId?: string | null;
+  projectSlug?: string | null;
+  projectTitle?: string | null;
 }) {
   const resourceType = input.kind === "VIDEO" ? "video" : "image";
   const publicId = input.publicId?.trim() || null;
-  const projectSlug = inferProjectSlugFromPublicId(publicId);
+  const inferredProjectSlug = inferProjectSlugFromPublicId(publicId);
+  const projectSlug = input.projectSlug ?? inferredProjectSlug;
   const imageUrl =
     input.secureUrl?.trim() ||
     (publicId
@@ -165,9 +169,9 @@ export function buildCanonicalAssetFields(input: {
     format: input.format ?? null,
     width: input.width ?? null,
     height: input.height ?? null,
-    projectId: null,
+    projectId: input.projectId ?? null,
     projectSlug,
-    projectTitle: project?.title ?? null,
+    projectTitle: input.projectTitle ?? project?.title ?? null,
     renderable: diagnosis === "renderable",
     diagnosis,
   } satisfies CanonicalAssetFields;

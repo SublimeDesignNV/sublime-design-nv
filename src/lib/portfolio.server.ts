@@ -27,6 +27,7 @@ function mapPublishedAsset(asset: {
   serviceMetadata: unknown;
   alt: string | null;
   createdAt: Date;
+  projectLinks: Array<{ project: { id: string; slug: string; title: string } }>;
   tags: Array<{ serviceType: PortfolioTag }>;
 }): PublishedAsset {
   const tags = asset.tags.map((tag) => ({
@@ -35,6 +36,7 @@ function mapPublishedAsset(asset: {
     tagType: tag.serviceType.tagType,
   }));
   const { serviceTags, contextTags, contextSlugs } = getAssetTagBuckets(tags);
+  const linkedProject = asset.projectLinks[0]?.project ?? null;
   const canonical = buildCanonicalAssetFields({
     kind: asset.kind,
     publicId: asset.publicId,
@@ -43,6 +45,9 @@ function mapPublishedAsset(asset: {
     width: asset.width,
     height: asset.height,
     published: true,
+    projectId: linkedProject?.id ?? null,
+    projectSlug: linkedProject?.slug ?? null,
+    projectTitle: linkedProject?.title ?? null,
   });
 
   return {
@@ -102,6 +107,20 @@ export async function getPublishedAssets(): Promise<PublishedAsset[]> {
         serviceMetadata: true,
         alt: true,
         createdAt: true,
+        projectLinks: {
+          orderBy: {
+            position: "asc",
+          },
+          select: {
+            project: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+              },
+            },
+          },
+        },
         tags: {
           include: {
             serviceType: {
@@ -176,6 +195,20 @@ export async function getPublishedAssetsByServiceSlug(
         serviceMetadata: true,
         alt: true,
         createdAt: true,
+        projectLinks: {
+          orderBy: {
+            position: "asc",
+          },
+          select: {
+            project: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+              },
+            },
+          },
+        },
         tags: {
           include: {
             serviceType: {

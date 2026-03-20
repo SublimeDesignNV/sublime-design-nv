@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import {
   FLAGSHIP_PROJECTS,
@@ -8,7 +9,9 @@ import {
   getPriorityProjects,
   sortProjectsForDisplay,
 } from "@/content/projects";
+import { findArea } from "@/content/areas";
 import { findService } from "@/content/services";
+import { listPublicProjects } from "@/lib/projectRecords.server";
 import { buildFacetCanonical } from "@/lib/seo";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 
@@ -17,7 +20,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Custom Carpentry Projects | Sublime Design NV",
   description:
-    "Browse custom finish carpentry projects — built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and mantels completed throughout Las Vegas, Henderson, and Summerlin.",
+    "Browse custom carpentry projects including floating shelves, media walls, cabinets, mantels, faux beams, barn doors, and trim details across Las Vegas Valley.",
   alternates: {
     canonical: buildFacetCanonical("/projects"),
   },
@@ -42,30 +45,39 @@ export default async function ProjectsIndexPage({
   const locationFilter = readParam(searchParams, "location");
   const hasFilters = Boolean(serviceFilter || locationFilter);
 
-  const filtered = PROJECT_LIST.filter((project) => {
+  const linkedProjects = await listPublicProjects({
+    serviceSlug: serviceFilter || undefined,
+    areaSlug: locationFilter || undefined,
+  });
+
+  const filteredStatic = PROJECT_LIST.filter((project) => {
     if (serviceFilter && project.serviceSlug !== serviceFilter) return false;
     if (locationFilter && project.location.city !== locationFilter) return false;
     return true;
   });
-  const sortedFiltered = sortProjectsForDisplay(filtered);
-  const priorityProjects = getPriorityProjects(3).slice(0, 3);
-  const priorityProjectSlugs = new Set(priorityProjects.map((project) => project.slug));
-  const gridProjects = hasFilters
-    ? sortedFiltered
-    : sortedFiltered.filter((project) => !priorityProjectSlugs.has(project.slug));
+  const sortedStatic = sortProjectsForDisplay(filteredStatic);
 
-  // Collect unique values for filter chips
+  const priorityProjects = linkedProjects.length
+    ? linkedProjects.slice(0, 3)
+    : getPriorityProjects(3).slice(0, 3);
+  const priorityProjectSlugs = new Set(priorityProjects.map((project) => project.slug));
+  const gridProjects = linkedProjects.length
+    ? hasFilters
+      ? linkedProjects
+      : linkedProjects.filter((project) => !priorityProjectSlugs.has(project.slug))
+    : hasFilters
+      ? sortedStatic
+      : sortedStatic.filter((project) => !priorityProjectSlugs.has(project.slug));
+
   const allServices = Array.from(new Set(PROJECT_LIST.map((p) => p.serviceSlug))).sort();
-  const allLocations = Array.from(
-    new Set(PROJECT_LIST.map((p) => p.location.city)),
-  ).sort();
+  const allLocations = Array.from(new Set(PROJECT_LIST.map((p) => p.location.city))).sort();
 
   function serviceLabel(slug: string) {
     return findService(slug)?.shortTitle ?? slug.replace(/-/g, " ");
   }
 
   function locationLabel(city: string) {
-    return PROJECT_LIST.find((p) => p.location.city === city)?.location.cityLabel ?? city;
+    return findArea(city)?.name ?? PROJECT_LIST.find((p) => p.location.city === city)?.location.cityLabel ?? city;
   }
 
   const priorityHeading = FLAGSHIP_PROJECTS.length > 0 ? "Flagship Projects" : "Featured";
@@ -74,24 +86,20 @@ export default async function ProjectsIndexPage({
     <main className="bg-white pb-24 pt-24">
       <LocalBusinessSchema />
 
-      {/* Header */}
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <p className="font-ui text-sm uppercase tracking-widest text-red">Portfolio</p>
         <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Projects</h1>
         <p className="mt-4 max-w-3xl text-base text-gray-mid">
-          Every project is measured, shop-built, and installed to fit the exact space. Browse
-          recent work from around the Las Vegas Valley.
+          Public gallery visibility now runs through explicit project records with deterministic cover images, ordered linked assets, and project-level publish rules.
         </p>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-gray-mid">
-          Recent custom carpentry projects across Las Vegas, Henderson, and Summerlin, with case studies that show how each space was measured, built, and installed.
+          Browse recent work from around the Las Vegas Valley, then drill into project pages that keep album order, cover selection, and featured placement explicit.
         </p>
       </section>
 
-      {/* Filter bar */}
       <section className="mx-auto mt-10 max-w-7xl px-4 md:px-8">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-ui text-xs uppercase tracking-widest text-gray-mid">Filter:</span>
-
           {allServices.map((slug) => (
             <Link
               key={slug}
@@ -135,31 +143,31 @@ export default async function ProjectsIndexPage({
           ))}
 
           {hasFilters ? (
-            <Link
-              href="/projects"
-              className="rounded-full border border-gray-200 px-4 py-1.5 font-ui text-xs font-medium text-gray-mid hover:text-charcoal"
-            >
+            <Link href="/projects" className="rounded-full border border-gray-200 px-4 py-1.5 font-ui text-xs font-medium text-gray-mid hover:text-charcoal">
               Clear ×
             </Link>
           ) : null}
         </div>
       </section>
 
-      {/* Featured banner (only when no filters active) */}
       {!hasFilters ? (
         <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
           <p className="font-ui text-xs uppercase tracking-widest text-red">{priorityHeading}</p>
           <div className="mt-4">
             {priorityProjects.length ? (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {priorityProjects.map((project) => (
-                  <ProjectCard
-                    key={project.slug}
-                    project={project}
-                    priorityLabel={project.flagship ? "Flagship" : "Featured"}
-                    pageType="projects"
-                  />
-                ))}
+                {priorityProjects.map((project) =>
+                  "assets" in project ? (
+                    <ProjectRecordCard key={project.slug} project={project} pageType="projects" />
+                  ) : (
+                    <ProjectCard
+                      key={project.slug}
+                      project={project}
+                      priorityLabel={project.flagship ? "Flagship" : "Featured"}
+                      pageType="projects"
+                    />
+                  ),
+                )}
               </div>
             ) : (
               <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples directly." />
@@ -168,7 +176,6 @@ export default async function ProjectsIndexPage({
         </section>
       ) : null}
 
-      {/* All projects grid */}
       <section className="mx-auto mt-12 max-w-7xl px-4 md:px-8">
         {!hasFilters ? (
           <p className="font-ui text-xs uppercase tracking-widest text-gray-mid">All Projects</p>
@@ -177,23 +184,23 @@ export default async function ProjectsIndexPage({
         {gridProjects.length === 0 ? (
           <div className="mt-6 rounded-xl border border-gray-200 bg-cream p-8">
             <p className="text-gray-mid">No projects match the selected filters.</p>
-            <Link
-              href="/projects"
-              className="font-ui mt-4 inline-block text-sm font-semibold text-red"
-            >
+            <Link href="/projects" className="font-ui mt-4 inline-block text-sm font-semibold text-red">
               View all projects →
             </Link>
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {gridProjects.map((project) => (
-              <ProjectCard key={project.slug} project={project} pageType="projects" />
-            ))}
+            {gridProjects.map((project) =>
+              "assets" in project ? (
+                <ProjectRecordCard key={project.slug} project={project} pageType="projects" />
+              ) : (
+                <ProjectCard key={project.slug} project={project} pageType="projects" />
+              ),
+            )}
           </div>
         )}
       </section>
 
-      {/* CTA */}
       <section className="mx-auto mt-20 max-w-7xl px-4 md:px-8">
         <div className="rounded-xl bg-red px-6 py-10 text-white md:px-10">
           <h2 className="text-3xl md:text-4xl">Start your project.</h2>
@@ -201,17 +208,9 @@ export default async function ProjectsIndexPage({
             Tell us what you have in mind and we will respond with scope, timeline, and pricing —
             no pressure, no commitment required.
           </p>
-          <Link
-            href="/quote"
-            className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red"
-          >
+          <Link href="/quote" className="font-ui mt-6 inline-block rounded-sm bg-white px-6 py-3 text-sm font-semibold text-red">
             Start with a Quote
           </Link>
-          <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5">
-            {(["Free quote", "Local install", "Built to fit", "Clear next steps"] as const).map((item) => (
-              <span key={item} className="font-ui text-xs text-white/70">{item}</span>
-            ))}
-          </div>
         </div>
       </section>
     </main>

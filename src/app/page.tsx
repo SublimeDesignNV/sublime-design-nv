@@ -7,6 +7,7 @@ import ServiceCards from "@/components/home/ServiceCards";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
 import ProjectCard from "@/components/projects/ProjectCard";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import { getPriorityProjects } from "@/content/projects";
@@ -14,6 +15,7 @@ import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import { getHeroAsset } from "@/lib/portfolio.server";
+import { getHomepageSpotlightProjects } from "@/lib/projectRecords.server";
 import { BUSINESS_PROFILE } from "@/lib/reviews.config";
 
 const SITE_URL =
@@ -22,7 +24,7 @@ const SITE_URL =
 export const metadata: Metadata = {
   title: "Sublime Design NV | Custom Woodwork Las Vegas",
   description:
-    "Las Vegas's premier custom finish carpentry company. Built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and mantels — measured and installed throughout Las Vegas and Henderson, NV. Free estimates.",
+    "Las Vegas custom finish carpentry focused on floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim details. Free estimates.",
   alternates: { canonical: `${SITE_URL}/` },
   openGraph: {
     title: "Sublime Design NV | Custom Woodwork Las Vegas",
@@ -53,7 +55,11 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const heroAsset = await getHeroAsset();
-  const priorityProjects = getPriorityProjects(3).slice(0, 3);
+  const [priorityProjects, spotlightProjects] = await Promise.all([
+    Promise.resolve(getPriorityProjects(3).slice(0, 3)),
+    getHomepageSpotlightProjects(3),
+  ]);
+  const homepageProjectsMode = spotlightProjects.length > 0 ? "db" : "static";
 
   return (
     <main className="bg-white">
@@ -65,22 +71,22 @@ export default async function HomePage() {
           <p className="font-ui text-sm uppercase tracking-widest text-red">What We Build</p>
           <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Finish Carpentry Done Right</h2>
           <p className="mt-4 max-w-3xl text-base text-gray-mid">
-            Custom built-ins, floating shelves, closet systems, pantry pullouts, cabinetry, and
-            mantels — measured, shop-built, and installed throughout Las Vegas and the Henderson valley.
+            Premium custom finish carpentry focused on floating shelves, media walls, faux beams,
+            barn doors, mantels, cabinets, and trim upgrades across the Las Vegas Valley.
           </p>
           <ServiceCards />
           <p className="mt-6 max-w-3xl text-sm text-gray-mid">
-            Explore service pages for{" "}
+            Explore focused service pages for{" "}
             <Link href="/services/floating-shelves" className="font-semibold text-red hover:underline">
               floating shelves
             </Link>
             ,{" "}
-            <Link href="/services/built-ins" className="font-semibold text-red hover:underline">
-              built-ins
+            <Link href="/services/media-walls" className="font-semibold text-red hover:underline">
+              media walls
             </Link>
             , and{" "}
-            <Link href="/services/custom-cabinetry" className="font-semibold text-red hover:underline">
-              custom cabinetry
+            <Link href="/services/faux-beams" className="font-semibold text-red hover:underline">
+              faux beams
             </Link>
             {" "}completed across Las Vegas, Henderson, and Summerlin.
           </p>
@@ -106,7 +112,17 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-10">
-            {priorityProjects.length ? (
+            {homepageProjectsMode === "db" ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                {spotlightProjects.map((project) => (
+                  <ProjectRecordCard
+                    key={project.id}
+                    project={project}
+                    pageType="home"
+                  />
+                ))}
+              </div>
+            ) : priorityProjects.length ? (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 {priorityProjects.map((project, index) => (
                   <ProjectCard
@@ -121,7 +137,11 @@ export default async function HomePage() {
               <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples that fit the job." />
             )}
           </div>
-          {priorityProjects.length ? (
+          {homepageProjectsMode === "db" && spotlightProjects.length ? (
+            <p className="mt-6 max-w-3xl text-sm text-gray-mid">
+              Homepage spotlight now reads from explicit project records with deterministic cover images and linked galleries.
+            </p>
+          ) : priorityProjects.length ? (
             <p className="mt-6 max-w-3xl text-sm text-gray-mid">
               Start with flagship work like{" "}
               {priorityProjects.slice(0, 2).map((project, index) => (
@@ -148,7 +168,7 @@ export default async function HomePage() {
             reviews={FEATURED_REVIEWS.slice(0, 3)}
             eyebrow="Client Reviews"
             title="Work That Earns Repeat Referrals"
-            subheading="A few recent homeowner reviews tied to real built-ins, floating shelves, closet systems, and cabinetry work around Las Vegas, Henderson, and Summerlin."
+            subheading="A few recent homeowner reviews tied to real floating shelves, media wall, cabinet, and mantel work around Las Vegas, Henderson, and Summerlin."
             ctaHref={BUSINESS_PROFILE.reviewProfileUrl || "/projects"}
             ctaLabel={BUSINESS_PROFILE.reviewProfileUrl ? BUSINESS_PROFILE.reviewCtaLabel : "Read more proof"}
             pageType="home"

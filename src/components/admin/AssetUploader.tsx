@@ -73,6 +73,9 @@ export default function AssetUploader() {
       })),
     );
 
+    const uploadBatchId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
+    const createdAssetIds: string[] = [];
+
     for (const file of files) {
       try {
         updateStatus(file.name, { state: "uploading" });
@@ -87,6 +90,7 @@ export default function AssetUploader() {
           },
           body: JSON.stringify({
             ...uploadResult,
+            uploadBatchId,
             title: title.trim(),
             description: description.trim() || undefined,
             location: location.trim() || undefined,
@@ -98,11 +102,17 @@ export default function AssetUploader() {
           }),
         });
 
+        const saveBody = (await saveResponse.json().catch(() => ({}))) as {
+          error?: string;
+          asset?: { id?: string };
+        };
+
         if (!saveResponse.ok) {
-          const body = (await saveResponse.json().catch(() => ({}))) as {
-            error?: string;
-          };
-          throw new Error(body.error || "Failed to save asset metadata.");
+          throw new Error(saveBody.error || "Failed to save asset metadata.");
+        }
+
+        if (saveBody.asset?.id) {
+          createdAssetIds.push(saveBody.asset.id);
         }
 
         updateStatus(file.name, { state: "success" });
@@ -117,6 +127,16 @@ export default function AssetUploader() {
 
     setIsUploading(false);
     window.dispatchEvent(new Event("admin-assets-refresh"));
+    if (createdAssetIds.length > 0) {
+      window.dispatchEvent(
+        new CustomEvent("admin-assets-created", {
+          detail: {
+            assetIds: createdAssetIds,
+            uploadBatchId,
+          },
+        }),
+      );
+    }
   }
 
   return (

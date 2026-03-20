@@ -1,68 +1,36 @@
 import Link from "next/link";
-import CloudinaryImage from "@/components/CloudinaryImage";
-import { listProjects } from "@/lib/cloudinary.server";
+import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
+import { listPublicProjects } from "@/lib/projectRecords.server";
 
 export const dynamic = "force-dynamic";
 
 export default async function GalleryPage() {
-  const projects = await listProjects(500);
+  const projects = await listPublicProjects();
 
   return (
-    <main style={{ padding: 40 }}>
-      <h1 style={{ marginBottom: 24 }}>Gallery</h1>
+    <main className="bg-white px-4 pb-20 pt-24 md:px-8">
+      <section className="mx-auto max-w-7xl">
+        <p className="font-ui text-sm uppercase tracking-widest text-red">Gallery</p>
+        <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">Project Gallery</h1>
+        <p className="mt-4 max-w-3xl text-base text-gray-mid">
+          Explicit project albums with deterministic cover images and ordered linked assets.
+        </p>
 
-      {projects.length === 0 ? (
-        <p style={{ color: "#555" }}>No projects found yet.</p>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 18,
-          }}
-        >
-          {projects.map((project) => {
-            const cover = project.images[0];
-            if (!cover) return null;
-            const fallbackAlt = `${project.name} - ${project.service || "custom"} - Sublime Design NV`;
-
-            return (
-              <Link
-                key={project.slug}
-                href={`/projects/${project.slug}`}
-                style={{
-                  border: "1px solid #ddd",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  textDecoration: "none",
-                  color: "inherit",
-                  background: "#fff",
-                }}
-              >
-                <CloudinaryImage
-                  src={cover.public_id}
-                  alt={cover.context?.alt || fallbackAlt}
-                  width={1200}
-                  height={800}
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  style={{ width: "100%", height: 220, objectFit: "cover" }}
-                />
-                <div style={{ padding: 14 }}>
-                  <h2 style={{ margin: "0 0 8px", fontSize: 20 }}>{project.name}</h2>
-                  <p style={{ margin: "0 0 6px", color: "#555", fontSize: 14 }}>
-                    {project.images.length} image{project.images.length === 1 ? "" : "s"}
-                  </p>
-                  <p style={{ margin: 0, color: "#666", fontSize: 13 }}>
-                    {[project.service, project.city, project.state, project.year]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+        {projects.length === 0 ? (
+          <div className="mt-10 rounded-xl border border-gray-200 bg-cream p-8">
+            <p className="text-gray-mid">No public projects found yet.</p>
+            <Link href="/quote" className="font-ui mt-4 inline-block text-sm font-semibold text-red">
+              Start with a Quote →
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectRecordCard key={project.id} project={project} pageType="gallery" />
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
