@@ -5,11 +5,6 @@ export type FaqItem = {
   answer: string;
 };
 
-/**
- * Optional fields for future case-study pages.
- * Types are shaped here so project pages can be built cleanly later
- * without restructuring the service registry.
- */
 export type ServiceCaseStudyMeta = {
   projectSlug?: string;
   projectTitle?: string;
@@ -21,35 +16,22 @@ export type ServiceDef = {
   slug: string;
   title: string;
   shortTitle: string;
-  /** Long marketing description */
+  navLabel: string;
   description: string;
-  /** One-line card teaser */
   shortDescription: string;
-  /** H1 on service page */
   heroHeadline: string;
-  /** Body copy under the H1 */
   heroBody: string;
-  /** Longer intro paragraph for SEO depth */
   introParagraph: string;
-  /** 3 short value bullets */
   valueBullets: string[];
-  /** 3 process step labels */
   processSteps: [string, string, string];
-  /** 3 FAQ items */
   faq: FaqItem[];
-  /** Slugs of related active services to link at page bottom */
   relatedServices: string[];
-  /** <title> tag copy */
   seoTitle: string;
-  /** Meta description copy */
   seoDescription: string;
-  /** CTA button label */
   ctaLabel: string;
   sortOrder: number;
-  /** URL slugs that redirect or resolve to this service */
   aliases: string[];
   status: ServiceStatus;
-  /** Optional case-study preview data (populated when a featured project exists) */
   caseStudy?: ServiceCaseStudyMeta;
 };
 
@@ -58,406 +40,378 @@ export const SERVICE_LIST: ServiceDef[] = [
     slug: "floating-shelves",
     title: "Custom Floating Shelves",
     shortTitle: "Floating Shelves",
+    navLabel: "Floating Shelves",
     description:
-      "Beautiful floating shelves designed, fabricated, and installed throughout Las Vegas, Henderson, Summerlin, and the wider Las Vegas Valley. Hidden support systems, clean reveals, and finish-ready details built to last.",
-    shortDescription: "Hidden brackets, solid wood, clean installs.",
-    heroHeadline: "Floating Shelves That Look Like They Grew There",
+      "Custom floating shelves for Las Vegas homes, built in plywood or MDF with stain-grade or paint-grade finishes, concealed support, and optional integrated lighting details.",
+    shortDescription:
+      "Premium shelves with concealed support, clean reveals, and optional integrated lighting.",
+    heroHeadline: "Floating Shelves Built to Read Clean and Carry Weight",
     heroBody:
-      "We design and install custom floating shelves in Las Vegas with concealed hardware, clean reveals, and solid construction — measured to fit your exact wall.",
+      "We build and install custom floating shelves with concealed support, premium finish options, and clean alignment tied to the wall, room, and final styling plan.",
     introParagraph:
-      "Most floating shelves look fine in the store and loose on the wall six months later. We build them differently. Every shelf we install is sized to your wall, anchored into studs or blocking with concealed hardware, and finished to your painter's spec. The result is a shelf that holds weight, looks clean, and doesn't shift. We work throughout Las Vegas, Henderson, Summerlin, and the surrounding valley.",
+      "Floating shelves should feel architectural, not added later. We size every run to the wall, account for real weight loads, and build the shelves around the finish direction you want: paint-grade, stain-grade, lighting-ready, or heavy-duty support for books and display pieces. The goal is simple: shelves that look refined from across the room and still perform day to day.",
     valueBullets: [
-      "Custom sizing for any wall or alcove",
-      "Clean hidden bracket system — no visible hardware",
-      "Professional install with level, plumb, and protected surfaces",
+      "Paint-grade or stain-grade shelves built around the wall and final finish plan",
+      "Custom sizing and spacing tied to the room, layout, and display needs",
+      "Optional LED tape lighting, puck lighting, and transformer integration",
+      "Heavy-duty concealed support options for longer spans and real storage weight",
     ],
     processSteps: [
-      "Measure your wall, locate studs, confirm depth and finish spec",
-      "Build shelf and cut hidden bracket channel to exact fit",
-      "Install bracket, mount shelf, verify level and reveal",
+      "Measure the wall, confirm shelf depth, spacing, load expectations, and finish direction",
+      "Fabricate the shelves and support system for the exact wall and bracket layout",
+      "Install, level, and finish the run so it reads like built-in millwork",
     ],
     faq: [
       {
-        question: "How much weight can a floating shelf hold?",
+        question: "Can floating shelves include integrated lighting?",
         answer:
-          "It depends on the bracket system and the wall. Our hidden bracket installs into studs or blocking and typically support 50–80 lbs per bracket. We size the bracket count to your shelf length and expected load during the estimate.",
+          "Yes. We can build shelves for flush LED tape lighting, puck lighting, and transformer integration when the wall and electrical plan support it.",
       },
       {
-        question: "Do you supply the wood or do I choose my own?",
+        question: "Do you build stain-grade and paint-grade shelves?",
         answer:
-          "Both options work. We can source solid hardwood, plywood with a hardwood face, or MDF for painted applications. If you have material preferences we can also work from what you supply.",
+          "Yes. We build both, typically in plywood or MDF depending on the finish goal, shelf depth, and final look.",
       },
       {
-        question: "Can floating shelves go on any wall?",
+        question: "Can floating shelves handle heavy books or decor?",
         answer:
-          "Most walls are suitable. Drywall over studs is ideal. Tile, brick, and concrete are also workable with the right anchors. We confirm wall conditions during the site measure before committing to a bracket layout.",
+          "Yes, when the wall conditions and bracket layout are planned for it. We offer heavy-duty concealed support upgrades for longer spans and heavier loads.",
       },
     ],
-    relatedServices: ["built-ins", "custom-cabinetry"],
+    relatedServices: ["media-walls", "mantels", "faux-beams"],
     seoTitle: "Floating Shelves Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom floating shelves in Las Vegas, Henderson, and Summerlin with hidden brackets, solid wood construction, and clean installs across the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
+      "Custom floating shelves in Las Vegas, Henderson, and Summerlin with concealed support, premium finishes, and optional integrated lighting.",
+    ctaLabel: "Get a Floating Shelf Quote",
     sortOrder: 1,
     aliases: [],
     status: "active",
   },
   {
-    slug: "built-ins",
-    title: "Built-In Shelving & Storage",
-    shortTitle: "Built-ins",
+    slug: "media-walls",
+    title: "Custom Media Walls",
+    shortTitle: "Media Walls",
+    navLabel: "Media Walls",
     description:
-      "Wall-to-wall built-ins for living rooms, offices, and media walls across Las Vegas, Henderson, Summerlin, and the surrounding valley. Every unit is measured and built to fit your exact space with finish-ready details.",
-    shortDescription: "Entertainment walls, bookcases, office built-ins.",
-    heroHeadline: "Built-ins That Fill the Wall the Right Way",
+      "Custom media walls and feature installations with cabinetry, shelving, fireplace bump-outs, and finish carpentry details built for a clean focal wall.",
+    shortDescription:
+      "TV walls, built-in feature walls, fireplace bump-outs, and integrated shelving.",
+    heroHeadline: "Media Walls That Turn One Wall into the Focal Point",
     heroBody:
-      "Shop-built built-ins for Las Vegas homes, measured for your space and installed with tight reveals and clean transitions to ceiling, floor, and trim.",
+      "We build custom media walls, feature walls, and integrated built-in wall systems with shelves, cabinetry, trim details, and clean site-fit installation.",
     introParagraph:
-      "A well-built built-in makes a room. A poorly built one shows every gap and never looks quite right. We measure before we build anything — ceiling height, wall rake, floor level, existing trim profiles — and fabricate components in our shop so the install is clean and fast. Whether it's an entertainment wall, a home office surround, or a library-style bookcase, we build it to fit your room and hand it off ready for your painter. We serve homeowners throughout Las Vegas, Henderson, Summerlin, and North Las Vegas.",
+      "The best media walls are not just TV backdrops. They solve layout, storage, and finish problems in one move. We build custom feature walls that can combine shelving, cabinetry, shiplap or panel details, fireplace bump-outs, and trim work into one measured installation. That makes them a strong fit for higher-ticket living room, office, and family-room upgrades where the wall needs to do more than hold a screen.",
     valueBullets: [
-      "Floor-to-ceiling designs that maximize every inch",
-      "Adjustable shelf layouts built around your storage needs",
-      "Finish-ready with paint or stain — no filler gaps",
+      "TV wall units and feature walls built for a cleaner finished focal point",
+      "Fireplace bump-out integration planned into the full wall layout",
+      "Shelves and cabinetry options coordinated as one continuous installation",
+      "Built for a clean finished look instead of pieced-together add-ons",
     ],
     processSteps: [
-      "Measure the wall — ceiling, floor, square, level, and trim profile",
-      "Build components in the shop to your exact room dimensions",
-      "Install, fit reveals, and hand off paint-ready or stain-ready",
+      "Review the wall, TV/fireplace layout, storage needs, and finish direction",
+      "Build the wall system in sections with cabinetry, shelving, and trim details coordinated together",
+      "Install, fit, and hand off a clean focal wall ready for final styling or paint",
     ],
     faq: [
       {
-        question: "Are built-ins permanent or can they be removed later?",
+        question: "Do media walls always include a TV?",
         answer:
-          "Built-ins are installed to be permanent, but they are not irreversible. They are attached to wall framing and can be removed if needed, though some patching and painting would follow. Most clients treat them as a long-term feature of the home.",
+          "No. Many projects center around a TV, but we also build feature walls with shelving, cabinetry, fireplace surrounds, and display-focused layouts.",
       },
       {
-        question: "Can you build around an existing fireplace or window?",
+        question: "Can a media wall include shelves and lower cabinets?",
         answer:
-          "Yes. Flanking a fireplace or building around a window or door opening is one of the most common built-in requests we get. We account for all openings and protrusions during the measure.",
+          "Yes. That is one of the main reasons homeowners hire us for this category. We can combine shelving, cabinetry, and trim details into one wall system.",
       },
       {
-        question: "Do you include electrical or lighting?",
+        question: "Is this the right category for a built-in wall unit?",
         answer:
-          "We build the cabinet boxes and plan openings for outlets and lighting, but we do not do electrical rough-in. We coordinate with your electrician or you can have one in before we install.",
+          "Yes. Built-in wall units, entertainment walls, and custom feature walls all fall under our media wall category in this service structure.",
       },
     ],
-    relatedServices: ["floating-shelves", "custom-cabinetry"],
-    seoTitle: "Built-Ins Las Vegas | Sublime Design NV",
+    relatedServices: ["floating-shelves", "cabinets", "trim"],
+    seoTitle: "Media Walls Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom built-ins in Las Vegas, Henderson, and Summerlin for living rooms, offices, and media walls. Shop-built, installed clean, and finished for the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
+      "Custom media walls in Las Vegas, Henderson, and Summerlin with shelving, cabinetry, fireplace bump-outs, and premium finish carpentry details.",
+    ctaLabel: "Get a Media Wall Quote",
     sortOrder: 2,
+    aliases: ["built-ins"],
+    status: "active",
+  },
+  {
+    slug: "faux-beams",
+    title: "Custom Faux Beams",
+    shortTitle: "Faux Beams",
+    navLabel: "Faux Beams",
+    description:
+      "Plywood-only faux beams with mitered corners, stain or paint finishes, lightweight installation, and custom sizing for Las Vegas Valley homes.",
+    shortDescription:
+      "Plywood faux beams with seamless mitered corners and custom finish options.",
+    heroHeadline: "Faux Beams with a Clean Seamless Look",
+    heroBody:
+      "We build lightweight plywood faux beams with mitered corners, custom sizing, and stain or paint finishes so the final install reads intentional instead of decorative filler.",
+    introParagraph:
+      "Faux beams should add architectural weight without adding structural complexity. Our faux beam work focuses on plywood construction, tight mitered corners, clean seam lines, and finish options that match the rest of the room. The goal is a custom-looking ceiling detail that installs cleanly, keeps weight down, and still reads premium in a finished living room, kitchen, or entry space.",
+    valueBullets: [
+      "Plywood beam construction sized for a lighter cleaner installation",
+      "Mitered corners for a more seamless look from below and across the room",
+      "Paint or stain finish options matched to the room direction",
+      "Custom sizing for your room with optional decorative beam straps",
+    ],
+    processSteps: [
+      "Confirm span, beam scale, ceiling conditions, and finish direction",
+      "Fabricate plywood beam wraps with clean mitered corners and site-fit dimensions",
+      "Install the beam system cleanly with optional strap details if desired",
+    ],
+    faq: [
+      {
+        question: "Are your faux beams structural?",
+        answer:
+          "No. These are finish-carpentry beam wraps built for visual impact, not load-bearing use.",
+      },
+      {
+        question: "Why plywood-only construction?",
+        answer:
+          "Plywood keeps the beams lighter, more stable, and easier to fabricate cleanly with tight mitered corners and a consistent final finish.",
+      },
+      {
+        question: "Are beam straps required?",
+        answer:
+          "No. Beam straps are optional. We treat them as a finish detail, not a separate category or default requirement.",
+      },
+    ],
+    relatedServices: ["mantels", "trim", "floating-shelves"],
+    seoTitle: "Faux Beams Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Custom faux beams in Las Vegas with plywood construction, mitered corners, stain or paint finishes, and lightweight installation.",
+    ctaLabel: "Get a Faux Beam Quote",
+    sortOrder: 3,
     aliases: [],
     status: "active",
   },
   {
-    slug: "pantry-pullouts",
-    title: "Pantry Pullout Systems",
-    shortTitle: "Pantry Pullouts",
+    slug: "barn-doors",
+    title: "Custom Barn Doors",
+    shortTitle: "Barn Doors",
+    navLabel: "Barn Doors",
     description:
-      "Custom pantry pullout systems designed to maximize usable storage and access in Las Vegas Valley kitchens. Built and installed to fit any cabinet or pantry configuration.",
-    shortDescription: "Space-saving pullouts and pantry storage.",
-    heroHeadline: "Stop Losing Things in the Back of Your Pantry",
+      "Custom barn doors built to fit the opening, finished to match the home, and installed with hardware included for daily use.",
+    shortDescription:
+      "Custom-size barn doors with finish options, hardware, and installation included.",
+    heroHeadline: "Barn Doors Built to Fit the Opening and the Finish Plan",
     heroBody:
-      "Custom pantry pullouts for Las Vegas kitchens, built to your cabinet dimensions with full-extension hardware so you can actually reach what you stored.",
+      "We build custom barn doors in the size, finish, and hardware setup your opening needs, then install the full system so it works cleanly every day.",
     introParagraph:
-      "Standard pantry shelves waste roughly a third of their depth because you can't reach the back without moving everything in front. Pullout systems fix that. We build them to your exact cabinet opening dimensions, use quality full-extension slides, and install them so they glide cleanly and close flush. Whether you have an existing pantry cabinet, a reach-in closet pantry, or a full walk-in, we can fit a pullout layout that makes use of every inch. We install throughout Las Vegas and the Henderson area.",
+      "Barn doors only feel premium when the door size, track hardware, finish, and install all work together. We build around the opening instead of trying to force a stock panel to fit. That means better proportions, cleaner operation, and a finish that looks like it belongs with the rest of the home. Hardware and install are part of the job, not afterthought add-ons.",
     valueBullets: [
-      "Better access to every shelf — nothing lost in the back",
-      "Custom fit for your existing cabinet or pantry openings",
-      "Heavy-duty full-extension slide hardware",
+      "Custom built for the exact opening and wall conditions",
+      "Paint or stain finish options matched to the room direction",
+      "Hardware packages included as part of the full barn door scope",
+      "Installed cleanly and aligned correctly for everyday use",
     ],
     processSteps: [
-      "Measure cabinet openings and confirm slide clearance specs",
-      "Build pullout boxes to fit your opening dimensions exactly",
-      "Install slides, fit boxes, adjust clearances and soft-close action",
+      "Measure the opening, wall clearance, and hardware path",
+      "Build and finish the door for the selected style, size, and hardware package",
+      "Install the track, hang the door, and tune operation on site",
     ],
     faq: [
       {
-        question: "Do you work in existing cabinets or only new installs?",
+        question: "Do you include the hardware?",
         answer:
-          "Mostly existing cabinets. Retrofitting pullouts into existing pantry or kitchen cabinets is our most common request. We just need the opening dimensions and interior depth to spec the hardware and build the boxes.",
+          "Yes. Hardware selection and installation are part of the barn door scope so the full system works together.",
       },
       {
-        question: "What slide hardware do you use?",
+        question: "Can the door be stained or painted?",
         answer:
-          "We use full-extension soft-close undermount or side-mount slides depending on cabinet configuration. We spec the load rating to match the expected use — heavier for canned goods and appliances, standard for pantry staples and dry goods.",
+          "Yes. We offer both stain and paint directions depending on the design and material choice.",
       },
       {
-        question: "How long does a pantry pullout install take?",
+        question: "Are barn doors built to custom sizes?",
         answer:
-          "Most pantry installs take one day. We build the boxes in the shop ahead of time, so the day-of work is slide installation and box fitting — usually three to six hours depending on the number of units.",
+          "Yes. We build to the actual opening and wall conditions instead of relying on stock slab sizes.",
       },
     ],
-    relatedServices: ["closet-systems", "custom-cabinetry"],
-    seoTitle: "Pantry Pullouts Las Vegas | Sublime Design NV",
+    relatedServices: ["trim", "cabinets", "floating-shelves"],
+    seoTitle: "Barn Doors Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom pantry pullouts in Las Vegas, Henderson, and Summerlin. Retrofit existing cabinets with full-extension storage systems built for the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
-    sortOrder: 3,
-    aliases: ["pantry"],
-    status: "active",
-  },
-  {
-    slug: "closet-systems",
-    title: "Custom Closet Systems",
-    shortTitle: "Closet Systems",
-    description:
-      "Closet systems built for practical storage, clean alignment, and efficient use of wall space across Las Vegas, Henderson, Summerlin, and the wider valley.",
-    shortDescription: "Walk-ins, reach-ins, and linen closets done right.",
-    heroHeadline: "A Closet That Actually Works for You",
-    heroBody:
-      "Custom closet systems in Las Vegas designed around your wardrobe, built with solid components, and installed with the same care we bring to every finish carpentry job.",
-    introParagraph:
-      "Wire shelving is cheap and it looks it. Prefab closet kits are designed for average spaces — not yours. We build closet systems from scratch, sized for your closet's exact footprint, and laid out around how you actually use the space. Double-hang sections for shirts and jackets, long hang for dresses, shelves and drawers where you need them, and a clean finish that looks like part of the house. We work in walk-in closets, reach-ins, and linen closets throughout Las Vegas, Henderson, and Summerlin.",
-    valueBullets: [
-      "Designed around how you actually use your space",
-      "Double hang, shelving, drawers, and shoe storage layouts",
-      "Clean alignment with no exposed edges or raw cuts",
-    ],
-    processSteps: [
-      "Measure the closet and map out hanging, folding, and shoe storage needs",
-      "Build towers, shelves, and drawer units to your exact dimensions",
-      "Install, align, and adjust everything to square and level",
-    ],
-    faq: [
-      {
-        question: "Can you add drawers or a built-in dresser section?",
-        answer:
-          "Yes. Built-in drawer stacks are one of the most requested closet additions. We build them to the same standard as our cabinetry — dovetail drawers or full-extension boxes depending on the build spec.",
-      },
-      {
-        question: "What is the lead time from quote to install?",
-        answer:
-          "Typically two to four weeks from signed quote to install day, depending on our current schedule. Smaller reach-in closets can sometimes move faster. We will give you a realistic timeline during the quote.",
-      },
-      {
-        question: "Do you paint or stain the closet components?",
-        answer:
-          "We deliver the system either pre-primed for painting or pre-finished in a stain of your choice. Full paint or stain is available as an add-on. Many clients prefer to have their painter finish the system at the same time as surrounding trim.",
-      },
-    ],
-    relatedServices: ["pantry-pullouts", "built-ins"],
-    seoTitle: "Closet Systems Las Vegas | Sublime Design NV",
-    seoDescription:
-      "Custom closet systems in Las Vegas, Henderson, and Summerlin with double hang, drawers, shoe storage, and layouts built for real daily use in the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
+      "Custom barn doors in Las Vegas with custom sizing, hardware included, stain or paint finish options, and professional installation.",
+    ctaLabel: "Get a Barn Door Quote",
     sortOrder: 4,
-    aliases: ["closets"],
-    status: "active",
-  },
-  {
-    slug: "custom-cabinetry",
-    title: "Custom Cabinetry",
-    shortTitle: "Custom Cabinetry",
-    description:
-      "Cabinet builds and installs with clean alignment, proper filler details, and durable finish options across Las Vegas, Henderson, Summerlin, and the surrounding valley.",
-    shortDescription: "Custom boxes, panels, fillers, and installs.",
-    heroHeadline: "Cabinetry Built to Fit — Not to Compromise",
-    heroBody:
-      "We build and install custom cabinetry in Las Vegas that fits your space precisely, with clean filler details, proper alignment, and finish-ready surfaces throughout.",
-    introParagraph:
-      "Stock cabinets are built for a range of spaces, not yours. The result is filler pieces that don't quite blend, alignment that never gets quite right, and details that look like an afterthought. We build custom boxes sized for your kitchen, bath, laundry, or utility room — and we install them with the filler strips, scribe molding, and end panels done right. If you are working with a designer or general contractor we can coordinate directly. If you are managing the project yourself we can walk you through the process. We install throughout the Las Vegas Valley.",
-    valueBullets: [
-      "Built to your exact dimensions — no standard-size compromises",
-      "Proper filler strips, scribe molding, and end panels",
-      "Kitchen, laundry, bath, and utility builds",
-    ],
-    processSteps: [
-      "Measure the space, confirm filler, scribing, and reveal requirements",
-      "Build boxes, doors, and drawer fronts in the shop",
-      "Install, align, fit fillers and panels, deliver paint-ready",
-    ],
-    faq: [
-      {
-        question: "Do you work with existing cabinet doors or build new ones?",
-        answer:
-          "Both. We can build complete cabinets from scratch, or we can build new boxes to match existing door and drawer fronts. If you need replacement doors only, we can do that too.",
-      },
-      {
-        question: "Can you match my existing kitchen cabinet style?",
-        answer:
-          "In most cases, yes. We build shaker, flat-panel, and inset-frame cabinet styles. If you have an existing kitchen and need to add an island, peninsula, or a run of cabinets, we can match the profile and finish closely.",
-      },
-      {
-        question: "Do you install appliances or countertops?",
-        answer:
-          "We do not install countertops or appliances. We build and install the cabinet boxes and leave the space for your countertop installer. We coordinate reveals and filler widths so everything lines up correctly.",
-      },
-    ],
-    relatedServices: ["built-ins", "mantels"],
-    seoTitle: "Custom Cabinetry Las Vegas | Sublime Design NV",
-    seoDescription:
-      "Custom cabinetry in Las Vegas, Henderson, and Summerlin for kitchens, baths, laundry rooms, and utility spaces. Proper filler details and clean alignment across the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
-    sortOrder: 5,
-    aliases: ["cabinets"],
+    aliases: [],
     status: "active",
   },
   {
     slug: "mantels",
-    title: "Custom Mantels & Surrounds",
+    title: "Custom Mantels",
     shortTitle: "Mantels",
+    navLabel: "Mantels",
     description:
-      "Custom mantel builds and fireplace surrounds tailored to your wall dimensions and finish details throughout Las Vegas, Henderson, Summerlin, and the wider valley.",
-    shortDescription: "Modern wraps, beams, and fireplace surrounds.",
-    heroHeadline: "A Fireplace That Commands the Room",
+      "Floating mantels and crown molding mantels designed around your fireplace and wall proportions, built to create a stronger finished focal point.",
+    shortDescription:
+      "Floating mantels and full fireplace mantel builds sized to the room.",
+    heroHeadline: "Mantels That Give the Fireplace Real Presence",
     heroBody:
-      "We build custom mantels in Las Vegas scaled to your fireplace and wall — clean lines, solid construction, and finish-ready for your painter.",
+      "We build custom mantels and surrounds that fit the fireplace, wall, and room proportions so the finished install feels intentional from day one.",
     introParagraph:
-      "A fireplace without a proper mantel is just a hole in the wall. A mantel that isn't scaled to the room makes the problem worse. We design and build custom mantels proportioned to your fireplace opening, ceiling height, and wall width — then install them clean and hand them off ready to paint or stain. Whether you want something contemporary and minimal, a traditional surround with legs and a shelf, or a simple floating beam, we build it from solid wood and install it to last. We serve homeowners throughout Las Vegas and the surrounding valley.",
+      "A mantel should give the fireplace presence, not just trim out the opening. We build floating mantels and crown molding mantel surrounds with the right scale, shelf depth, and finish details for the room. Whether the goal is a cleaner modern ledge or a more detailed surround, we keep the work measured, proportioned, and install-ready.",
     valueBullets: [
-      "Scaled to your fireplace opening and wall proportions",
-      "Shelf, legs, and surround built as one cohesive unit",
-      "Handed off paint-ready or stain-ready to your finish crew",
+      "Floating mantel styles for cleaner modern fireplace upgrades",
+      "Classic crown molding mantel options for more detailed surrounds",
+      "Custom sizing and finish selection tied to the fireplace and room",
+      "Built to give the fireplace stronger focal-point presence",
     ],
     processSteps: [
-      "Measure fireplace opening, wall width, and ceiling height",
-      "Build the surround, legs, and shelf as one unit in the shop",
-      "Install to wall, fit to floor and ceiling line, finish-ready handoff",
+      "Measure the fireplace opening, wall width, and target proportions",
+      "Fabricate the shelf or surround in the selected profile and finish direction",
+      "Install, align, and hand off a cleaner finished focal point",
     ],
     faq: [
       {
-        question: "What wood species do you use for mantels?",
+        question: "Do you build simple floating mantels and full surrounds?",
         answer:
-          "Paint-grade mantels are typically built from MDF or poplar for a smooth finish. Stain-grade mantels use hardwoods — white oak, walnut, and alder are the most common requests. We can source others on request.",
+          "Yes. We handle both floating mantel shelves and more detailed crown molding mantel surrounds.",
       },
       {
-        question: "Can you build around a gas or electric insert?",
+        question: "Can the mantel be stain-grade or paint-grade?",
         answer:
-          "Yes, and we do it often. We need to know the clearance requirements for your specific unit — either from the manual or from your HVAC contractor — and we build the surround to those specs so you stay within code.",
+          "Yes. We build both depending on the style direction and finish plan for the room.",
       },
       {
-        question: "Do you do the tile or stone work on the surround face?",
+        question: "Do you already offer hidden-storage mantels?",
         answer:
-          "No — we build the wood framing and mantel structure. Tile, stone, or shiplap on the surround face is typically done by your tile setter before or after we install the mantel, depending on the design sequence.",
+          "Not as a primary public category yet, but the mantel system is positioned so that upgrade path can be added later cleanly.",
       },
     ],
-    relatedServices: ["custom-cabinetry", "built-ins"],
+    relatedServices: ["faux-beams", "media-walls", "trim"],
     seoTitle: "Mantels Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom fireplace mantels in Las Vegas, Henderson, and Summerlin. Built to fit the wall, finished clean, and installed across the Las Vegas Valley.",
-    ctaLabel: "Start with a Quote",
-    sortOrder: 6,
+      "Custom mantels in Las Vegas, Henderson, and Summerlin including floating mantels and crown molding surrounds built to fit the room.",
+    ctaLabel: "Get a Mantel Quote",
+    sortOrder: 5,
     aliases: [],
     status: "active",
   },
   {
-    slug: "mudrooms",
-    title: "Custom Mudroom Built-ins",
-    shortTitle: "Mudrooms",
+    slug: "cabinets",
+    title: "Custom Cabinets",
+    shortTitle: "Cabinets",
+    navLabel: "Cabinets",
     description:
-      "Mudroom storage systems with lockers, benches, and hooks built to handle daily use and heavy traffic.",
-    shortDescription: "Lockers, benches, and entry storage.",
-    heroHeadline: "A Mudroom That Handles Real Life",
+      "RTA and custom cabinet solutions for kitchens, storage walls, pantry upgrades, mudrooms, and other practical built-in storage problems.",
+    shortDescription:
+      "RTA and custom cabinets for kitchens, storage upgrades, and practical built-in solutions.",
+    heroHeadline: "Cabinets That Fit the Space Instead of Fighting It",
     heroBody:
-      "Custom mudroom built-ins with lockers, cubbies, benches, and hook panels — built to hold up and keep your entry organized.",
+      "We handle cabinet installs and custom cabinet solutions with cleaner fit, better storage planning, and practical layouts for everyday use.",
     introParagraph:
-      "A mudroom built-in needs to handle daily use from everyone in the house. We build them from solid components with proper joinery, sized for your entry width and ceiling height, and finished to take the abuse.",
+      "Cabinet work does not need an overbuilt taxonomy to be useful. The real question is whether the final layout solves the storage problem and fits the room cleanly. We handle both RTA and custom cabinets, and the page copy can speak to face-frame, frameless, Euro, or retrofit details as needed without splitting the site into too many categories. That keeps the public structure simple while still covering kitchens, mudrooms, pantry upgrades, and cabinet-based storage projects.",
     valueBullets: [
-      "Locker sections with hooks, shelves, and optional doors",
-      "Built-in bench with storage below",
-      "Sized for your entry width and ceiling height",
+      "RTA and custom cabinet solutions sized around layout and function",
+      "Euro or frameless and more traditional cabinet directions handled in one category",
+      "Fast-turnaround paths available when the scope and cabinet type allow it",
+      "Good fit for pantry upgrades, mudrooms, storage walls, and kitchen support work",
     ],
     processSteps: [
-      "Measure entry width, ceiling height, and traffic flow",
-      "Build locker units and bench in the shop",
-      "Install, fit to walls, and deliver paint-ready",
+      "Review the room, layout goals, cabinet type, and storage priorities",
+      "Confirm sizing, finish direction, filler details, and hardware approach",
+      "Install and adjust the cabinets for clean operation and finished alignment",
     ],
     faq: [
       {
-        question: "Can mudroom lockers include doors?",
+        question: "Do you work with RTA and custom cabinets?",
         answer:
-          "Yes. Open cubbies are most common, but we can add shaker-style doors to any locker section for a cleaner look.",
+          "Yes. We handle both. The right choice depends on budget, layout, finish expectations, and how custom the room needs to be.",
       },
       {
-        question: "Do you include a built-in bench seat?",
+        question: "Is this the right category for pantry upgrades or pullouts?",
         answer:
-          "Yes — a bench with either open storage or lift-lid storage below is standard in most mudroom builds.",
+          "Yes. Pantry cabinet upgrades, pullouts, and cabinet-based storage improvements all live under Cabinets in this service structure.",
       },
       {
-        question: "What is the typical mudroom build lead time?",
+        question: "Is this the right category for closet or mudroom-style cabinet work?",
         answer:
-          "Roughly two to three weeks from signed quote to install, depending on complexity and schedule availability.",
+          "If the job is primarily cabinetry or storage-driven, yes. We keep those projects inside Cabinets rather than splitting them into too many top-level categories.",
       },
     ],
-    relatedServices: ["built-ins", "closet-systems"],
-    seoTitle: "Custom Mudroom Built-ins Las Vegas | Sublime Design NV",
+    relatedServices: ["media-walls", "trim", "floating-shelves"],
+    seoTitle: "Cabinets Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom mudroom storage systems with lockers, benches, and hooks in Las Vegas, NV. Built to your entry dimensions.",
-    ctaLabel: "Get a Mudroom Quote",
-    sortOrder: 7,
-    aliases: [],
-    status: "coming-soon",
+      "Cabinet installs and custom cabinet solutions in Las Vegas for kitchens, pantry upgrades, mudrooms, and practical storage projects.",
+    ctaLabel: "Get a Cabinet Quote",
+    sortOrder: 6,
+    aliases: ["custom-cabinetry", "pantry-pullouts", "pantry", "closet-systems", "closets"],
+    status: "active",
   },
   {
-    slug: "garage-storage",
-    title: "Garage Storage Systems",
-    shortTitle: "Garage Storage",
+    slug: "trim",
+    title: "Trim & Finish Carpentry",
+    shortTitle: "Trim & Finish",
+    navLabel: "Trim & Finish",
     description:
-      "Wall-mounted garage storage systems with cabinets, shelving, and overhead storage built to last.",
-    shortDescription: "Cabinets, shelving, and overhead storage.",
-    heroHeadline: "A Garage You Can Actually Park In",
+      "Finish carpentry upgrades including baseboard, casing, crown, shiplap, wainscoting, feature walls, board and batten, and vertical shiplap.",
+    shortDescription:
+      "Baseboard, casing, crown, shiplap, wainscoting, and detail-driven finish carpentry.",
+    heroHeadline: "Trim Work That Tightens Up the Whole Room",
     heroBody:
-      "Custom garage storage systems with wall cabinets, open shelving, and overhead platforms — built tough and designed to stay organized.",
+      "We handle trim and finish carpentry upgrades that sharpen the room, from clean base and casing packages to full feature-wall treatments.",
     introParagraph:
-      "A garage storage system needs to handle tools, seasonal gear, and everything else that doesn't fit in the house. We build wall-mounted systems that clear the floor, combine cabinet and open shelf sections, and install solidly into framing.",
+      "Trim work is where sloppy installs show immediately. We keep this category focused on finish details that actually move the room forward: baseboard, casing, crown, shiplap, wainscoting, board and batten, vertical shiplap, and other feature-wall upgrades. The work stays premium when the cuts are clean, the reveals stay consistent, and the final install looks integrated instead of patched together.",
     valueBullets: [
-      "Wall-mounted systems that clear the floor",
-      "Cabinet and open shelf combinations for tools and gear",
-      "Overhead platform storage for bins and seasonal items",
+      "Baseboard, casing, crown, and detail work that tightens up the room",
+      "Shiplap, board and batten, and feature wall finish carpentry",
+      "Clean finished installs with tighter reveals and cleaner transitions",
+      "A strong upgrade path for builder-grade spaces that need more detail",
     ],
     processSteps: [
-      "Measure garage walls and confirm stud layout and floor clearance",
-      "Build cabinet boxes and shelf units in the shop",
-      "Install wall-mounted, level, and secure into framing",
+      "Review the room, profiles, wall conditions, and finish direction",
+      "Cut and prep the trim package or feature-wall layout for the exact site conditions",
+      "Install, tune joints and reveals, and hand off a cleaner finished room",
     ],
     faq: [
       {
-        question: "Can you build around garage doors and openers?",
-        answer: "Yes — we account for door tracks and opener clearance in the layout during the measure.",
-      },
-      {
-        question: "What finish options work in a garage environment?",
+        question: "Do you handle full trim packages or just one wall?",
         answer:
-          "Paint-grade melamine or a durable lacquer are the most common. We steer clear of raw MDF in garages due to humidity.",
+          "Both. Some projects are a full room package, and others are a single feature wall or targeted trim upgrade.",
       },
       {
-        question: "Do you do epoxy floors as well?",
-        answer: "No — we focus on the cabinetry and storage systems. Epoxy floors are a separate trade.",
+        question: "Is shiplap part of this category?",
+        answer:
+          "Yes. Shiplap, vertical shiplap, board and batten, and similar wall treatments all live under Trim & Finish.",
+      },
+      {
+        question: "Do you keep faux beams under trim?",
+        answer:
+          "No. Faux Beams is its own top-level category in this site structure.",
       },
     ],
-    relatedServices: ["built-ins", "custom-cabinetry"],
-    seoTitle: "Garage Storage Systems Las Vegas | Sublime Design NV",
+    relatedServices: ["media-walls", "faux-beams", "cabinets"],
+    seoTitle: "Trim & Finish Carpentry Las Vegas | Sublime Design NV",
     seoDescription:
-      "Custom garage storage systems with wall cabinets and shelving in Las Vegas, NV. Built and installed to last.",
-    ctaLabel: "Get a Garage Storage Quote",
-    sortOrder: 8,
-    aliases: [],
-    status: "coming-soon",
+      "Trim and finish carpentry in Las Vegas including baseboard, casing, crown, shiplap, wainscoting, and premium feature-wall installs.",
+    ctaLabel: "Get a Trim & Finish Quote",
+    sortOrder: 7,
+    aliases: ["trim-work"],
+    status: "active",
   },
 ];
 
-/** Active services in sort order */
-export const ACTIVE_SERVICES = SERVICE_LIST.filter((s) => s.status === "active");
+export const ACTIVE_SERVICES = SERVICE_LIST.filter((service) => service.status === "active");
 
-/** Top 4 primary services for homepage spotlight */
 export const HOMEPAGE_PRIMARY_SERVICES = ACTIVE_SERVICES.slice(0, 4);
 
-/** Secondary services shown as a compact link row on the homepage */
 export const HOMEPAGE_SECONDARY_SERVICES = ACTIVE_SERVICES.slice(4);
 
-export type CanonicalServiceSlug = ServiceDef["slug"];
+export const CANONICAL_SERVICE_SLUGS = ACTIVE_SERVICES.map((service) => service.slug);
 
-/**
- * Find a service by its canonical slug or any alias.
- * Returns the canonical ServiceDef in both cases.
- */
+export type CanonicalServiceSlug = (typeof CANONICAL_SERVICE_SLUGS)[number];
 export function findService(slug: string): ServiceDef | undefined {
-  return SERVICE_LIST.find((s) => s.slug === slug || s.aliases.includes(slug));
+  return SERVICE_LIST.find((service) => service.slug === slug || service.aliases.includes(slug));
 }
 
-/** Legacy single-lookup helper */
+export function findCanonicalService(slug: string): ServiceDef | undefined {
+  return ACTIVE_SERVICES.find((service) => service.slug === slug);
+}
+
 export function getServiceLookupSlugs(slug: string): string[] {
   const service = findService(slug);
   if (!service) return [slug];
@@ -468,7 +422,10 @@ export function getServiceMeta(slug: string): ServiceDef | null {
   return findService(slug) ?? null;
 }
 
-/** All slugs (canonical + aliases) that map to active services */
 export function getAllServiceSlugs(): string[] {
-  return SERVICE_LIST.flatMap((s) => [s.slug, ...s.aliases]);
+  return SERVICE_LIST.flatMap((service) => [service.slug, ...service.aliases]);
+}
+
+export function isCanonicalServiceSlug(slug: string): slug is CanonicalServiceSlug {
+  return CANONICAL_SERVICE_SLUGS.includes(slug as CanonicalServiceSlug);
 }
