@@ -91,6 +91,11 @@ export default function AssetUploader() {
         Upload images or videos directly to Cloudinary, then save metadata and tags to
         the portfolio database.
       </p>
+      <p className="font-ui mt-2 text-xs text-gray-mid">
+        Public service pages only show assets that are tagged to a canonical service and marked
+        published. Use &ldquo;Publish immediately&rdquo; here or turn publishing on in the asset list
+        below after upload.
+      </p>
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
         <label className="block">

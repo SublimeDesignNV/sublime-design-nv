@@ -15,6 +15,10 @@ export default async function AdminPage() {
         <p className="font-ui mt-3 text-sm text-gray-mid">
           Upload new files, tag by service type, and publish/unpublish assets.
         </p>
+        <p className="font-ui mt-2 text-xs text-gray-mid">
+          For public service-page proof, the fastest path is the asset uploader below: choose the
+          canonical service tag, upload the file, and confirm the asset is published in the table.
+        </p>
         <AdminNav />
 
         <div className="mt-8 space-y-6">

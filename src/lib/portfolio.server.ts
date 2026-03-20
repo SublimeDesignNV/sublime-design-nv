@@ -1,13 +1,13 @@
 import "server-only";
 import { getProjectImageAltBySlug, getServiceImageAlt } from "@/lib/imageAlt";
 import { findProject } from "@/content/projects";
+import { getServiceLookupSlugs } from "@/content/services";
 import type { CloudinaryAsset } from "@/lib/cloudinary.server";
 import { db } from "@/lib/db";
 import { listProjectAssets, listAssetsByServiceTag, getProjectBySlug } from "@/lib/cloudinary.server";
 import {
   getSeedPreviewAsset,
   getSeedImages,
-  getFirstSeedAssetFromServices,
 } from "@/lib/seedImages.server";
 import type { PortfolioTag, PublishedAsset } from "@/lib/portfolio.types";
 
@@ -73,6 +73,7 @@ export async function getPublishedAssetsByServiceSlug(
   }
 
   try {
+    const lookupSlugs = slug ? getServiceLookupSlugs(slug) : undefined;
     const assets = await db.asset.findMany({
       where: {
         published: true,
@@ -81,7 +82,9 @@ export async function getPublishedAssetsByServiceSlug(
               tags: {
                 some: {
                   serviceType: {
-                    slug,
+                    slug: {
+                      in: lookupSlugs,
+                    },
                   },
                 },
               },
@@ -147,8 +150,11 @@ export async function getHeroAsset(): Promise<HeroAsset | null> {
     }
   }
 
-  // Seed fallback — prefer floating-shelves, then built-ins
-  const seedHero = getFirstSeedAssetFromServices(["floating-shelves", "built-ins"]);
+  // Seed fallback — prefer the strongest visual categories first.
+  const seedHero =
+    getServiceSeedPreviewAsset("floating-shelves") ??
+    getServiceSeedPreviewAsset("media-walls") ??
+    getServiceSeedPreviewAsset("cabinets");
   if (seedHero) {
     return {
       secureUrl: seedHero.src,
@@ -170,6 +176,33 @@ export type ServicePreviewAsset = {
   source: AssetSource;
 };
 
+function getServiceSeedPreviewAsset(slug: string) {
+  for (const lookupSlug of getServiceLookupSlugs(slug)) {
+    const seed = getSeedPreviewAsset(lookupSlug);
+    if (seed) return seed;
+  }
+
+  return null;
+}
+
+function getServiceSeedImages(slug: string) {
+  for (const lookupSlug of getServiceLookupSlugs(slug)) {
+    const seedImages = getSeedImages(lookupSlug);
+    if (seedImages.length) return seedImages;
+  }
+
+  return [];
+}
+
+async function listAssetsByServiceLookup(slug: string, limit: number) {
+  for (const lookupSlug of getServiceLookupSlugs(slug)) {
+    const assets = await listAssetsByServiceTag(lookupSlug, limit).catch(() => []);
+    if (assets.length) return assets;
+  }
+
+  return [];
+}
+
 /**
  * Returns the best preview image for a service card.
  * Priority: Cloudinary service-tagged asset → seed image → null (text placeholder).
@@ -177,7 +210,21 @@ export type ServicePreviewAsset = {
 export async function getServiceCardPreviewAsset(
   slug: string,
 ): Promise<ServicePreviewAsset | null> {
-  const assets = await listAssetsByServiceTag(slug, 1).catch(() => []);
+  const publishedAssets = await getPublishedAssetsByServiceSlug(slug);
+  const publishedAsset = publishedAssets[0];
+
+  if (publishedAsset) {
+    return {
+      secureUrl: publishedAsset.secureUrl,
+      alt: getServiceImageAlt({
+        serviceSlug: slug,
+        explicitAlt: publishedAsset.alt,
+      }),
+      source: "cloudinary",
+    };
+  }
+
+  const assets = await listAssetsByServiceLookup(slug, 1);
   const asset = assets[0];
 
   if (asset?.secure_url) {
@@ -192,7 +239,7 @@ export async function getServiceCardPreviewAsset(
     };
   }
 
-  const seed = getSeedPreviewAsset(slug);
+  const seed = getServiceSeedPreviewAsset(slug);
   if (seed) {
     return {
       secureUrl: seed.src,
@@ -220,7 +267,20 @@ export type ServiceGalleryAsset = {
  * Priority: Cloudinary service-tagged assets → seed images → empty array.
  */
 export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsset[]> {
-  const assets = await listAssetsByServiceTag(slug, 50).catch(() => []);
+  const publishedAssets = await getPublishedAssetsByServiceSlug(slug);
+  if (publishedAssets.length) {
+    return publishedAssets.map((asset, index) => ({
+      secureUrl: asset.secureUrl,
+      alt: getServiceImageAlt({
+        serviceSlug: slug,
+        explicitAlt: asset.alt,
+      }),
+      isFeatured: index === 0,
+      source: "cloudinary" as const,
+    }));
+  }
+
+  const assets = await listAssetsByServiceLookup(slug, 50);
 
   if (assets.length) {
     return assets.map((asset) => ({
@@ -235,7 +295,7 @@ export async function getServiceAssets(slug: string): Promise<ServiceGalleryAsse
     }));
   }
 
-  const seedImages = getSeedImages(slug);
+  const seedImages = getServiceSeedImages(slug);
   return seedImages.map((img, index) => ({
     secureUrl: img.src,
     alt: getServiceImageAlt({
@@ -320,7 +380,7 @@ export async function getProjectImages(
   }
 
   // 2. Service-tagged Cloudinary assets
-  const serviceAssets = await listAssetsByServiceTag(serviceSlug, 6).catch(() => []);
+  const serviceAssets = await listAssetsByServiceLookup(serviceSlug, 6);
   if (serviceAssets.length) {
     return orderProjectAssetsByPreference(serviceAssets, projectSlug).map((asset, index) => ({
       publicId: asset.public_id,
@@ -399,12 +459,20 @@ export async function getHomepageFeaturedAssets(max = 6): Promise<ServicePreview
     if (result.length) return result;
   }
 
-  // Seed fallback — pull from primary services in order
-  const seedSlugOrder = ["floating-shelves", "built-ins", "custom-cabinetry", "mantels"];
+  // Seed fallback — pull from the primary canonical categories in order
+  const seedSlugOrder = [
+    "floating-shelves",
+    "media-walls",
+    "faux-beams",
+    "barn-doors",
+    "mantels",
+    "cabinets",
+    "trim",
+  ];
   const seedResult: ServicePreviewAsset[] = [];
 
   for (const slug of seedSlugOrder) {
-    const seed = getSeedPreviewAsset(slug);
+    const seed = getServiceSeedPreviewAsset(slug);
     if (seed) {
       seedResult.push({ secureUrl: seed.src, alt: seed.alt, source: "seed" });
     }
