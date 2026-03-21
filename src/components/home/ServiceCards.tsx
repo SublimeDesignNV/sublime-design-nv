@@ -21,9 +21,9 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
         width={800}
         height={520}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        crop="pad"
+        crop="fill"
         gravity="auto:subject"
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
       />
     );
   }
@@ -33,7 +33,7 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
       alt={preview.alt}
       fill
       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-      className="object-contain p-2 transition duration-500 group-hover:scale-105"
+      className="object-cover transition duration-500 group-hover:scale-105"
     />
   );
 }

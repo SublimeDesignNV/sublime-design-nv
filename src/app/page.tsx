@@ -145,9 +145,9 @@ export default async function HomePage() {
                           width={1400}
                           height={960}
                           sizes="(max-width: 1024px) 100vw, 60vw"
-                          crop="pad"
+                          crop="fill"
                           gravity="auto:subject"
-                          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                          className="h-full w-full object-cover"
                         />
                       ) : leadSpotlightProject.coverImageUrl ? (
                         <Image
@@ -155,7 +155,7 @@ export default async function HomePage() {
                           alt={leadSpotlightProject.title}
                           fill
                           sizes="(max-width: 1024px) 100vw, 60vw"
-                          className="object-contain p-2"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center px-6 text-center">

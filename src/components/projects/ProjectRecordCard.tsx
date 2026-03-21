@@ -32,9 +32,9 @@ function ProjectCover({ project }: { project: CanonicalProject }) {
         width={960}
         height={720}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        crop="pad"
+        crop="fill"
         gravity="auto:subject"
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
       />
     );
   }
@@ -46,7 +46,7 @@ function ProjectCover({ project }: { project: CanonicalProject }) {
         alt={project.title}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        className="object-contain p-2 transition duration-500 group-hover:scale-[1.02]"
+        className="object-cover transition duration-500 group-hover:scale-[1.02]"
       />
     );
   }
