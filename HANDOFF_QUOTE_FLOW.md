@@ -47,6 +47,39 @@ What changed in `src/app/api/quote/route.ts`
   - source context
   - attribution
 - User-provided values are escaped before being injected into HTML email markup.
+- Successful non-spam quote submissions now also trigger a customer auto-reply email.
+- The auto-reply is only attempted after:
+  - validation passes
+  - spam checks pass
+  - lead processing reaches the same success path as the internal notification email
+- Auto-reply failures are logged with `[quote-autoreply]` and do not break the successful quote submission response.
+- Recent public project links for the auto-reply are selected through the shared project data layer instead of ad hoc route logic.
+
+Auto-reply email behavior
+- Trigger conditions:
+  - valid submission
+  - not ignored as spam
+  - success path reached after the internal email send
+- No auto-reply is sent for:
+  - honeypot hits
+  - too-fast submissions
+  - validation failures
+- Subject used:
+  - `We got your quote request — Sublime Design NV`
+  - when service context is available, the service-aware variant is used:
+    - `We got your quote request for Barn Doors — Sublime Design NV`
+- HTML/text content structure:
+  - greeting
+  - confirmation paragraph
+  - compact context recap
+  - response expectation
+  - up to 3 recent public project links
+  - closing/signature
+- Recent-project selection rules:
+  - first try published public projects matching the submitted service slug
+  - fill remaining slots from featured/homepage-eligible public projects
+  - finally fall back to recent public projects
+  - omit the section entirely if no public project links are available
 
 What changed in `src/app/quote/page.tsx`
 - The page now uses shared quote defaults and validation types from `src/lib/quoteForm.ts`.
@@ -168,13 +201,51 @@ Scenario E: validation and anti-spam
 - Too-fast `startedAt` response:
   - `{"ok":true,"ignored":true}`
 
+Auto-reply verification
+
+Scenario A: direct quote submission
+- Submitted a normal direct quote locally.
+- API response:
+  - `{"ok":true,"leadId":"cmmzrqbq80000lwwms0mkw3cu"}`
+- Verified dev server logged:
+  - `[quote-autoreply] Customer auto-reply sent`
+- Verified the auto-reply path used:
+  - subject `We got your quote request for Cabinets — Sublime Design NV`
+  - confirmation + expectation copy
+  - recent project link selection through the shared public project helper
+
+Scenario B: service-context quote
+- Submitted a service-context quote from the barn doors path.
+- API response:
+  - `{"ok":true,"leadId":"cmmzrqeng0001lwwmwaurci60"}`
+- Verified the auto-reply success log fired for the submitted customer email.
+- Verified the logged subject exactly matched:
+  - `We got your quote request for Barn Doors — Sublime Design NV`
+- Verified the service recap path used the submitted service context.
+
+Scenario C: project-context quote
+- Submitted a project-context quote.
+- API response:
+  - `{"ok":true,"leadId":"cmmzrqgc40002lwwmu2ej48gf"}`
+- Verified the auto-reply success log fired for the submitted customer email.
+- Verified the auto-reply path included project inspiration context when `projectTitle` was present.
+
+Scenario D: spam path
+- Honeypot and too-fast submissions still returned:
+  - `{"ok":true,"ignored":true}`
+- Verified the route exited before the auto-reply send path, with no auto-reply success log after those requests.
+
+Scenario E: validation failure
+- Validation failures still returned structured validation errors.
+- Verified the route exited before the auto-reply send path.
+
 Build verification
 - `npm run build` passed.
 
-Focused files changed for this refactor
-- `src/lib/quoteForm.ts`
+Focused files changed for this auto-reply work
+- `src/lib/projectRecords.server.ts`
 - `src/app/api/quote/route.ts`
-- `src/app/quote/page.tsx`
+- `HANDOFF_QUOTE_FLOW.md`
 
 Commit
 - Message: pending

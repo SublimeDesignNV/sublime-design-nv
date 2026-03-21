@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { ACTIVE_SERVICES } from "@/content/services";
 import { saveLead } from "@/lib/leads";
+import { SITE } from "@/lib/constants";
+import { getRecentPublicProjectLinks } from "@/lib/projectRecords.server";
 import {
   buildQuoteSubject,
   getQuoteSpamSignals,
@@ -59,6 +61,122 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function getGreetingName(name: string) {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return /^[a-z][a-z'’-]*$/i.test(first) ? first : "";
+}
+
+function buildCustomerAutoReplySubject(service?: string) {
+  const label = service ? serviceLabel(service) : "";
+  return label && label !== "Other / Not sure"
+    ? `We got your quote request for ${label} — Sublime Design NV`
+    : "We got your quote request — Sublime Design NV";
+}
+
+type CustomerAutoReplyFields = {
+  name: string;
+  email: string;
+  service: string;
+  location: string;
+  projectTitle?: string;
+  recentProjects: { title: string; href: string }[];
+};
+
+function buildCustomerAutoReplyHtml(fields: CustomerAutoReplyFields) {
+  const greetingName = getGreetingName(fields.name);
+  const summaryRows = [
+    fields.service ? ["Project type", serviceLabel(fields.service)] : null,
+    fields.location ? ["Location", fields.location] : null,
+    fields.projectTitle ? ["Inspired by", fields.projectTitle] : null,
+  ].filter((row): row is [string, string] => Boolean(row));
+
+  const summaryHtml = summaryRows.length
+    ? `<div style="margin:20px 0 24px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;padding:14px 16px;">
+        ${summaryRows
+          .map(
+            ([label, value]) =>
+              `<p style="margin:0 0 8px;color:#374151;font-size:14px;"><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</p>`,
+          )
+          .join("")}
+      </div>`
+    : "";
+
+  const recentProjectsHtml = fields.recentProjects.length
+    ? `<div style="margin-top:24px;">
+        <p style="margin:0 0 10px;color:#111827;font-size:15px;font-weight:600;">While you wait, here are a few recent projects you can browse:</p>
+        <ul style="margin:0;padding-left:18px;color:#374151;">
+          ${fields.recentProjects
+            .map(
+              (project) =>
+                `<li style="margin:0 0 8px;"><a href="${escapeHtml(project.href)}" style="color:#b91c1c;text-decoration:none;">${escapeHtml(project.title)}</a></li>`,
+            )
+            .join("")}
+        </ul>
+      </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:620px;margin:32px auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;">
+    <div style="background:#b91c1c;padding:24px 28px;">
+      <p style="margin:0;color:rgba(255,255,255,0.82);font-size:12px;text-transform:uppercase;letter-spacing:0.1em;">Quote Request Received</p>
+      <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;font-weight:700;">We’ve got your request.</h1>
+    </div>
+    <div style="padding:28px;">
+      <p style="margin:0 0 14px;color:#111827;font-size:16px;">Hi ${escapeHtml(greetingName || "there")},</p>
+      <p style="margin:0 0 14px;color:#374151;font-size:15px;line-height:1.7;">
+        Thanks for reaching out to Sublime Design NV. We received your quote request and will review the details shortly.
+      </p>
+      ${summaryHtml}
+      <p style="margin:0;color:#374151;font-size:15px;line-height:1.7;">
+        A member of our team will follow up after reviewing your request. If you want to share more details or reference photos, you can reply to this email.
+      </p>
+      ${recentProjectsHtml}
+      <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e5e7eb;">
+        <p style="margin:0 0 6px;color:#111827;font-size:15px;font-weight:600;">Thanks again,</p>
+        <p style="margin:0;color:#374151;font-size:15px;">Sublime Design NV</p>
+        <p style="margin:8px 0 0;font-size:14px;"><a href="${escapeHtml(SITE.url)}" style="color:#b91c1c;text-decoration:none;">${escapeHtml(SITE.url)}</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function buildCustomerAutoReplyText(fields: CustomerAutoReplyFields) {
+  const greetingName = getGreetingName(fields.name);
+  const lines = [
+    `Hi ${greetingName || "there"},`,
+    "",
+    "Thanks for reaching out to Sublime Design NV. We received your quote request and will review the details shortly.",
+    "",
+  ];
+
+  if (fields.service) lines.push(`Project type: ${serviceLabel(fields.service)}`);
+  if (fields.location) lines.push(`Location: ${fields.location}`);
+  if (fields.projectTitle) lines.push(`Inspired by: ${fields.projectTitle}`);
+
+  if (fields.service || fields.location || fields.projectTitle) {
+    lines.push("");
+  }
+
+  lines.push(
+    "A member of our team will follow up after reviewing your request. If you want to share more details or reference photos, you can reply to this email.",
+  );
+
+  if (fields.recentProjects.length) {
+    lines.push("", "While you wait, here are a few recent projects you can browse:");
+    for (const project of fields.recentProjects) {
+      lines.push(`- ${project.title}: ${project.href}`);
+    }
+  }
+
+  lines.push("", "Thanks again,", "Sublime Design NV", SITE.url);
+  return lines.join("\n");
 }
 
 // ─── Email HTML builder ───────────────────────────────────────────────────────
@@ -379,6 +497,54 @@ export async function POST(request: Request) {
         { ok: false, error: { type: "server", message: "Email send failed. Please call us directly." } },
         { status: 500 },
       );
+    }
+
+    try {
+      const recentProjects = (await getRecentPublicProjectLinks({
+        serviceSlug: fields.service !== "other" ? fields.service : undefined,
+        limit: 3,
+      })).map((project) => ({
+        title: project.title,
+        href: project.href,
+      }));
+      const autoReplySubject = buildCustomerAutoReplySubject(fields.service);
+
+      const autoReplyFields = {
+        name: fields.name,
+        email: fields.email,
+        service: fields.service,
+        location: fields.location,
+        projectTitle: normalized.projectTitle,
+        recentProjects,
+      };
+
+      const { error: autoReplyError } = await resend.emails.send({
+        from,
+        to: fields.email,
+        subject: autoReplySubject,
+        html: buildCustomerAutoReplyHtml(autoReplyFields),
+        text: buildCustomerAutoReplyText(autoReplyFields),
+      });
+
+      if (autoReplyError) {
+        console.error("[quote-autoreply] Failed to send customer auto-reply", {
+          leadId,
+          email: fields.email,
+          error: autoReplyError,
+        });
+      } else {
+        console.info("[quote-autoreply] Customer auto-reply sent", {
+          leadId,
+          email: fields.email,
+          subject: autoReplySubject,
+        });
+      }
+    } catch (autoReplyError) {
+      console.error("[quote-autoreply] Failed to send customer auto-reply", {
+        leadId,
+        email: fields.email,
+        error: autoReplyError,
+      });
     }
 
     return NextResponse.json({ ok: true, leadId }, { status: 200 });

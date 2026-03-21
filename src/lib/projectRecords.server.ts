@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma, ProjectStatus } from "@prisma/client";
 import { findArea } from "@/content/areas";
 import { findService } from "@/content/services";
+import { SITE } from "@/lib/constants";
 import { buildCanonicalAssetFields, getAssetTagBuckets } from "@/lib/assetContract";
 import { db } from "@/lib/db";
 import type { PortfolioTag } from "@/lib/portfolio.types";
@@ -138,6 +139,14 @@ export type RecentPublishingAction = {
   homepageSpotlight: boolean;
   updatedAt: string;
   diagnosis: ProjectVisibilityDiagnosis;
+};
+
+export type PublicProjectLink = {
+  title: string;
+  slug: string;
+  href: string;
+  serviceSlug: string | null;
+  serviceLabel: string | null;
 };
 
 export type ProjectPublicCta = {
@@ -813,6 +822,44 @@ export async function getHomepageFeaturedProjects(
       ...project,
       diagnosis: getProjectDiagnosis(project, { homepage: true }),
     }));
+}
+
+export async function getRecentPublicProjectLinks(options?: {
+  serviceSlug?: string;
+  limit?: number;
+}): Promise<PublicProjectLink[]> {
+  const limit = options?.limit ?? 3;
+  const links: PublicProjectLink[] = [];
+  const seen = new Set<string>();
+
+  const pushProjects = (projects: CanonicalProject[]) => {
+    for (const project of projects) {
+      if (seen.has(project.slug)) continue;
+      seen.add(project.slug);
+      links.push({
+        title: project.title,
+        slug: project.slug,
+        href: `${SITE.url}/projects/${project.slug}`,
+        serviceSlug: project.serviceSlug,
+        serviceLabel: project.serviceLabel,
+      });
+      if (links.length >= limit) break;
+    }
+  };
+
+  if (options?.serviceSlug) {
+    pushProjects(await listPublicProjects({ serviceSlug: options.serviceSlug, limit }));
+  }
+
+  if (links.length < limit) {
+    pushProjects(await getHomepageFeaturedProjects(limit, { excludeSlugs: Array.from(seen) }));
+  }
+
+  if (links.length < limit) {
+    pushProjects(await listPublicProjects({ limit }));
+  }
+
+  return links.slice(0, limit);
 }
 
 function mapOrphanAsset(asset: DbOrphanAsset) {
