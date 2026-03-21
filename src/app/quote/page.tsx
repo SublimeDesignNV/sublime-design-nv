@@ -48,12 +48,31 @@ type PhotoState = {
   errorMsg?: string;
 };
 
+type QuoteSuccessProject = {
+  title: string;
+  href: string;
+  serviceLabel?: string | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function serviceSuccessCopy(slug: string): string {
   const service = findService(slug);
   if (!service) return "We'll review your request and reach out shortly with next steps.";
   return `We'll review your ${service.shortTitle.toLowerCase()} request and reach out shortly with next steps.`;
+}
+
+function getSuccessRecap(form: QuoteFormFields, context: QuotePrefillContext) {
+  if (context.projectTitle) {
+    return `We received your request inspired by ${context.projectTitle}.`;
+  }
+
+  const service = findService(form.service || context.serviceSlug || "");
+  if (service) {
+    return `We received your request about ${service.shortTitle}.`;
+  }
+
+  return "We received your request and queued it for review.";
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -206,34 +225,114 @@ function PhotoUploadSection({
 
 // ─── Success state ────────────────────────────────────────────────────────────
 
-function SuccessState({ service, context }: { service: string; context: QuotePrefillContext }) {
+function SuccessState({
+  service,
+  context,
+  projects,
+}: {
+  service: string;
+  context: QuotePrefillContext;
+  projects: QuoteSuccessProject[];
+}) {
   const visibleContext = getQuoteVisibleContext(context);
+  const recap = getSuccessRecap({ ...QUOTE_DEFAULT_FORM, service }, context);
+
   return (
-    <div className="rounded-xl border border-green-200 bg-green-50 p-8 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-        <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-green-200 bg-white p-8 shadow-sm">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div className="text-center">
+          <p className="font-ui text-xs uppercase tracking-[0.18em] text-green-700">Quote Request Received</p>
+          <h2 className="mt-3 text-2xl font-semibold text-charcoal md:text-3xl">
+            Thanks. Your request is in.
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-gray-mid">
+            {serviceSuccessCopy(service)}
+          </p>
+          <p className="mt-3 text-sm font-medium text-charcoal">{recap}</p>
+          {visibleContext.summary && visibleContext.summary !== recap ? (
+            <p className="mt-2 text-sm text-gray-mid">{visibleContext.summary}</p>
+          ) : null}
+          <p className="mt-2 text-sm text-gray-mid">
+            Expect a response within one business day. We’ll review your details and follow up by phone or email if we need measurements, photos, or scheduling info.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-cream p-5 md:grid-cols-3">
+          <div>
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">What Happens Next</p>
+            <p className="mt-2 text-sm text-gray-mid">
+              We review your service, location, and scope before replying with the right next step.
+            </p>
+          </div>
+          <div>
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">While You Wait</p>
+            <p className="mt-2 text-sm text-gray-mid">
+              Keep browsing recent work or compare services to refine the look and scope you want.
+            </p>
+          </div>
+          <div>
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">Need to Add Something?</p>
+            <p className="mt-2 text-sm text-gray-mid">
+              If you remember more details later, submit another request or reply to the confirmation email.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="font-ui inline-flex items-center rounded-sm bg-red px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:opacity-90"
+          >
+            Back to Home
+          </Link>
+          <Link
+            href="/projects"
+            className="font-ui inline-flex items-center rounded-sm border border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition hover:border-red hover:text-red"
+          >
+            View Projects
+          </Link>
+          <Link
+            href="/services"
+            className="font-ui inline-flex items-center rounded-sm border border-gray-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-charcoal transition hover:border-red hover:text-red"
+          >
+            Browse Services
+          </Link>
+        </div>
       </div>
-      <h2 className="text-xl font-semibold text-charcoal">Request received — thank you!</h2>
-      <p className="mx-auto mt-3 max-w-sm text-sm text-gray-mid">
-        {serviceSuccessCopy(service)}
-      </p>
-      <p className="mt-2 text-sm text-gray-mid">
-        Expect a response within one business day. We may call or email to confirm a few details.
-      </p>
-      {visibleContext.summary ? <p className="mt-2 text-sm text-gray-mid">{visibleContext.summary}</p> : null}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-        <Link href="/quote" className="font-ui text-sm font-semibold text-charcoal hover:underline">
-          Start another request
-        </Link>
-        <Link href="/projects" className="font-ui text-sm font-semibold text-red hover:underline">
-          Browse our work →
-        </Link>
-        <Link href="/services" className="font-ui text-sm font-semibold text-navy hover:underline">
-          View all services →
-        </Link>
-      </div>
+
+      {projects.length > 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-ui text-xs uppercase tracking-[0.18em] text-red">Recent Work</p>
+              <h3 className="mt-2 text-xl text-charcoal">A few projects to explore while you wait</h3>
+            </div>
+            <Link href="/projects" className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-red hover:underline">
+              All Projects
+            </Link>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-3">
+            {projects.map((project) => (
+              <Link
+                key={project.href}
+                href={project.href}
+                className="rounded-xl border border-gray-200 bg-cream p-4 transition hover:-translate-y-0.5 hover:border-red hover:bg-white"
+              >
+                <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">
+                  {project.serviceLabel || "Project"}
+                </p>
+                <p className="mt-2 text-sm font-medium leading-6 text-charcoal">{project.title}</p>
+                <p className="mt-3 font-ui text-[10px] uppercase tracking-[0.16em] text-red">View Project</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -287,6 +386,7 @@ export default function QuotePage() {
     location: "",
     ctaLabel: "",
   });
+  const [successProjects, setSuccessProjects] = useState<QuoteSuccessProject[]>([]);
 
   useEffect(() => {
     setUtm(captureUtm());
@@ -299,6 +399,29 @@ export default function QuotePage() {
     setQuoteContext(context);
     setForm((prev) => applyQuotePrefillToForm(prev, context));
   }, []);
+
+  useEffect(() => {
+    if (submitStatus !== "success") return;
+
+    let cancelled = false;
+    const service = form.service || quoteContext.serviceSlug || "";
+    const params = new URLSearchParams();
+    if (service) params.set("service", service);
+
+    fetch(`/api/quote/relevant-projects?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = (await response.json()) as { ok?: boolean; projects?: QuoteSuccessProject[] };
+        if (!response.ok || !data.ok || !Array.isArray(data.projects) || cancelled) return;
+        setSuccessProjects(data.projects);
+      })
+      .catch(() => {
+        if (!cancelled) setSuccessProjects([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [submitStatus, form.service, quoteContext.serviceSlug]);
 
   const uploadsEnabled = Boolean(
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
@@ -489,6 +612,7 @@ export default function QuotePage() {
         area_slug: quoteContext.areaSlug || undefined,
       });
 
+      setSuccessProjects([]);
       setSubmitStatus("success");
     } catch (err) {
       setSubmitStatus("error");
@@ -503,8 +627,8 @@ export default function QuotePage() {
   if (submitStatus === "success") {
     return (
       <main className="bg-cream pt-28 pb-20">
-        <div className="mx-auto max-w-2xl px-4 md:px-8">
-          <SuccessState service={form.service} context={quoteContext} />
+        <div className="mx-auto max-w-4xl px-4 md:px-8">
+          <SuccessState service={form.service} context={quoteContext} projects={successProjects} />
         </div>
       </main>
     );

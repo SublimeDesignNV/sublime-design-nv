@@ -93,7 +93,29 @@ What changed in `src/app/quote/page.tsx`
   - clearer helper copy
   - message character count
   - more useful success state with follow-up links
+  - richer post-submit confirmation UI
 - The page now reads structured API validation errors and maps field errors back into the form UI.
+- The success state now includes:
+  - `Thanks. Your request is in.`
+  - response timing language aligned with the auto-reply email
+  - context-aware recap when valid
+  - home / projects / services navigation
+  - relevant published project links when available
+
+Quote success-state behavior
+- The post-submit state now explains:
+  - the request was received
+  - the team will review the details
+  - the customer should expect a response within one business day
+- Context recap behavior:
+  - project title takes priority when present
+  - otherwise the submitted service is used
+  - direct quote submissions fall back to generic confirmation wording
+- Relevant project links:
+  - fetched from `GET /api/quote/relevant-projects`
+  - prefer service-matched public projects when possible
+  - otherwise fall back to recent public projects
+  - the whole section is omitted when the returned list is empty
 
 Validation rules
 - Required:
@@ -239,12 +261,62 @@ Scenario E: validation failure
 - Validation failures still returned structured validation errors.
 - Verified the route exited before the auto-reply send path.
 
+Quote success-state verification
+
+Scenario A: direct quote success
+- Verified direct `/quote` still returned the form page with:
+  - `Tell Us About Your Project`
+  - no success headline in the initial HTML
+  - no empty context block in the initial HTML
+- Submitted a new direct quote successfully:
+  - `{"ok":true,"leadId":"cmmzt6kn50000lwkui0cyfnce"}`
+- Verified auto-reply still sent from the success path.
+- The direct success state now presents:
+  - `Thanks. Your request is in.`
+  - generic confirmation with no awkward missing context
+  - links to home, projects, and services
+
+Scenario B: service-context success
+- Submitted a new service-context quote successfully:
+  - `{"ok":true,"leadId":"cmmzt6mzj0001lwkud56ge9pk"}`
+- Verified auto-reply still sent from the success path.
+- Verified `GET /api/quote/relevant-projects?service=barn-doors` returned:
+  - `{"ok":true,"projects":[{"title":"Workflow Verification Summerlin Laundry Cabinets","href":"/projects/workflow-verification-summerlin-laundry-cabinets","serviceLabel":"Cabinets"}]}`
+- The success-state service recap path uses the submitted service when valid.
+
+Scenario C: project-context success
+- Submitted a new project-context quote successfully:
+  - `{"ok":true,"leadId":"cmmzt6oq80002lwkuk0y4cpya"}`
+- Verified auto-reply still sent from the success path.
+- The success-state recap path now prefers:
+  - `We received your request inspired by Workflow Verification Summerlin Laundry Cabinets.`
+- Navigation and relevant project links remain available below the confirmation.
+
+Scenario D: no relevant projects available
+- Current local published content returns at least one project for both service-specific and fallback project-link requests.
+- Verified `GET /api/quote/relevant-projects?service=other` still returned a safe fallback public project list.
+- Verified the UI omits the project-link section entirely when `projects.length === 0` in the success-state component.
+- Because the local dataset currently has at least one public project, this omission path was verified from the implemented conditional rather than an observed zero-project response.
+
+Scenario E: regression check
+- Spam path still returned:
+  - `{"ok":true,"ignored":true}`
+- Validation path still returned:
+  - `{"ok":false,"error":{"type":"validation",...}}`
+- Dev server logs after those requests showed no auto-reply success log.
+- Direct, service, and project success submissions all still:
+  - created leads
+  - returned successful quote responses
+  - triggered auto-reply success logs
+
 Build verification
 - `npm run build` passed.
 
-Focused files changed for this auto-reply work
+Focused files changed for quote success + auto-reply work
 - `src/lib/projectRecords.server.ts`
 - `src/app/api/quote/route.ts`
+- `src/app/api/quote/relevant-projects/route.ts`
+- `src/app/quote/page.tsx`
 - `HANDOFF_QUOTE_FLOW.md`
 
 Commit
