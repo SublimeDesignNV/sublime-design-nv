@@ -1,4 +1,4 @@
-import { LeadStatus, Prisma } from "@prisma/client";
+import { LeadClassification, LeadStatus, Prisma } from "@prisma/client";
 
 export type LeadInput = {
   name: string;
@@ -19,6 +19,7 @@ export type LeadInput = {
   utmMedium?: string;
   utmCampaign?: string;
   referrer?: string;
+  classification?: LeadClassification;
 };
 
 export type LeadRecord = {
@@ -35,6 +36,7 @@ export type LeadRecord = {
   message: string;
   photoUrls: string[];
   status: LeadStatus;
+  classification: LeadClassification;
   sourceType?: string;
   sourcePath?: string;
   projectTitle?: string;
@@ -56,6 +58,7 @@ export type LeadRecord = {
 export type LeadFilters = {
   q?: string;
   status?: LeadStatus | "ACTIVE" | "ALL";
+  classification?: LeadClassification;
   sourceType?: string;
   service?: string;
   timeframe?: "today" | "week";
@@ -78,6 +81,33 @@ export type LeadSummary = {
 
 export const LEAD_STALE_DAYS = 2;
 
+export const LEAD_CLASSIFICATION_OPTIONS: Array<{
+  value: LeadClassification;
+  label: string;
+}> = [
+  { value: LeadClassification.QUOTE_REQUEST, label: "Quote Request" },
+  { value: LeadClassification.PROJECT_LEAD, label: "Project Lead" },
+  { value: LeadClassification.SERVICE_INQUIRY, label: "Service Inquiry" },
+  { value: LeadClassification.GENERAL_QUESTION, label: "General Question" },
+  { value: LeadClassification.FOLLOW_UP, label: "Follow Up" },
+  { value: LeadClassification.SPAM, label: "Spam" },
+  { value: LeadClassification.OTHER, label: "Other" },
+];
+
+export function getLeadClassificationLabel(value: LeadClassification) {
+  return LEAD_CLASSIFICATION_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
+export function inferLeadClassification(input: Pick<LeadInput, "sourceType" | "projectSlug" | "service">) {
+  if (input.projectSlug || input.sourceType === "project-page" || input.sourceType === "projects-card") {
+    return LeadClassification.PROJECT_LEAD;
+  }
+  if (input.service && input.service !== "other") {
+    return LeadClassification.SERVICE_INQUIRY;
+  }
+  return LeadClassification.QUOTE_REQUEST;
+}
+
 function mapLead(row: {
   id: string;
   createdAt: Date;
@@ -92,6 +122,7 @@ function mapLead(row: {
   message: string;
   photoUrls: string[];
   status: LeadStatus;
+  classification: LeadClassification;
   sourceType: string | null;
   sourcePath: string | null;
   projectTitle: string | null;
@@ -121,6 +152,7 @@ function mapLead(row: {
     message: row.message,
     photoUrls: row.photoUrls,
     status: row.status,
+    classification: row.classification,
     sourceType: row.sourceType ?? undefined,
     sourcePath: row.sourcePath ?? undefined,
     projectTitle: row.projectTitle ?? undefined,
@@ -189,6 +221,7 @@ export async function saveLead(input: LeadInput): Promise<string | null> {
         message: input.message,
         photoUrls: input.photoUrls,
         status: LeadStatus.NEW,
+        classification: input.classification ?? inferLeadClassification(input),
         sourceType: input.sourceType ?? null,
         sourcePath: input.sourcePath ?? null,
         projectTitle: input.projectTitle ?? null,
@@ -224,6 +257,9 @@ export async function listLeads(filters: LeadFilters = {}) {
   }
   if (filters.sourceType) {
     and.push({ sourceType: filters.sourceType });
+  }
+  if (filters.classification) {
+    and.push({ classification: filters.classification });
   }
   if (filters.service) {
     and.push({ service: filters.service });
@@ -278,7 +314,14 @@ export async function updateLead(
   id: string,
   updates: {
     status?: LeadStatus;
+    classification?: LeadClassification;
     internalNotes?: string | null;
+    name?: string;
+    email?: string;
+    phone?: string;
+    service?: string;
+    location?: string;
+    message?: string;
     contactedVia?: string | null;
     lastContactedAt?: Date | null;
     followUpAt?: Date | null;
@@ -291,6 +334,13 @@ export async function updateLead(
     where: { id },
     data: {
       status: updates.status,
+      classification: updates.classification,
+      name: updates.name,
+      email: updates.email,
+      phone: updates.phone,
+      service: updates.service,
+      location: updates.location,
+      message: updates.message,
       internalNotes: updates.internalNotes,
       archivedAt:
         updates.status === LeadStatus.ARCHIVED
@@ -310,6 +360,18 @@ export async function updateLead(
   });
 
   return mapLead(row);
+}
+
+export async function deleteLead(id: string) {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    await db.lead.delete({ where: { id } });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function getLeadSummary(): Promise<LeadSummary> {

@@ -154,6 +154,44 @@ export type ProjectPublicCta = {
   href: string;
 };
 
+const PUBLIC_PROJECT_COPY_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\bworkflow verification\b/gi, ""],
+  [/\bproduction verification\b/gi, ""],
+  [/\borphaned uploaded assets?\b/gi, "recent project photos"],
+  [/\bexplicit project linkage\b/gi, "careful project planning"],
+  [/\bordered gallery rendering\b/gi, "a polished photo story"],
+  [/\bdeterministic gallery order\b/gi, "a clean photo sequence"],
+  [/\bproject-level cover selection\b/gi, "a lead project image"],
+  [/\blinked assets?\b/gi, "project photos"],
+];
+
+function cleanPublicProjectCopy(value: string | null | undefined) {
+  if (!value) return "";
+  const cleaned = PUBLIC_PROJECT_COPY_REPLACEMENTS.reduce(
+    (current, [pattern, replacement]) => current.replace(pattern, replacement),
+    value,
+  )
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+
+  return cleaned;
+}
+
+export function getPublicProjectTitle(project: Pick<CanonicalProject, "title">) {
+  const cleaned = cleanPublicProjectCopy(project.title).replace(/^[\W_]+|[\W_]+$/g, "").trim();
+  return cleaned || "Featured Project";
+}
+
+export function getPublicProjectDescription(project: Pick<CanonicalProject, "description">) {
+  return cleanPublicProjectCopy(project.description);
+}
+
+export function getPublicProjectEyebrow(project: Pick<CanonicalProject, "featuredReason">) {
+  const cleaned = cleanPublicProjectCopy(project.featuredReason);
+  return cleaned || null;
+}
+
 const PROJECT_ASSET_SELECT = {
   position: true,
   asset: {
@@ -376,8 +414,8 @@ export function getProjectExcerpt(
   maxLength = 160,
 ) {
   const source =
-    project.description?.trim() ||
-    `${project.assetCount} linked project image${project.assetCount === 1 ? "" : "s"}.`;
+    getPublicProjectDescription(project)?.trim() ||
+    `A recent project with ${project.assetCount} finished photo${project.assetCount === 1 ? "" : "s"}.`;
   if (source.length <= maxLength) return source;
   return `${source.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
@@ -837,7 +875,7 @@ export async function getRecentPublicProjectLinks(options?: {
       if (seen.has(project.slug)) continue;
       seen.add(project.slug);
       links.push({
-        title: project.title,
+        title: getPublicProjectTitle(project),
         slug: project.slug,
         href: `${SITE.url}/projects/${project.slug}`,
         serviceSlug: project.serviceSlug,
@@ -981,7 +1019,7 @@ export async function listUploadBatchSummaries(options?: {
       draftAssetCount,
       serviceSlugs: Array.from(new Set(mapped.map((asset) => asset.primaryServiceSlug).filter(Boolean))) as string[],
       status,
-      thumbnails: mapped.map((asset) => asset.thumbnailUrl || asset.imageUrl || "").filter(Boolean).slice(0, 4),
+      thumbnails: mapped.map((asset) => asset.imageUrl || asset.thumbnailUrl || "").filter(Boolean).slice(0, 4),
       assetIds: mapped.map((asset) => asset.id),
       projectIds: Array.from(projectMap.keys()),
       projectSlugs: Array.from(projectMap.values()).map((project) => project.slug),

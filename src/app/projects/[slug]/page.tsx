@@ -20,6 +20,9 @@ import { getProjectCardPreviewAsset, getProjectImages } from "@/lib/portfolio.se
 import type { ProjectImageAsset } from "@/lib/portfolio.server";
 import {
   getProjectExcerpt,
+  getPublicProjectDescription,
+  getPublicProjectEyebrow,
+  getPublicProjectTitle,
   getProjectQuoteHref,
   getProjectRecordBySlug,
   getValidatedProjectPrimaryCta,
@@ -38,18 +41,19 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const linkedProject = await getProjectRecordBySlug(params.slug);
   if (linkedProject && linkedProject.published && linkedProject.diagnosis === "renderable_project") {
+    const publicTitle = getPublicProjectTitle(linkedProject);
     return {
-      title: `${linkedProject.title} | Sublime Design NV`,
+      title: `${publicTitle} | Sublime Design NV`,
       description: getProjectExcerpt(linkedProject, 155),
       alternates: {
         canonical: buildFacetCanonical(`/projects/${linkedProject.slug}`),
       },
       openGraph: {
-        title: `${linkedProject.title} | Sublime Design NV`,
+        title: `${publicTitle} | Sublime Design NV`,
         description: getProjectExcerpt(linkedProject, 155),
         url: buildFacetCanonical(`/projects/${linkedProject.slug}`),
         images: linkedProject.coverImageUrl
-          ? [{ url: linkedProject.coverImageUrl, alt: linkedProject.title }]
+          ? [{ url: linkedProject.coverImageUrl, alt: publicTitle }]
           : undefined,
       },
     };
@@ -249,13 +253,16 @@ function ProjectStructuredData({
 export default async function ProjectDetailPage({ params }: Props) {
   const linkedProject = await getProjectRecordBySlug(params.slug);
   if (linkedProject && linkedProject.published && linkedProject.diagnosis === "renderable_project") {
+    const publicTitle = getPublicProjectTitle(linkedProject);
+    const publicDescription = getPublicProjectDescription(linkedProject);
+    const publicEyebrow = getPublicProjectEyebrow(linkedProject);
     const images: ProjectImageAsset[] = linkedProject.assets
       .filter((asset) => asset.published && asset.renderable && asset.imageUrl)
       .map((asset) => ({
         publicId: asset.publicId ?? undefined,
         imageUrl: asset.imageUrl ?? "",
         secureUrl: asset.secureUrl ?? asset.imageUrl ?? "",
-        alt: asset.title || linkedProject.title,
+        alt: asset.title || publicTitle,
         source: asset.publicId ? "cloudinary" : "seed",
         caption: asset.location ?? undefined,
       }));
@@ -279,16 +286,16 @@ export default async function ProjectDetailPage({ params }: Props) {
       ctaLabel: customCta?.label ?? "Start Your Project",
     });
     const summaryCopy =
-      linkedProject.description?.trim() ||
-      "This published project page is driven by explicit linked assets, deterministic gallery order, and project-level cover selection.";
+      publicDescription ||
+      "A finished custom project designed for the space, photographed to show the details, layout, and final fit.";
 
     return (
       <main className="bg-white pb-24 pt-24">
         <LocalBusinessSchema />
         <ProjectStructuredData
           slug={linkedProject.slug}
-          title={linkedProject.title}
-          description={linkedProject.description ?? linkedProject.title}
+          title={publicTitle}
+          description={publicDescription || publicTitle}
           city={linkedProject.areaLabel ?? linkedProject.location ?? "Las Vegas Valley"}
           state="NV"
           images={images}
@@ -299,16 +306,16 @@ export default async function ProjectDetailPage({ params }: Props) {
             crumbs={[
               { label: "Home", href: "/" },
               { label: "Projects", href: "/projects" },
-              { label: linkedProject.title, href: `/projects/${linkedProject.slug}` },
+              { label: publicTitle, href: `/projects/${linkedProject.slug}` },
             ]}
           />
-          <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Published Project</p>
-          {linkedProject.featuredReason ? (
+          <p className="font-ui text-sm uppercase tracking-[0.18em] text-red">Featured Work</p>
+          {publicEyebrow ? (
             <p className="mt-3 font-ui text-xs uppercase tracking-[0.18em] text-red">
-              {linkedProject.featuredReason}
+              {publicEyebrow}
             </p>
           ) : null}
-          <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{linkedProject.title}</h1>
+          <h1 className="mt-3 text-4xl text-charcoal md:text-5xl">{publicTitle}</h1>
           <p className="mt-3 max-w-3xl text-base text-gray-mid">{summaryCopy}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {linkedProject.featured ? (
@@ -387,7 +394,7 @@ export default async function ProjectDetailPage({ params }: Props) {
               <p className="font-ui text-xs uppercase tracking-widest text-red">Project Story</p>
               <p className="mt-4 text-base leading-7 text-charcoal/85">{summaryCopy}</p>
               <p className="mt-4 text-sm leading-6 text-gray-mid">
-                The gallery below follows the exact linked asset order saved in admin, so the public project story stays consistent with the published project record.
+                The gallery below offers a closer look at the finishes, fit, and details that define the completed space.
               </p>
             </article>
             <aside className="rounded-xl border border-gray-200 bg-cream p-6">
@@ -427,10 +434,10 @@ export default async function ProjectDetailPage({ params }: Props) {
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="font-ui text-xs uppercase tracking-widest text-red">Gallery</p>
-                <h2 className="mt-2 text-3xl text-charcoal">Ordered Project Gallery</h2>
+                <h2 className="mt-2 text-3xl text-charcoal">Project Gallery</h2>
               </div>
               <p className="max-w-xl text-sm text-gray-mid">
-                The lead image sets the story. The remaining linked assets follow in the saved public order without ad hoc reshuffling.
+                A look through the finished project photos, from the overall space to the finer details.
               </p>
             </div>
             <div className="mt-6">

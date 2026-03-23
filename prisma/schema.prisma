@@ -123,6 +123,7 @@ model Lead {
   message         String
   photoUrls       String[]
   status          LeadStatus @default(NEW)
+  classification  LeadClassification @default(QUOTE_REQUEST)
   sourceType      String?
   sourcePath      String?
   projectTitle    String?
@@ -144,4 +145,14 @@ enum LeadStatus {
   REVIEWED
   CONTACTED
   ARCHIVED
+}
+
+enum LeadClassification {
+  QUOTE_REQUEST
+  PROJECT_LEAD
+  SERVICE_INQUIRY
+  GENERAL_QUESTION
+  FOLLOW_UP
+  SPAM
+  OTHER
 }

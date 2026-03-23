@@ -20,6 +20,8 @@ import {
   getHomepageFeaturedProjects,
   getHomepageSpotlightProjects,
   getProjectExcerpt,
+  getPublicProjectEyebrow,
+  getPublicProjectTitle,
   getProjectQuoteHref,
   getValidatedProjectPrimaryCta,
 } from "@/lib/projectRecords.server";
@@ -141,7 +143,7 @@ export default async function HomePage() {
                       {leadSpotlightProject.coverPublicId ? (
                         <CloudinaryImage
                           src={leadSpotlightProject.coverPublicId}
-                          alt={leadSpotlightProject.title}
+                          alt={getPublicProjectTitle(leadSpotlightProject)}
                           width={1400}
                           height={960}
                           sizes="(max-width: 1024px) 100vw, 60vw"
@@ -152,7 +154,7 @@ export default async function HomePage() {
                       ) : leadSpotlightProject.coverImageUrl ? (
                         <Image
                           src={leadSpotlightProject.coverImageUrl}
-                          alt={leadSpotlightProject.title}
+                          alt={getPublicProjectTitle(leadSpotlightProject)}
                           fill
                           sizes="(max-width: 1024px) 100vw, 60vw"
                           className="object-cover"
@@ -168,10 +170,10 @@ export default async function HomePage() {
                     <div className="flex flex-col justify-between border-t border-gray-200 p-6 lg:border-l lg:border-t-0">
                       <div>
                         <p className="font-ui text-xs uppercase tracking-[0.18em] text-red">
-                          {leadSpotlightProject.featuredReason || "Homepage Spotlight"}
+                          {getPublicProjectEyebrow(leadSpotlightProject) || "Homepage Spotlight"}
                         </p>
                         <h3 className="mt-3 text-3xl text-charcoal">
-                          {leadSpotlightProject.title}
+                          {getPublicProjectTitle(leadSpotlightProject)}
                         </h3>
                         <div className="mt-4 flex flex-wrap gap-2">
                           {leadSpotlightProject.serviceLabel ? (
@@ -223,7 +225,7 @@ export default async function HomePage() {
           </div>
           {homepageProjectsMode === "db" && leadSpotlightProject ? (
             <p className="mt-6 max-w-3xl text-sm text-gray-mid">
-              Homepage spotlight and featured work now read from explicit published project records with deterministic cover images, curated ordering, and project-level CTA metadata.
+              Browse recent finished work, then jump into a quote when you are ready to talk through your own project.
             </p>
           ) : null}
         </div>

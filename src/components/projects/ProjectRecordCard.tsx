@@ -3,6 +3,8 @@ import TrackedLink from "@/components/analytics/TrackedLink";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import {
   getProjectExcerpt,
+  getPublicProjectEyebrow,
+  getPublicProjectTitle,
   getProjectQuoteHref,
   getValidatedProjectPrimaryCta,
   type CanonicalProject,
@@ -24,11 +26,12 @@ function clampStyle(lines: number) {
 }
 
 function ProjectCover({ project }: { project: CanonicalProject }) {
+  const title = getPublicProjectTitle(project);
   if (project.coverPublicId) {
     return (
       <CloudinaryImage
         src={project.coverPublicId}
-        alt={project.title}
+        alt={title}
         width={960}
         height={720}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -43,7 +46,7 @@ function ProjectCover({ project }: { project: CanonicalProject }) {
     return (
       <Image
         src={project.coverImageUrl}
-        alt={project.title}
+        alt={title}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className="object-cover transition duration-500 group-hover:scale-[1.02]"
@@ -92,6 +95,8 @@ export default function ProjectRecordCard({
   pageType = "projects",
   sourceSlug,
 }: ProjectRecordCardProps) {
+  const publicTitle = getPublicProjectTitle(project);
+  const editorialCallout = getPublicProjectEyebrow(project);
   const customCta = getValidatedProjectPrimaryCta(project);
   const quoteHref = getProjectQuoteHref(project, {
     sourceType:
@@ -117,7 +122,7 @@ export default function ProjectRecordCard({
     ctaLabel: customCta?.label ?? "Start Your Project",
   });
   const description = getProjectExcerpt(project, pageType === "home" ? 170 : 140);
-  const showEditorialCallout = pageType === "home" && Boolean(project.featuredReason?.trim());
+  const showEditorialCallout = pageType === "home" && Boolean(editorialCallout);
 
   return (
     <article className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
@@ -140,7 +145,7 @@ export default function ProjectRecordCard({
       <div className="p-5">
         {showEditorialCallout ? (
           <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">
-            {project.featuredReason}
+            {editorialCallout}
           </p>
         ) : null}
 
@@ -173,7 +178,7 @@ export default function ProjectRecordCard({
           eventParams={getTrackingParams(project, pageType, sourceSlug, "project_card_title")}
           className="mt-3 block"
         >
-          <h3 className="text-xl text-charcoal transition hover:text-red">{project.title}</h3>
+          <h3 className="text-xl text-charcoal transition hover:text-red">{publicTitle}</h3>
         </TrackedLink>
 
         <p className="mt-2 text-sm leading-6 text-gray-mid" style={clampStyle(3)}>

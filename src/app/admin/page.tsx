@@ -198,9 +198,9 @@ export default async function AdminPage() {
               {unlinkedPhotos.slice(0, 4).map((photo) => (
                 <div key={photo.id} className="rounded-lg border border-gray-200 bg-cream/40 p-4">
                   <div className="flex items-center gap-3">
-                    {photo.thumbnailUrl || photo.imageUrl ? (
+                    {photo.imageUrl || photo.thumbnailUrl ? (
                       <img
-                        src={photo.thumbnailUrl || photo.imageUrl || ""}
+                        src={photo.imageUrl || photo.thumbnailUrl || ""}
                         alt={photo.title || "Unlinked photo"}
                         className="h-14 w-14 rounded-lg object-cover"
                       />

@@ -1,0 +1,12 @@
+CREATE TYPE "LeadClassification" AS ENUM (
+  'QUOTE_REQUEST',
+  'PROJECT_LEAD',
+  'SERVICE_INQUIRY',
+  'GENERAL_QUESTION',
+  'FOLLOW_UP',
+  'SPAM',
+  'OTHER'
+);
+
+ALTER TABLE "Lead"
+ADD COLUMN "classification" "LeadClassification" NOT NULL DEFAULT 'QUOTE_REQUEST';

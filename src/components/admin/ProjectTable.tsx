@@ -75,6 +75,7 @@ type OrphanAsset = {
   id: string;
   title: string | null;
   location: string | null;
+  imageUrl?: string | null;
   thumbnailUrl: string | null;
 };
 
@@ -169,6 +170,15 @@ function moveItem(ids: string[], index: number, direction: -1 | 1) {
 
 function readinessLabel(value: boolean) {
   return value ? "Ready" : "Missing";
+}
+
+function getAdminProjectPreviewSrc(source: {
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  coverImageUrl?: string | null;
+  coverThumbnailUrl?: string | null;
+}) {
+  return source.imageUrl || source.coverImageUrl || source.thumbnailUrl || source.coverThumbnailUrl || "";
 }
 
 export default function ProjectTable() {
@@ -326,87 +336,74 @@ export default function ProjectTable() {
         </button>
       </div>
 
-      <div className="mt-5 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <div className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
-          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-            Homepage Spotlight Queue
-          </p>
-          <div className="mt-3 space-y-3">
-            {spotlightProjects.slice(0, 5).map((project) => (
-              <div key={project.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3">
-                {project.coverThumbnailUrl || project.coverImageUrl ? (
-                  <img
-                    src={project.coverThumbnailUrl || project.coverImageUrl || ""}
-                    alt={project.title}
-                    className="h-12 w-12 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                    No cover
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-ui text-sm font-semibold text-charcoal">{project.title}</p>
-                  <p className="mt-1 text-xs text-gray-mid">
-                    {project.status.toLowerCase()} • spotlight {project.spotlightRank ?? "n/a"} • {project.placements.homepageSpotlight ? "appears on homepage" : "not eligible"}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {!spotlightProjects.length ? (
-              <p className="font-ui text-sm text-gray-mid">No featured projects yet.</p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
-          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-            Recent Publishing QA
-          </p>
-          <div className="mt-3 space-y-3">
-            {recentPublishingActions.map((action) => (
-              <div key={action.id} className="rounded-lg border border-gray-200 bg-white p-3">
-                <div className="flex items-center gap-3">
-                  {action.coverImageUrl ? (
+      <details className="mt-5 rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
+        <summary className="cursor-pointer list-none font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+          Secondary project tools
+        </summary>
+        <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+              Homepage spotlight
+            </p>
+            <div className="mt-3 space-y-3">
+              {spotlightProjects.slice(0, 5).map((project) => (
+                <div key={project.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-cream/40 p-3">
+                  {getAdminProjectPreviewSrc(project) ? (
                     <img
-                      src={action.coverImageUrl}
-                      alt={action.title}
+                      src={getAdminProjectPreviewSrc(project)}
+                      alt={project.title}
                       className="h-12 w-12 rounded-lg object-cover"
                     />
-                  ) : null}
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                      No cover
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-ui text-sm font-semibold text-charcoal">{action.title}</p>
+                    <p className="truncate font-ui text-sm font-semibold text-charcoal">{project.title}</p>
                     <p className="mt-1 text-xs text-gray-mid">
-                      {action.status.toLowerCase()} • {action.diagnosis} • updated {new Date(action.updatedAt).toLocaleString()}
+                      {project.status.toLowerCase()} • spotlight {project.spotlightRank ?? "n/a"}
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <a href={`/projects/${action.slug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
-                    Public page
-                  </a>
-                  <a href="/projects" className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
-                    Projects
-                  </a>
-                  {action.serviceSlug ? (
-                    <a href={`/services/${action.serviceSlug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
-                      Service
-                    </a>
-                  ) : null}
-                  {action.areaSlug ? (
-                    <a href={`/areas/${action.areaSlug}`} className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
-                      Area
-                    </a>
-                  ) : null}
-                  <a href={`/api/admin/projects/${action.id}/debug`} target="_blank" rel="noreferrer" className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal">
-                    Debug
-                  </a>
+              ))}
+              {!spotlightProjects.length ? (
+                <p className="font-ui text-sm text-gray-mid">No featured projects yet.</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+              Recent project checks
+            </p>
+            <div className="mt-3 space-y-3">
+              {recentPublishingActions.map((action) => (
+                <div key={action.id} className="rounded-lg border border-gray-200 bg-cream/40 p-3">
+                  <div className="flex items-center gap-3">
+                    {action.coverImageUrl ? (
+                      <img
+                        src={action.coverImageUrl}
+                        alt={action.title}
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-ui text-sm font-semibold text-charcoal">{action.title}</p>
+                      <p className="mt-1 text-xs text-gray-mid">
+                        {action.status.toLowerCase()} • updated {new Date(action.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+              {!recentPublishingActions.length ? (
+                <p className="font-ui text-sm text-gray-mid">No recent updates yet.</p>
+              ) : null}
+            </div>
           </div>
         </div>
-      </div>
+      </details>
 
       {error ? <p className="mt-4 font-ui text-sm text-red">{error}</p> : null}
       {isLoading ? <p className="mt-4 font-ui text-sm text-gray-mid">Loading...</p> : null}
@@ -429,12 +426,14 @@ export default function ProjectTable() {
                         {project.areaLabel}
                       </span>
                     ) : null}
-                    <span className={`rounded-full border px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${project.diagnosis === "renderable_project" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
-                      {project.diagnosis}
-                    </span>
-                    {project.placements.homepageSpotlight ? (
+                    {project.featured ? (
                       <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
-                        Homepage spotlight
+                        Featured
+                      </span>
+                    ) : null}
+                    {project.homepageSpotlight ? (
+                      <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                        Spotlight
                       </span>
                     ) : null}
                   </div>
@@ -445,23 +444,33 @@ export default function ProjectTable() {
                   {project.description ? (
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-mid">{project.description}</p>
                   ) : null}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {Object.entries(project.placements).map(([key, value]) => (
-                      <span
-                        key={key}
-                        className={`rounded-full px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${value ? "bg-navy text-white" : "bg-white text-gray-mid border border-gray-200"}`}
-                      >
-                        {key}
-                      </span>
-                    ))}
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-mid">
+                    <span>{project.location || "No location set"}</span>
+                    <span>{project.coverImageUrl ? "Cover image ready" : "Cover image missing"}</span>
+                    <span>
+                      {project.placements.projectsIndex ? "Live on projects/gallery" : "Not live on projects/gallery"}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <a href={`/projects/${project.slug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                    Public page
+                  </a>
+                  {project.serviceSlug ? (
+                    <a href={`/services/${project.serviceSlug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                      Service page
+                    </a>
+                  ) : null}
+                  {project.areaSlug ? (
+                    <a href={`/areas/${project.areaSlug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                      Area page
+                    </a>
+                  ) : null}
                   <button type="button" onClick={() => setEditForm(toEditForm(project))} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
                     <Pencil className="h-3.5 w-3.5" />
                     Edit
                   </button>
-                  <a href={`/api/admin/projects/${project.id}/debug`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                  <a href={`/api/admin/projects/${project.id}/debug`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-gray-mid transition hover:border-navy hover:text-navy">
                     <Bug className="h-3.5 w-3.5" />
                     Debug
                   </a>
@@ -477,13 +486,15 @@ export default function ProjectTable() {
             <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected photos or a recent batch.</p>
           ) : null}
           {orphans.length ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="font-ui text-xs uppercase tracking-[0.16em] text-amber-700">Renderable Unlinked Photos</p>
+            <details className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <summary className="cursor-pointer list-none font-ui text-xs uppercase tracking-[0.16em] text-amber-700">
+                Unlinked photo reminder
+              </summary>
               <p className="mt-2 text-sm text-amber-800">
                 {orphans.length} published, renderable photo{orphans.length === 1 ? "" : "s"} still need project linkage.
-                Use Upload Batches or the photo table’s `Orphans` filter to turn them into public projects.
+                Use Upload Batches or the unlinked photos page to turn them into public projects.
               </p>
-            </div>
+            </details>
           ) : null}
         </div>
       ) : null}

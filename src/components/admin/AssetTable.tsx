@@ -158,7 +158,7 @@ function toProjectForm(assets: AdminAsset[]): ProjectFormState {
 
 export default function AssetTable({
   title = "Photos",
-  description = "Service pages use published photos directly. Projects, gallery views, and homepage spotlight require explicit project linkage.",
+  description = "Service pages use published photos directly. Projects, gallery views, and homepage spotlight use photos that are grouped into a project.",
   defaultFilter = "all",
   availableFilters = ["all", "published", "unpublished", "orphans"],
 }: AssetTableProps) {

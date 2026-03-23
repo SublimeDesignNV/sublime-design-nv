@@ -2,8 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { LeadClassification } from "@prisma/client";
 import { ACTIVE_SERVICES } from "@/content/services";
-import type { LeadRecord, LeadSummary } from "@/lib/leads";
+import {
+  LEAD_CLASSIFICATION_OPTIONS,
+  getLeadClassificationLabel,
+  type LeadRecord,
+  type LeadSummary,
+} from "@/lib/leads";
 
 type LeadStatus = "NEW" | "REVIEWED" | "CONTACTED" | "ARCHIVED";
 
@@ -16,6 +22,16 @@ type LeadResponse = {
   ok: boolean;
   leads: LeadRecord[];
   summary: LeadSummary;
+};
+
+type LeadEditDraft = {
+  name: string;
+  email: string;
+  phone: string;
+  service: string;
+  location: string;
+  message: string;
+  classification: LeadClassification;
 };
 
 const STATUS_OPTIONS: Array<{ value: LeadStatus | "ACTIVE" | "ALL"; label: string }> = [
@@ -100,12 +116,45 @@ function buildAreaHref(lead: LeadRecord) {
   return lead.areaSlug ? `/areas/${lead.areaSlug}` : null;
 }
 
+function classificationClass(value: LeadClassification) {
+  switch (value) {
+    case "PROJECT_LEAD":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+    case "SERVICE_INQUIRY":
+      return "border-sky-200 bg-sky-50 text-sky-700";
+    case "GENERAL_QUESTION":
+      return "border-gray-200 bg-gray-100 text-gray-700";
+    case "FOLLOW_UP":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "SPAM":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "OTHER":
+      return "border-stone-200 bg-stone-100 text-stone-700";
+    case "QUOTE_REQUEST":
+    default:
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+}
+
+function toLeadEditDraft(lead: LeadRecord): LeadEditDraft {
+  return {
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    service: lead.service,
+    location: lead.location,
+    message: lead.message,
+    classification: lead.classification,
+  };
+}
+
 export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxProps) {
   const [leads, setLeads] = useState(initialLeads);
   const [summary, setSummary] = useState(initialSummary);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(initialLeads[0]?.id ?? null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatus | "ACTIVE" | "ALL">("ACTIVE");
+  const [classification, setClassification] = useState("");
   const [sourceType, setSourceType] = useState("");
   const [service, setService] = useState("");
   const [timeframe, setTimeframe] = useState("");
@@ -118,6 +167,9 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
   const [copiedField, setCopiedField] = useState("");
   const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>(
     Object.fromEntries(initialLeads.map((lead) => [lead.id, lead.internalNotes ?? ""])),
+  );
+  const [editDrafts, setEditDrafts] = useState<Record<string, LeadEditDraft>>(
+    Object.fromEntries(initialLeads.map((lead) => [lead.id, toLeadEditDraft(lead)])),
   );
   const [followUpDrafts, setFollowUpDrafts] = useState<Record<string, string>>(
     Object.fromEntries(initialLeads.map((lead) => [lead.id, formatDateTimeInput(lead.followUpAt)])),
@@ -133,6 +185,7 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (status) params.set("status", status);
+    if (classification) params.set("classification", classification);
     if (sourceType) params.set("sourceType", sourceType);
     if (service) params.set("service", service);
     if (timeframe) params.set("timeframe", timeframe);
@@ -163,6 +216,10 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
           ...prev,
           ...Object.fromEntries(data.leads.map((lead) => [lead.id, lead.internalNotes ?? ""])),
         }));
+        setEditDrafts((prev) => ({
+          ...prev,
+          ...Object.fromEntries(data.leads.map((lead) => [lead.id, toLeadEditDraft(lead)])),
+        }));
         setFollowUpDrafts((prev) => ({
           ...prev,
           ...Object.fromEntries(data.leads.map((lead) => [lead.id, formatDateTimeInput(lead.followUpAt)])),
@@ -179,13 +236,20 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
       });
 
     return () => controller.abort();
-  }, [followUpDueOnly, query, service, showArchivedOnly, sourceType, staleOnly, status, timeframe]);
+  }, [classification, followUpDueOnly, query, service, showArchivedOnly, sourceType, staleOnly, status, timeframe]);
 
   async function updateLead(
     id: string,
     payload: {
       status?: LeadStatus;
+      classification?: LeadClassification;
       internalNotes?: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+      service?: string;
+      location?: string;
+      message?: string;
       contactedVia?: string;
       lastContactedAt?: string | null;
       followUpAt?: string | null;
@@ -209,6 +273,7 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
 
       setLeads((prev) => prev.map((lead) => (lead.id === id ? data.lead : lead)));
       setNotesDrafts((prev) => ({ ...prev, [id]: data.lead.internalNotes ?? "" }));
+      setEditDrafts((prev) => ({ ...prev, [id]: toLeadEditDraft(data.lead) }));
       setFollowUpDrafts((prev) => ({ ...prev, [id]: formatDateTimeInput(data.lead.followUpAt) }));
       setSummary((prev) => {
         const current = leads.find((lead) => lead.id === id);
@@ -268,6 +333,47 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
     setFollowUpDrafts((prev) => ({ ...prev, [leadId]: formatDateTimeInput(date) }));
   }
 
+  async function deleteSelectedLead() {
+    if (!selectedLead) return;
+    const confirmed = window.confirm(`Delete lead "${selectedLead.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setSavingLeadId(selectedLead.id);
+    setError("");
+    try {
+      const response = await fetch(`/api/admin/leads/${selectedLead.id}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Unable to delete lead.");
+      }
+
+      setSummary((prev) => ({
+        ...prev,
+        totalActive:
+          selectedLead.status === "ARCHIVED" ? prev.totalActive : Math.max(0, prev.totalActive - 1),
+        newCount:
+          selectedLead.status === "NEW" ? Math.max(0, prev.newCount - 1) : prev.newCount,
+        reviewedCount:
+          selectedLead.status === "REVIEWED" ? Math.max(0, prev.reviewedCount - 1) : prev.reviewedCount,
+        contactedCount:
+          selectedLead.status === "CONTACTED" ? Math.max(0, prev.contactedCount - 1) : prev.contactedCount,
+        archivedCount:
+          selectedLead.status === "ARCHIVED" ? Math.max(0, prev.archivedCount - 1) : prev.archivedCount,
+      }));
+      setLeads((prev) => prev.filter((lead) => lead.id !== selectedLead.id));
+      setSelectedLeadId((current) => {
+        if (current !== selectedLead.id) return current;
+        return leads.find((lead) => lead.id !== selectedLead.id)?.id ?? null;
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete lead.");
+    } finally {
+      setSavingLeadId(null);
+    }
+  }
+
   return (
     <div className="mt-8 space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -316,6 +422,18 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
             {Object.entries(SOURCE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={classification}
+            onChange={(event) => setClassification(event.target.value)}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+          >
+            <option value="">All classifications</option>
+            {LEAD_CLASSIFICATION_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -409,6 +527,11 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
                       {lead.status}
                     </span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className={`rounded-full border px-2.5 py-1 font-ui text-[10px] uppercase tracking-[0.16em] ${classificationClass(lead.classification)}`}>
+                      {getLeadClassificationLabel(lead.classification)}
+                    </span>
+                  </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-mid">
                     <span>{lead.service === "other" ? "Other / Not sure" : lead.service}</span>
                     <span>{lead.location}</span>
@@ -485,9 +608,14 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
                   <p className="text-2xl text-charcoal">{selectedLead.name}</p>
                   <p className="mt-1 text-sm text-gray-mid">{formatDate(selectedLead.createdAt)}</p>
                 </div>
-                <span className={`rounded-full border px-2.5 py-1 font-ui text-xs ${statusClass(selectedLead.status as LeadStatus)}`}>
-                  {selectedLead.status}
-                </span>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full border px-2.5 py-1 font-ui text-xs ${statusClass(selectedLead.status as LeadStatus)}`}>
+                    {selectedLead.status}
+                  </span>
+                  <span className={`rounded-full border px-2.5 py-1 font-ui text-xs ${classificationClass(selectedLead.classification)}`}>
+                    {getLeadClassificationLabel(selectedLead.classification)}
+                  </span>
+                </div>
               </div>
 
               <div className="grid gap-3 text-sm text-charcoal sm:grid-cols-2">
@@ -506,6 +634,126 @@ export default function LeadInbox({ initialLeads, initialSummary }: LeadInboxPro
                 <div className="rounded-lg border border-gray-200 bg-cream px-3 py-3">
                   <span className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">Location</span>
                   <span className="mt-1 block">{selectedLead.location}</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">Lead Details</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={editDrafts[selectedLead.id]?.name ?? ""}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), name: event.target.value },
+                      }))
+                    }
+                    placeholder="Name"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  />
+                  <input
+                    value={editDrafts[selectedLead.id]?.email ?? ""}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), email: event.target.value },
+                      }))
+                    }
+                    placeholder="Email"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  />
+                  <input
+                    value={editDrafts[selectedLead.id]?.phone ?? ""}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), phone: event.target.value },
+                      }))
+                    }
+                    placeholder="Phone"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  />
+                  <input
+                    value={editDrafts[selectedLead.id]?.location ?? ""}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), location: event.target.value },
+                      }))
+                    }
+                    placeholder="Location"
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  />
+                  <select
+                    value={editDrafts[selectedLead.id]?.service ?? selectedLead.service}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), service: event.target.value },
+                      }))
+                    }
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  >
+                    {ACTIVE_SERVICES.map((entry) => (
+                      <option key={entry.slug} value={entry.slug}>
+                        {entry.shortTitle}
+                      </option>
+                    ))}
+                    <option value="other">Other / Not sure</option>
+                  </select>
+                  <select
+                    value={editDrafts[selectedLead.id]?.classification ?? selectedLead.classification}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: {
+                          ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)),
+                          classification: event.target.value as LeadClassification,
+                        },
+                      }))
+                    }
+                    className="rounded-md border border-gray-300 px-3 py-2 text-sm text-charcoal"
+                  >
+                    {LEAD_CLASSIFICATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={editDrafts[selectedLead.id]?.message ?? ""}
+                    onChange={(event) =>
+                      setEditDrafts((prev) => ({
+                        ...prev,
+                        [selectedLead.id]: { ...(prev[selectedLead.id] ?? toLeadEditDraft(selectedLead)), message: event.target.value },
+                      }))
+                    }
+                    rows={4}
+                    className="sm:col-span-2 rounded-md border border-gray-300 px-3 py-3 text-sm text-charcoal"
+                    placeholder="Message"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void updateLead(selectedLead.id, {
+                        ...editDrafts[selectedLead.id],
+                      })
+                    }
+                    disabled={savingLeadId === selectedLead.id}
+                    className="rounded-sm bg-navy px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  >
+                    Save edits
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void deleteSelectedLead()}
+                    disabled={savingLeadId === selectedLead.id}
+                    className="rounded-sm border border-red/30 px-4 py-2 text-sm text-red transition hover:border-red disabled:opacity-50"
+                  >
+                    Delete lead
+                  </button>
                 </div>
               </div>
 
