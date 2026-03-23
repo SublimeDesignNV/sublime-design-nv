@@ -93,5 +93,7 @@
 - Quote flow code path was not reworked; lead classification is additive through `saveLead`.
 
 ## Commit
+- Commit hash:
+  - `9784b5a`
 - Commit message:
   - `Clean up public project copy and simplify admin project + lead workflows`
