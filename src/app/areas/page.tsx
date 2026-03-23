@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import TrackedLink from "@/components/analytics/TrackedLink";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { ACTIVE_AREAS } from "@/content/areas";
 import { getServiceCardPreviewAsset, type ServicePreviewAsset } from "@/lib/portfolio.server";
@@ -36,15 +36,12 @@ function AreaCardImage({
 
   if (preview.source === "cloudinary" && preview.publicId) {
     return (
-      <CloudinaryImage
-        src={preview.publicId}
+      <SitePhoto
+        publicId={preview.publicId}
         alt={preview.alt}
-        width={900}
-        height={600}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        crop="fill"
-        gravity="auto:subject"
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        mode="card"
+        className="transition duration-500 group-hover:scale-105"
       />
     );
   }

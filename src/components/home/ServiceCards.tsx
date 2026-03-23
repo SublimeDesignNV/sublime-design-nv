@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import { HOMEPAGE_PRIMARY_SERVICES, HOMEPAGE_SECONDARY_SERVICES } from "@/content/services";
 import { getServiceCardPreviewAsset } from "@/lib/portfolio.server";
 import type { ServicePreviewAsset } from "@/lib/portfolio.server";
@@ -15,15 +15,12 @@ function CardImage({ preview, title }: { preview: ServicePreviewAsset | null; ti
   }
   if (preview.source === "cloudinary" && preview.publicId) {
     return (
-      <CloudinaryImage
-        src={preview.publicId}
+      <SitePhoto
+        publicId={preview.publicId}
         alt={preview.alt}
-        width={800}
-        height={520}
         sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        crop="fill"
-        gravity="auto:subject"
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+        mode="card"
+        className="transition duration-500 group-hover:scale-105"
       />
     );
   }

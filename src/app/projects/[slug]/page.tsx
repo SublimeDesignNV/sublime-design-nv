@@ -1,9 +1,8 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TrackedLink from "@/components/analytics/TrackedLink";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
@@ -104,25 +103,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProjectImage({ asset, sizes }: { asset: ProjectImageAsset; sizes: string }) {
-  if (asset.source === "cloudinary" && asset.publicId) {
-    return (
-      <CloudinaryImage
-        src={asset.publicId}
-        alt={asset.alt}
-        width={1400}
-        height={900}
-        sizes={sizes}
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-      />
-    );
-  }
   return (
-    <Image
-      src={asset.imageUrl}
+    <SitePhoto
+      publicId={asset.source === "cloudinary" ? asset.publicId : undefined}
+      imageUrl={asset.imageUrl}
       alt={asset.alt}
-      fill
       sizes={sizes}
-      className="object-cover"
+      mode="gallery"
+    />
+  );
+}
+
+function ProjectHeroImage({ asset, sizes }: { asset: ProjectImageAsset; sizes: string }) {
+  return (
+    <SitePhoto
+      publicId={asset.source === "cloudinary" ? asset.publicId : undefined}
+      imageUrl={asset.imageUrl}
+      alt={asset.alt}
+      sizes={sizes}
+      mode="hero"
     />
   );
 }
@@ -133,7 +132,7 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
   if (images.length === 1) {
     return (
       <figure>
-        <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
+        <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-[#f6f1e8] shadow-sm md:aspect-[3/2]">
           <ProjectImage asset={images[0]} sizes="100vw" />
         </div>
         {images[0].caption ? (
@@ -148,7 +147,7 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <figure>
-          <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ minHeight: "340px" }}>
+          <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-[#f6f1e8] shadow-sm md:aspect-[5/4]">
             <ProjectImage asset={first} sizes="(max-width: 768px) 100vw, 50vw" />
           </div>
           {first.caption ? (
@@ -161,8 +160,7 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
           {rest.map((asset, i) => (
             <figure key={asset.secureUrl + i}>
               <div
-                className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-                style={{ minHeight: "160px" }}
+                className="relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-[#f6f1e8] shadow-sm"
               >
                 <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, 50vw" />
               </div>
@@ -178,8 +176,7 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
       {images.map((asset, i) => (
         <figure key={asset.secureUrl + i}>
           <div
-            className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm"
-            style={{ height: "260px" }}
+            className="relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-[#f6f1e8] shadow-sm"
           >
             <ProjectImage asset={asset} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
           </div>
@@ -376,8 +373,8 @@ export default async function ProjectDetailPage({ params }: Props) {
 
           {heroImage ? (
             <figure className="mt-8">
-              <div className="relative overflow-hidden rounded-xl border border-gray-200 shadow-sm" style={{ height: "480px" }}>
-                <ProjectImage asset={heroImage} sizes="100vw" />
+              <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-gray-200 bg-[#f6f1e8] shadow-sm md:aspect-[16/10] lg:aspect-[14/9]">
+                <ProjectHeroImage asset={heroImage} sizes="100vw" />
               </div>
               {heroImage.caption ? (
                 <figcaption className="mt-3 max-w-3xl text-sm leading-6 text-gray-mid">

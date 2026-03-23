@@ -1,6 +1,6 @@
 import Image from "next/image";
 import TrackedLink from "@/components/analytics/TrackedLink";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import type { ProjectDef } from "@/content/projects";
 import { getRelatedReviews } from "@/content/reviews";
 import { findService } from "@/content/services";
@@ -42,15 +42,12 @@ function ProjectPreview({
 
   if (preview.source === "cloudinary" && preview.publicId) {
     return (
-      <CloudinaryImage
-        src={preview.publicId}
+      <SitePhoto
+        publicId={preview.publicId}
         alt={preview.alt}
-        width={960}
-        height={720}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        crop="fill"
-        gravity="auto:subject"
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+        mode="card"
+        className="transition duration-500 group-hover:scale-[1.02]"
       />
     );
   }

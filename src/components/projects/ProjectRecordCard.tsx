@@ -1,6 +1,6 @@
 import Image from "next/image";
 import TrackedLink from "@/components/analytics/TrackedLink";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import {
   getProjectExcerpt,
   getPublicProjectEyebrow,
@@ -29,29 +29,18 @@ function ProjectCover({ project }: { project: CanonicalProject }) {
   const title = getPublicProjectTitle(project);
   if (project.coverPublicId) {
     return (
-      <CloudinaryImage
-        src={project.coverPublicId}
+      <SitePhoto
+        publicId={project.coverPublicId}
         alt={title}
-        width={960}
-        height={720}
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        crop="fill"
-        gravity="auto:subject"
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+        mode="card"
+        className="transition duration-500 group-hover:scale-[1.02]"
       />
     );
   }
 
   if (project.coverImageUrl) {
-    return (
-      <Image
-        src={project.coverImageUrl}
-        alt={title}
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        className="object-cover transition duration-500 group-hover:scale-[1.02]"
-      />
-    );
+    return <Image src={project.coverImageUrl} alt={title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.02]" />;
   }
 
   return (

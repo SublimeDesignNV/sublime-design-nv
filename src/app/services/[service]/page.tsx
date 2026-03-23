@@ -1,9 +1,8 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TrackedLink from "@/components/analytics/TrackedLink";
-import CloudinaryImage from "@/components/CloudinaryImage";
+import SitePhoto from "@/components/SitePhoto";
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
@@ -57,28 +56,13 @@ function GalleryImage({
   asset: ServiceGalleryAsset;
   sizes: string;
 }) {
-  if (asset.source === "cloudinary" && asset.publicId) {
-    return (
-      <CloudinaryImage
-        src={asset.publicId}
-        alt={asset.alt}
-        width={1200}
-        height={800}
-        sizes={sizes}
-        crop="pad"
-        gravity="auto:subject"
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
-      />
-    );
-  }
-
   return (
-    <Image
-      src={asset.imageUrl}
+    <SitePhoto
+      publicId={asset.source === "cloudinary" ? asset.publicId : undefined}
+      imageUrl={asset.imageUrl}
       alt={asset.alt}
-      fill
       sizes={sizes}
-      className="object-contain"
+      mode="gallery"
     />
   );
 }

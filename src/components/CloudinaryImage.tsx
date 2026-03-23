@@ -12,7 +12,7 @@ export default function CloudinaryImage({
   style,
   className,
   crop = "fill",
-  gravity = "auto",
+  gravity,
 }: {
   src: string;
   alt: string;
@@ -32,7 +32,7 @@ export default function CloudinaryImage({
       height={height}
       sizes={sizes}
       crop={crop}
-      gravity={gravity}
+      {...(gravity ? { gravity } : {})}
       quality="auto"
       format="auto"
       className={className}
