@@ -1,56 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sublime Design NV
 
-## Getting Started
+## Local Preview
 
-First, run the development server:
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the day-to-day local dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3001
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+You should see a small build label in the bottom-right corner such as:
 
-## Learn More
+- `local · dev`
+- `preview · 06b90b8`
+- `production · aa837aa`
 
-To learn more about Next.js, take a look at the following resources:
+That label is the quickest way to confirm whether you are looking at local, preview, or production.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Production-like Local Preview
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To test the production build locally:
 
-## Deploy on Vercel
+```bash
+npm run preview
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Or run the steps separately:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run start
+```
 
-## Cloudinary Gallery
+## Local Environment Notes
 
-The `/gallery` page pulls images from Cloudinary folders using the Admin API on the server.
+This app can boot locally without every production integration configured, but the most useful routes need the same core env vars as production.
 
-Folder convention:
-- `sublime/gallery/floating-shelves`
-- `sublime/gallery/pantry`
-- `sublime/gallery/built-ins`
-- `sublime/gallery/custom-cabinetry`
-- `sublime/gallery/mantels`
+Commonly needed:
 
-To add a new gallery section:
-1. Create and upload images to the Cloudinary folder.
-2. Add a new entry in `src/lib/gallery.config.ts` with `title`, `slug`, and `folder`.
-3. Refresh `/gallery`.
+- `DATABASE_URL`
+- `NEXT_PUBLIC_SITE_URL`
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
+- `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+- `AUTH_SECRET`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+- `ADMIN_ALLOWED_EMAILS`
+- `RESEND_API_KEY`
+- `LEADS_FROM_EMAIL`
 
-Security reminder:
-- Never expose `CLOUDINARY_API_SECRET` to the client.
-- Keep Cloudinary Admin API calls server-side only (see `src/lib/cloudinary.server.ts`).
+Recommended local file:
+
+- `.env.local`
+
+Without full integrations:
+
+- the site shell and version label should still render
+- purely static/public pages are still useful for UI checks
+- DB-backed admin and quote workflows may be limited
+
+## Version Endpoint
+
+For a minimal machine-readable check:
+
+```text
+/api/version
+```
+
+It returns only:
+
+- environment
+- build id
+- combined label

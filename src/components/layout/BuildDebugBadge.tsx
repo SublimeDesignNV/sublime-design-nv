@@ -1,34 +1,14 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
+import { getPublicBuildInfo } from "@/lib/buildInfo";
 
 export default function BuildDebugBadge() {
-  const [enabled, setEnabled] = useState(false);
-  const sha = useMemo(() => process.env.NEXT_PUBLIC_BUILD_SHA || "unknown", []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setEnabled(params.get("debug") === "1");
-  }, []);
-
-  if (!enabled) return null;
+  const build = getPublicBuildInfo();
 
   return (
     <div
-      style={{
-        position: "fixed",
-        bottom: 10,
-        right: 10,
-        zIndex: 9999,
-        background: "#111827",
-        color: "#fff",
-        padding: "6px 10px",
-        borderRadius: 8,
-        fontSize: 12,
-        fontFamily: "monospace",
-      }}
+      className="pointer-events-none fixed bottom-3 right-3 z-50 rounded-full border border-black/10 bg-white/85 px-3 py-1.5 font-ui text-[11px] font-semibold uppercase tracking-[0.18em] text-charcoal shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/70"
+      aria-label={`Site build ${build.label}`}
     >
-      build: {sha}
+      {build.label}
     </div>
   );
 }
