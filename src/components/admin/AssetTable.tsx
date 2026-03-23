@@ -95,6 +95,13 @@ type ProjectFormState = {
   assetIds: string[];
 };
 
+type AssetTableProps = {
+  title?: string;
+  description?: string;
+  defaultFilter?: Filter;
+  availableFilters?: Filter[];
+};
+
 const EMPTY_PROJECT_FORM: ProjectFormState = {
   title: "",
   slug: "",
@@ -149,12 +156,17 @@ function toProjectForm(assets: AdminAsset[]): ProjectFormState {
   };
 }
 
-export default function AssetTable() {
+export default function AssetTable({
+  title = "Photos",
+  description = "Service pages use published photos directly. Projects, gallery views, and homepage spotlight require explicit project linkage.",
+  defaultFilter = "all",
+  availableFilters = ["all", "published", "unpublished", "orphans"],
+}: AssetTableProps) {
   const [assets, setAssets] = useState<AdminAsset[]>([]);
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(defaultFilter);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -534,13 +546,13 @@ export default function AssetTable() {
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl text-charcoal">Photos</h2>
+          <h2 className="text-2xl text-charcoal">{title}</h2>
           <p className="mt-2 font-ui text-sm text-gray-mid">
-            Service pages use published photos directly. Projects, gallery views, and homepage spotlight require explicit project linkage.
+            {description}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(["all", "published", "unpublished", "orphans"] as const).map((value) => (
+          {availableFilters.map((value) => (
             <button
               key={value}
               type="button"
@@ -557,7 +569,7 @@ export default function AssetTable() {
                   ? "Published"
                   : value === "unpublished"
                     ? "Unpublished"
-                    : "Orphans"}
+                    : "Unlinked"}
             </button>
           ))}
           <button
