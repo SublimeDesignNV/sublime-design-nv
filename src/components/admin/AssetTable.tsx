@@ -109,6 +109,10 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
   assetIds: [],
 };
 
+function getAdminPhotoPreviewSrc(asset: Pick<AdminAsset, "imageUrl" | "thumbnailUrl" | "secureUrl">) {
+  return asset.imageUrl || asset.thumbnailUrl || asset.secureUrl || "";
+}
+
 function toEditForm(asset: AdminAsset): EditFormState {
   const primaryServiceSlug = asset.primaryServiceSlug ?? asset.serviceTags[0]?.slug ?? "";
 
@@ -171,7 +175,7 @@ export default function AssetTable() {
 
       const assetsBody = (await assetsResponse.json()) as AssetsResponse & { error?: string };
       if (!assetsResponse.ok) {
-        throw new Error(assetsBody.error || "Failed to load assets.");
+        throw new Error(assetsBody.error || "Failed to load photos.");
       }
 
       const projectsBody = (await projectsResponse.json().catch(() => ({}))) as ProjectsResponse & {
@@ -349,7 +353,7 @@ export default function AssetTable() {
 
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error || "Failed to save asset changes.");
+      setError(body.error || "Failed to save photo changes.");
       return;
     }
 
@@ -359,7 +363,7 @@ export default function AssetTable() {
 
   async function deleteAsset(asset: AdminAsset) {
     const confirmed = window.confirm(
-      `Delete "${asset.title || "Untitled asset"}" from the portfolio database? This phase only removes the DB record and leaves the Cloudinary file in place.`,
+      `Delete "${asset.title || "Untitled photo"}" from the portfolio database? This phase only removes the DB record and leaves the Cloudinary file in place.`,
     );
     if (!confirmed) return;
 
@@ -374,7 +378,7 @@ export default function AssetTable() {
 
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error || "Failed to delete asset.");
+      setError(body.error || "Failed to delete photo.");
       return;
     }
 
@@ -418,7 +422,7 @@ export default function AssetTable() {
 
   async function createProjectFromSelection() {
     if (selectedAssets.length === 0) {
-      setError("Select at least one asset to create a project.");
+      setError("Select at least one photo to create a project.");
       return;
     }
 
@@ -429,7 +433,7 @@ export default function AssetTable() {
   async function submitCreateProject() {
     if (!createProjectForm) return;
     if (!createProjectForm.title.trim() || createProjectForm.assetIds.length === 0) {
-      setError("Project title and at least one asset are required.");
+      setError("Project title and at least one photo are required.");
       return;
     }
 
@@ -473,7 +477,7 @@ export default function AssetTable() {
 
   async function linkSelectionToProject() {
     if (!linkProjectId) {
-      setError("Choose a project to link the selected assets.");
+      setError("Choose a project to link the selected photos.");
       return;
     }
 
@@ -512,7 +516,7 @@ export default function AssetTable() {
 
     if (!response.ok) {
       const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error || "Failed to link assets to project.");
+      setError(body.error || "Failed to link photos to project.");
       return;
     }
 
@@ -530,9 +534,9 @@ export default function AssetTable() {
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl text-charcoal">Assets</h2>
+          <h2 className="text-2xl text-charcoal">Photos</h2>
           <p className="mt-2 font-ui text-sm text-gray-mid">
-            Service pages use published assets directly. Projects, gallery views, and homepage spotlight require explicit project linkage.
+            Service pages use published photos directly. Projects, gallery views, and homepage spotlight require explicit project linkage.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -572,7 +576,7 @@ export default function AssetTable() {
             Bulk Project Actions
           </p>
           <p className="mt-1 text-sm text-charcoal">
-            {selectedAssetIds.length} selected. Use this to create one album/project or repair orphaned assets in bulk.
+            {selectedAssetIds.length} selected. Use this to create one album/project or repair unlinked photos in bulk.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -604,7 +608,7 @@ export default function AssetTable() {
             className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
           >
             <Link2 className="h-3.5 w-3.5" />
-            Link Assets
+            Link Photos
           </button>
           <button
             type="button"
@@ -630,14 +634,14 @@ export default function AssetTable() {
                     type="checkbox"
                     checked={allVisibleSelected}
                     onChange={toggleSelectVisible}
-                    aria-label="Select visible assets"
+                    aria-label="Select visible photos"
                   />
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Preview
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Asset
+                  Photo
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Services / Context
@@ -664,15 +668,15 @@ export default function AssetTable() {
                       type="checkbox"
                       checked={selectedAssetIds.includes(asset.id)}
                       onChange={() => toggleAssetSelection(asset.id)}
-                      aria-label={`Select ${asset.title || "asset"}`}
+                      aria-label={`Select ${asset.title || "photo"}`}
                     />
                   </td>
                   <td className="py-2 pr-3">
                     {asset.kind === "IMAGE" ? (
                       <img
-                        src={asset.thumbnailUrl || asset.imageUrl || asset.secureUrl || ""}
-                        alt={asset.serviceTags[0]?.title || asset.contextTags[0]?.title || "Asset preview"}
-                        className="h-16 w-16 rounded-sm bg-cream object-contain p-1"
+                        src={getAdminPhotoPreviewSrc(asset)}
+                        alt={asset.serviceTags[0]?.title || asset.contextTags[0]?.title || "Photo preview"}
+                        className="h-16 w-16 rounded-sm bg-cream object-cover"
                       />
                     ) : (
                       <span className="inline-flex h-16 w-16 items-center justify-center rounded-sm bg-gray-warm text-charcoal">
@@ -687,7 +691,7 @@ export default function AssetTable() {
                       ) : (
                         <Video className="h-4 w-4 text-gray-mid" />
                       )}
-                      <span>{asset.title || "Untitled asset"}</span>
+                      <span>{asset.title || "Untitled photo"}</span>
                     </div>
                     <p className="mt-1 text-xs text-gray-mid">
                       {asset.location || asset.kind}
@@ -732,7 +736,7 @@ export default function AssetTable() {
                       </>
                     ) : (
                       <>
-                        <p className="text-red">Orphaned</p>
+                        <p className="text-red">Unlinked photo</p>
                         <p className="mt-1 text-xs text-gray-mid">Visible on service pages only</p>
                       </>
                     )}
@@ -794,7 +798,7 @@ export default function AssetTable() {
             </tbody>
           </table>
           {filteredAssets.length === 0 ? (
-            <p className="font-ui py-4 text-sm text-gray-mid">No assets found.</p>
+            <p className="font-ui py-4 text-sm text-gray-mid">No photos found.</p>
           ) : null}
         </div>
       ) : null}
@@ -804,7 +808,7 @@ export default function AssetTable() {
           <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl text-charcoal">Edit Asset</h3>
+                <h3 className="text-2xl text-charcoal">Edit Photo</h3>
                 <p className="mt-1 font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
                   Update metadata, service placement, and publish status
                 </p>
@@ -970,7 +974,7 @@ export default function AssetTable() {
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl text-charcoal">Create Project from Selected Assets</h3>
+                <h3 className="text-2xl text-charcoal">Create Project from Selected Photos</h3>
                 <p className="mt-1 font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
                   Set the public project record, cover image, and ordered gallery
                 </p>
@@ -1116,7 +1120,7 @@ export default function AssetTable() {
             </div>
 
             <div className="mt-6 space-y-3">
-              <p className="font-ui text-sm font-semibold text-charcoal">Asset Order</p>
+              <p className="font-ui text-sm font-semibold text-charcoal">Photo Order</p>
               {createProjectForm.assetIds.map((assetId, index) => {
                 const asset = assets.find((item) => item.id === assetId);
                 if (!asset) return null;
@@ -1126,13 +1130,13 @@ export default function AssetTable() {
                     className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-3 md:flex-row md:items-center"
                   >
                     <img
-                      src={asset.thumbnailUrl || asset.imageUrl || ""}
-                      alt={asset.title || "Selected asset"}
+                      src={getAdminPhotoPreviewSrc(asset)}
+                      alt={asset.title || "Selected photo"}
                       className="h-20 w-20 rounded-lg bg-white object-cover"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="font-ui text-sm font-semibold text-charcoal">
-                        {asset.title || "Untitled asset"}
+                        {asset.title || "Untitled photo"}
                       </p>
                       <p className="mt-1 text-xs text-gray-mid">
                         {asset.location || "No location"} • position {index + 1}

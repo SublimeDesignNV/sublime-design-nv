@@ -113,7 +113,7 @@ export default function AssetUploader() {
         };
 
         if (!saveResponse.ok) {
-          throw new Error(saveBody.error || "Failed to save asset metadata.");
+          throw new Error(saveBody.error || "Failed to save photo metadata.");
         }
 
         if (saveBody.asset?.id) {
@@ -147,7 +147,7 @@ export default function AssetUploader() {
 
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
-      <h2 className="text-2xl text-charcoal">Upload Assets</h2>
+      <h2 className="text-2xl text-charcoal">Upload Photos</h2>
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
         <fieldset>
@@ -172,7 +172,7 @@ export default function AssetUploader() {
             })}
           </div>
           <p className="mt-2 text-xs text-gray-mid">
-            Choose the main service this asset should lead with.
+            Choose the main service this photo should lead with.
           </p>
         </fieldset>
 
@@ -324,10 +324,10 @@ export default function AssetUploader() {
           </p>
           <h3 className="mt-2 text-lg text-charcoal">Finish this project now</h3>
           <p className="mt-2 text-sm text-gray-mid">
-            {lastCompletedBatch.assetIds.length} asset
+            {lastCompletedBatch.assetIds.length} photo
             {lastCompletedBatch.assetIds.length === 1 ? "" : "s"} were saved in one upload
             batch. Open the batch workflow to create a project, add the batch to an existing
-            project, or leave the assets standalone for service pages.
+            project, or leave the photos standalone for service pages.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
@@ -346,7 +346,7 @@ export default function AssetUploader() {
               href={`/admin/upload-batches?batch=${lastCompletedBatch.uploadBatchId}`}
               className="font-ui rounded-sm border border-gray-warm px-4 py-2 text-sm text-charcoal"
             >
-              Leave as Standalone Assets
+              Leave as Standalone Photos
             </Link>
           </div>
         </div>

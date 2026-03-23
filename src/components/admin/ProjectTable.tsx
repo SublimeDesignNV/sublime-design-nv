@@ -269,7 +269,7 @@ export default function ProjectTable() {
 
   async function deleteProject(project: ProjectRecord) {
     const confirmed = window.confirm(
-      `Delete project "${project.title}"? Linked assets will remain in the asset library.`,
+      `Delete project "${project.title}"? Linked photos will remain in the photo library.`,
     );
     if (!confirmed) return;
 
@@ -440,7 +440,7 @@ export default function ProjectTable() {
                   </div>
                   <h3 className="mt-3 text-xl text-charcoal">{project.title}</h3>
                   <p className="mt-1 text-sm text-gray-mid">
-                    /projects/{project.slug} • {project.assetCount} linked asset{project.assetCount === 1 ? "" : "s"} • cover {project.coverImageUrl ? "set" : "missing"}
+                    /projects/{project.slug} • {project.assetCount} linked photo{project.assetCount === 1 ? "" : "s"} • cover {project.coverImageUrl ? "set" : "missing"}
                   </p>
                   {project.description ? (
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-mid">{project.description}</p>
@@ -474,14 +474,14 @@ export default function ProjectTable() {
             </article>
           ))}
           {!projects.length ? (
-            <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected assets or a recent batch.</p>
+            <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected photos or a recent batch.</p>
           ) : null}
           {orphans.length ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="font-ui text-xs uppercase tracking-[0.16em] text-amber-700">Renderable Orphans</p>
+              <p className="font-ui text-xs uppercase tracking-[0.16em] text-amber-700">Renderable Unlinked Photos</p>
               <p className="mt-2 text-sm text-amber-800">
-                {orphans.length} published, renderable asset{orphans.length === 1 ? "" : "s"} still need project linkage.
-                Use Upload Batches or the asset table’s `Orphans` filter to turn them into public projects.
+                {orphans.length} published, renderable photo{orphans.length === 1 ? "" : "s"} still need project linkage.
+                Use Upload Batches or the photo table’s `Orphans` filter to turn them into public projects.
               </p>
             </div>
           ) : null}
@@ -610,7 +610,7 @@ export default function ProjectTable() {
                     <div>Slug: {readinessLabel(editProject.readiness.hasSlug)}</div>
                     <div>Service: {readinessLabel(editProject.readiness.hasService)}</div>
                     <div>Cover image: {readinessLabel(editProject.readiness.hasCoverImage)}</div>
-                    <div>Linked assets: {readinessLabel(editProject.readiness.hasLinkedAssets)}</div>
+                    <div>Linked photos: {readinessLabel(editProject.readiness.hasLinkedAssets)}</div>
                     <div>Description: {readinessLabel(editProject.readiness.hasDescription)}</div>
                     <div>Area/location: {readinessLabel(editProject.readiness.hasAreaOrLocation)}</div>
                     <div>Homepage feature: {readinessLabel(editProject.readiness.readyForHomepageFeature)}</div>
@@ -627,7 +627,7 @@ export default function ProjectTable() {
                 </div>
 
                 <div>
-                  <p className="font-ui text-sm font-semibold text-charcoal">Ordered Assets</p>
+                  <p className="font-ui text-sm font-semibold text-charcoal">Ordered Photos</p>
                   <div className="mt-3 space-y-2">
                     {editForm.assetIds.map((assetId, index) => {
                       const asset = editProject.assets.find((item) => item.id === assetId);
@@ -635,11 +635,11 @@ export default function ProjectTable() {
                       return (
                         <div key={asset.id} className="rounded-lg border border-gray-warm bg-cream/40 p-3">
                           <div className="flex items-start gap-3">
-                            <img src={asset.thumbnailUrl || asset.imageUrl || ""} alt={asset.title || "Asset"} className="h-16 w-16 rounded-sm bg-white object-contain p-1" />
+                            <img src={asset.imageUrl || asset.thumbnailUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="truncate font-ui text-sm font-semibold text-charcoal">
-                                  #{index + 1} {asset.title || "Untitled asset"}
+                                  #{index + 1} {asset.title || "Untitled photo"}
                                 </p>
                                 <label className="font-ui inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-red">
                                   <input type="radio" name="projectCoverAssetId" checked={editForm.coverAssetId === asset.id} onChange={() => setEditForm((current) => current ? { ...current, coverAssetId: asset.id } : current)} />

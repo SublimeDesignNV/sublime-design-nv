@@ -3,7 +3,7 @@ import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
 import { auth } from "@/lib/auth";
 
 const ADMIN_LINKS = [
-  { href: "/admin", label: "Assets" },
+  { href: "/admin", label: "Photos" },
   { href: "/admin", label: "Project Workflow" },
   { href: "/admin/upload-batches", label: "Upload Batches" },
   { href: "/admin/leads", label: "Leads" },

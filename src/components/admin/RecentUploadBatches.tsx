@@ -113,6 +113,10 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+function getPreviewImage(src?: string | null, fallback?: string | null) {
+  return src || fallback || "";
+}
+
 export default function RecentUploadBatches({
   focusBatchId,
 }: {
@@ -305,7 +309,7 @@ export default function RecentUploadBatches({
           });
           if (!response.ok) {
             const body = (await response.json().catch(() => ({}))) as { error?: string };
-            throw new Error(body.error || "Failed to update asset publish state.");
+            throw new Error(body.error || "Failed to update photo publish state.");
           }
         }),
       );
@@ -324,7 +328,7 @@ export default function RecentUploadBatches({
         <div>
           <h2 className="text-2xl text-charcoal">Recent Upload Batches</h2>
           <p className="mt-2 font-ui text-sm text-gray-mid">
-            Upload, open the batch, create or link a project, then move it from draft to ready to published without hunting through the full asset library.
+            Upload, open the batch, create or link a project, then move it from draft to ready to published without hunting through the full photo library.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -368,7 +372,7 @@ export default function RecentUploadBatches({
             checked={showDraftOnly}
             onChange={(event) => setShowDraftOnly(event.target.checked)}
           />
-          Draft assets only
+          Draft photos only
         </label>
       </div>
 
@@ -391,7 +395,7 @@ export default function RecentUploadBatches({
                         Batch {batch.uploadBatchId.slice(0, 8)}
                       </span>
                       <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">
-                        {batch.assetCount} asset{batch.assetCount === 1 ? "" : "s"}
+                        {batch.assetCount} photo{batch.assetCount === 1 ? "" : "s"}
                       </span>
                       <span className={`rounded-full border px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] ${
                         batch.status === "linked"
@@ -447,7 +451,7 @@ export default function RecentUploadBatches({
                         disabled={isSubmitting}
                         className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
                       >
-                        Publish Batch Assets
+                        Publish Batch Photos
                       </button>
                       <button
                         type="button"
@@ -455,7 +459,7 @@ export default function RecentUploadBatches({
                         disabled={isSubmitting}
                         className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
                       >
-                        Hide Batch Assets
+                        Hide Batch Photos
                       </button>
                     </div>
                   </div>
@@ -773,22 +777,26 @@ export default function RecentUploadBatches({
             <h3 className="mt-2 text-xl text-charcoal">Needs project linkage</h3>
           </div>
           <span className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">
-            {recentUnlinkedAssets.length} asset{recentUnlinkedAssets.length === 1 ? "" : "s"}
+            {recentUnlinkedAssets.length} photo{recentUnlinkedAssets.length === 1 ? "" : "s"}
           </span>
         </div>
         <div className="mt-4 grid gap-3">
           {recentUnlinkedAssets.slice(0, 8).map((asset) => (
             <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-cream p-3">
-              {asset.thumbnailUrl ? (
+              {getPreviewImage(asset.imageUrl, asset.thumbnailUrl) ? (
                 <img
-                  src={asset.thumbnailUrl}
-                  alt={asset.title || "Unlinked upload"}
+                  src={getPreviewImage(asset.imageUrl, asset.thumbnailUrl)}
+                  alt={asset.title || "Unlinked photo"}
                   className="h-16 w-16 rounded-lg object-cover"
                 />
-              ) : null}
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-white font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                  No photo
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="font-ui text-sm font-semibold text-charcoal">
-                  {asset.title || "Untitled asset"}
+                  {asset.title || "Untitled photo"}
                 </p>
                 <p className="mt-1 text-xs text-gray-mid">
                   {asset.location || "No location"} • {new Date(asset.createdAt).toLocaleString()}
@@ -799,7 +807,7 @@ export default function RecentUploadBatches({
                 href={`/admin?focusAsset=${asset.id}`}
                 className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal"
               >
-                Manage in Assets
+                Manage in Photos
               </Link>
             </div>
           ))}
@@ -835,7 +843,7 @@ export default function RecentUploadBatches({
                 <div>
                   <p className="font-ui text-sm font-semibold text-charcoal">{action.title}</p>
                   <p className="mt-1 text-xs text-gray-mid">
-                    {action.status.toLowerCase()} • {action.assetCount} asset{action.assetCount === 1 ? "" : "s"} • updated {new Date(action.updatedAt).toLocaleString()}
+                    {action.status.toLowerCase()} • {action.assetCount} photo{action.assetCount === 1 ? "" : "s"} • updated {new Date(action.updatedAt).toLocaleString()}
                   </p>
                 </div>
               </div>
