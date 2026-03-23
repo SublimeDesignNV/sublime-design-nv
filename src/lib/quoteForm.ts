@@ -102,6 +102,21 @@ export function sanitizePhone(value: unknown) {
   return sanitizeWhitespace(sanitized).slice(0, 25);
 }
 
+export function getPhoneDigits(value: unknown) {
+  if (typeof value !== "string") return "";
+  return value.replace(/\D/g, "").slice(0, 11);
+}
+
+export function formatPhoneInput(value: unknown) {
+  const digits = getPhoneDigits(value);
+  const normalized = digits.startsWith("1") ? digits.slice(1) : digits;
+
+  if (!normalized) return "";
+  if (normalized.length <= 3) return `(${normalized}`;
+  if (normalized.length <= 6) return `(${normalized.slice(0, 3)}) ${normalized.slice(3)}`;
+  return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6, 10)}`;
+}
+
 export function sanitizeSlug(value: unknown) {
   if (typeof value !== "string") return "";
   const normalized = value.trim().toLowerCase();
@@ -150,27 +165,27 @@ export function isValidBudget(value: string) {
 export function validateQuoteFields(fields: QuoteFormFields): QuoteFieldErrors {
   const errors: QuoteFieldErrors = {};
 
-  if (!fields.name) errors.name = "Name is required.";
-  else if (fields.name.length < 2) errors.name = "Enter your full name.";
+  if (!fields.name) errors.name = "Please enter your full name.";
+  else if (fields.name.length < 2) errors.name = "Please enter your full name.";
 
-  if (!fields.email) errors.email = "Email is required.";
-  else if (!isValidEmail(fields.email)) errors.email = "Enter a valid email address.";
+  if (!fields.email) errors.email = "Please enter your email address.";
+  else if (!isValidEmail(fields.email)) errors.email = "Please enter a valid email address.";
 
-  if (!fields.phone) errors.phone = "Phone is required.";
-  else if (!isValidPhone(fields.phone)) errors.phone = "Enter a valid phone number.";
+  if (!fields.phone) errors.phone = "Please enter a phone number.";
+  else if (!isValidPhone(fields.phone)) errors.phone = "Please enter a valid phone number.";
 
   if (!fields.service) errors.service = "Please select a service.";
   else if (!isValidService(fields.service)) errors.service = "Please select a valid service.";
 
-  if (!fields.location) errors.location = "Location is required.";
-  else if (fields.location.length < 2) errors.location = "Enter your city, neighborhood, or area.";
+  if (!fields.location) errors.location = "Please enter your city, neighborhood, or area.";
+  else if (fields.location.length < 2) errors.location = "Please enter your city, neighborhood, or area.";
 
   if (!fields.message) errors.message = "Please describe your project.";
   else if (fields.message.length < 20) errors.message = "Add a little more detail so we can quote accurately.";
   else if (fields.message.length > MAX_MESSAGE_LENGTH)
     errors.message = `Keep the message under ${MAX_MESSAGE_LENGTH} characters.`;
 
-  if (!fields.consent) errors.consent = "Please confirm you agree to be contacted.";
+  if (!fields.consent) errors.consent = "Please confirm that we can contact you about this request.";
 
   return errors;
 }

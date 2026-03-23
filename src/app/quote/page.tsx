@@ -9,29 +9,30 @@ import { readQuotePrefill, type QuotePrefillContext } from "@/lib/publicLeadCtas
 import {
   applyQuotePrefillToForm,
   BUDGET_OPTIONS,
+  formatPhoneInput,
   hasVisibleQuoteContext,
   QUOTE_DEFAULT_FORM,
   TIMELINE_OPTIONS,
   getQuoteVisibleContext,
-  sanitizePhone,
   validateQuoteFields,
   type QuoteFieldErrors,
+  type QuoteFieldName,
   type QuoteFormFields,
 } from "@/lib/quoteForm";
 
 // ─── Service options ──────────────────────────────────────────────────────────
 const SERVICE_OPTIONS = SERVICES;
 
-const TRUST_REASONS = [
-  "Measured, built, and installed by a local finish carpentry team.",
-  "Project photos and scope details stay tied to your quote request.",
-  "Straightforward follow-up by phone or email without a long sales process.",
-] as const;
-
 const NEXT_STEPS = [
   "We review your service, location, and project details.",
   "If needed, we follow up to confirm measurements, photos, or scheduling.",
   "You get the next step for pricing, site visit, or installation timing.",
+] as const;
+
+const SUCCESS_REASSURANCE = [
+  "A local finish carpentry team reviews the request directly.",
+  "Your project context and uploaded photos stay attached to the quote.",
+  "Follow-up stays simple by phone or email.",
 ] as const;
 
 const MAX_PHOTOS = 5;
@@ -91,40 +92,6 @@ function inputClass(hasError: boolean) {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-4 font-ui text-xs uppercase tracking-widest text-gray-mid">{children}</p>
-  );
-}
-
-function QuoteTrustSection() {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <SectionLabel>Why Homeowners Reach Out</SectionLabel>
-      <ul className="space-y-3 text-sm text-gray-mid">
-        {TRUST_REASONS.map((reason) => (
-          <li key={reason} className="flex items-start gap-3">
-            <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-red" />
-            <span>{reason}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function WhatHappensNext() {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-cream p-6">
-      <SectionLabel>What Happens Next</SectionLabel>
-      <ol className="space-y-3 text-sm text-gray-mid">
-        {NEXT_STEPS.map((step, index) => (
-          <li key={step} className="flex items-start gap-3">
-            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-navy text-xs font-semibold text-white">
-              {index + 1}
-            </span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
-    </div>
   );
 }
 
@@ -262,24 +229,30 @@ function SuccessState({
           </p>
         </div>
 
-        <div className="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-cream p-5 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 rounded-xl border border-gray-200 bg-cream p-5 md:grid-cols-2">
           <div>
             <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">What Happens Next</p>
-            <p className="mt-2 text-sm text-gray-mid">
-              We review your service, location, and scope before replying with the right next step.
-            </p>
+            <ol className="mt-2 space-y-2 text-sm text-gray-mid">
+              {NEXT_STEPS.map((step, index) => (
+                <li key={step} className="flex items-start gap-2">
+                  <span className="mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-navy text-[10px] font-semibold text-white">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
           </div>
           <div>
-            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">While You Wait</p>
-            <p className="mt-2 text-sm text-gray-mid">
-              Keep browsing recent work or compare services to refine the look and scope you want.
-            </p>
-          </div>
-          <div>
-            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">Need to Add Something?</p>
-            <p className="mt-2 text-sm text-gray-mid">
-              If you remember more details later, submit another request or reply to the confirmation email.
-            </p>
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red">Helpful While You Wait</p>
+            <ul className="mt-2 space-y-2 text-sm text-gray-mid">
+              {SUCCESS_REASSURANCE.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
@@ -387,6 +360,7 @@ export default function QuotePage() {
     ctaLabel: "",
   });
   const [successProjects, setSuccessProjects] = useState<QuoteSuccessProject[]>([]);
+  const fieldRefs = useRef<Partial<Record<QuoteFieldName, HTMLElement | null>>>({});
 
   useEffect(() => {
     setUtm(captureUtm());
@@ -428,11 +402,29 @@ export default function QuotePage() {
     process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
   );
 
+  function setFieldRef(key: QuoteFieldName, node: HTMLElement | null) {
+    fieldRefs.current[key] = node;
+  }
+
+  function focusFirstInvalidField(fieldErrors: QuoteFieldErrors) {
+    const firstKey = Object.keys(fieldErrors)[0] as QuoteFieldName | undefined;
+    if (!firstKey) return;
+
+    const node = fieldRefs.current[firstKey];
+    if (!node) return;
+
+    node.scrollIntoView({ behavior: "smooth", block: "center" });
+    if ("focus" in node && typeof node.focus === "function") {
+      window.setTimeout(() => node.focus({ preventScroll: true }), 150);
+    }
+  }
+
   // ── Field setters ─────────────────────────────────────────────────────────
 
   function set<K extends keyof QuoteFormFields>(key: K, value: QuoteFormFields[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+    if (submitStatus === "error") setSubmitError("");
   }
 
   // ── Photo handling ────────────────────────────────────────────────────────
@@ -532,8 +524,9 @@ export default function QuotePage() {
     const fieldErrors = validateQuoteFields(form);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
-      const firstKey = Object.keys(fieldErrors)[0];
-      document.getElementById(`field-${firstKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setSubmitStatus("error");
+      setSubmitError("Please fix the highlighted fields and try again.");
+      focusFirstInvalidField(fieldErrors);
       return;
     }
 
@@ -596,6 +589,7 @@ export default function QuotePage() {
       if (!response.ok || !data.ok) {
         if (data.error?.fieldErrors) {
           setErrors(data.error.fieldErrors);
+          focusFirstInvalidField(data.error.fieldErrors);
         }
         throw new Error(
           data.error?.message ?? "Unable to submit. Please try again or call us directly.",
@@ -656,11 +650,6 @@ export default function QuotePage() {
           </div>
         ) : null}
 
-        <div className="mt-8 space-y-6">
-          <QuoteTrustSection />
-          <WhatHappensNext />
-        </div>
-
         <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-8">
           <input
             type="text"
@@ -683,15 +672,20 @@ export default function QuotePage() {
                   Full Name <span className="text-red">*</span>
                 </label>
                 <input
+                  ref={(node) => setFieldRef("name", node)}
                   type="text"
                   required
                   autoComplete="name"
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? "error-name" : undefined}
                   className={inputClass(!!errors.name)}
                   placeholder="Jane Smith"
                 />
-                <FieldError msg={errors.name} />
+                <div id="error-name">
+                  <FieldError msg={errors.name} />
+                </div>
               </div>
 
               <div id="field-email">
@@ -699,15 +693,20 @@ export default function QuotePage() {
                   Email <span className="text-red">*</span>
                 </label>
                 <input
+                  ref={(node) => setFieldRef("email", node)}
                   type="email"
                   required
                   autoComplete="email"
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "error-email" : undefined}
                   className={inputClass(!!errors.email)}
                   placeholder="jane@example.com"
                 />
-                <FieldError msg={errors.email} />
+                <div id="error-email">
+                  <FieldError msg={errors.email} />
+                </div>
               </div>
 
               <div id="field-phone" className="sm:col-span-2">
@@ -715,15 +714,20 @@ export default function QuotePage() {
                   Phone <span className="text-red">*</span>
                 </label>
                 <input
+                  ref={(node) => setFieldRef("phone", node)}
                   type="tel"
                   required
                   autoComplete="tel"
                   value={form.phone}
-                  onChange={(e) => set("phone", sanitizePhone(e.target.value))}
+                  onChange={(e) => set("phone", formatPhoneInput(e.target.value))}
+                  aria-invalid={Boolean(errors.phone)}
+                  aria-describedby={errors.phone ? "error-phone" : undefined}
                   className={inputClass(!!errors.phone)}
                   placeholder="(702) 555-0100"
                 />
-                <FieldError msg={errors.phone} />
+                <div id="error-phone">
+                  <FieldError msg={errors.phone} />
+                </div>
               </div>
             </div>
           </div>
@@ -738,6 +742,7 @@ export default function QuotePage() {
                   Service <span className="text-red">*</span>
                 </label>
                 <select
+                  ref={(node) => setFieldRef("service", node)}
                   required
                   value={form.service}
                   onChange={(e) => {
@@ -746,6 +751,8 @@ export default function QuotePage() {
                       trackEvent("quote_service_select", { service: e.target.value });
                     }
                   }}
+                  aria-invalid={Boolean(errors.service)}
+                  aria-describedby={errors.service ? "error-service" : undefined}
                   className={inputClass(!!errors.service)}
                 >
                   <option value="">Select a service…</option>
@@ -756,7 +763,9 @@ export default function QuotePage() {
                   ))}
                   <option value="other">Other / Not sure</option>
                 </select>
-                <FieldError msg={errors.service} />
+                <div id="error-service">
+                  <FieldError msg={errors.service} />
+                </div>
               </div>
 
               <div id="field-location">
@@ -764,14 +773,19 @@ export default function QuotePage() {
                   Neighborhood / City <span className="text-red">*</span>
                 </label>
                 <input
+                  ref={(node) => setFieldRef("location", node)}
                   type="text"
                   required
                   value={form.location}
                   onChange={(e) => set("location", e.target.value)}
+                  aria-invalid={Boolean(errors.location)}
+                  aria-describedby={errors.location ? "error-location" : undefined}
                   className={inputClass(!!errors.location)}
                   placeholder="Henderson, NV"
                 />
-                <FieldError msg={errors.location} />
+                <div id="error-location">
+                  <FieldError msg={errors.location} />
+                </div>
               </div>
 
               <div>
@@ -809,18 +823,23 @@ export default function QuotePage() {
                   Project Description <span className="text-red">*</span>
                 </label>
                 <textarea
+                  ref={(node) => setFieldRef("message", node)}
                   required
                   rows={5}
                   value={form.message}
                   onChange={(e) => set("message", e.target.value)}
+                  aria-invalid={Boolean(errors.message)}
+                  aria-describedby={errors.message ? "error-message" : "message-help"}
                   className={inputClass(!!errors.message)}
                   placeholder="Describe the room, scope, and any dimensions or details you have. The more context, the better."
                 />
-                <div className="mt-1 flex items-center justify-between text-xs text-gray-mid">
+                <div className="mt-1 flex items-center justify-between text-xs text-gray-mid" id="message-help">
                   <span>Helpful details: room, style, dimensions, and timing.</span>
                   <span>{form.message.length}/2000</span>
                 </div>
-                <FieldError msg={errors.message} />
+                <div id="error-message">
+                  <FieldError msg={errors.message} />
+                </div>
               </div>
             </div>
           </div>
@@ -845,9 +864,12 @@ export default function QuotePage() {
             <div id="field-consent">
               <label className="flex cursor-pointer items-start gap-3">
                 <input
+                  ref={(node) => setFieldRef("consent", node)}
                   type="checkbox"
                   checked={form.consent}
                   onChange={(e) => set("consent", e.target.checked)}
+                  aria-invalid={Boolean(errors.consent)}
+                  aria-describedby={errors.consent ? "error-consent" : undefined}
                   className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-red"
                 />
                 <span className="text-sm text-charcoal">
@@ -855,7 +877,9 @@ export default function QuotePage() {
                   <span className="text-red">*</span>
                 </span>
               </label>
-              <FieldError msg={errors.consent} />
+              <div id="error-consent">
+                <FieldError msg={errors.consent} />
+              </div>
             </div>
 
             <button
@@ -869,8 +893,8 @@ export default function QuotePage() {
               Your details are only used to follow up about this quote request.
             </p>
 
-            {submitStatus === "error" ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitStatus === "error" && submitError ? (
+              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
                 {submitError}
               </div>
             ) : null}

@@ -322,3 +322,78 @@ Focused files changed for quote success + auto-reply work
 Commit
 - Message: pending
 - SHA: pending
+
+Quote page UX cleanup + validation visibility
+
+What changed
+- Removed the pre-form `Why Homeowners Reach Out` and `What Happens Next` blocks from the top of `/quote` so the form starts higher on the page.
+- Kept the success-state guidance, but folded it into the existing success experience as:
+  - `What Happens Next` step list
+  - `Helpful While You Wait` reassurance list
+- Added client-side phone formatting via `formatPhoneInput(...)` in `src/lib/quoteForm.ts`.
+- Updated field validation copy to be clearer and more user-facing.
+- Added field-level `aria-invalid` / `aria-describedby` wiring and error containers so invalid fields are easier to identify.
+- Failed-submit behavior now:
+  - sets a clear form-level alert near the submit area
+  - focuses and scrolls to the first invalid field
+  - keeps inline field errors visible instead of only bumping the page upward
+
+Focused files changed
+- `src/app/quote/page.tsx`
+- `src/lib/quoteForm.ts`
+- `HANDOFF_QUOTE_FLOW.md`
+
+Verification
+
+Scenario A: shorter quote page
+- Verified `/quote` still returns `200`.
+- Verified the initial HTML contains:
+  - `Tell Us About Your Project`
+  - `Start with a Quote`
+- Verified the initial HTML no longer contains:
+  - `Why Homeowners Reach Out`
+  - pre-form `What Happens Next`
+
+Scenario B: phone formatting
+- Verified formatter output for:
+  - `7025550103` -> `(702) 555-0103`
+  - `702-555 0103` -> `(702) 555-0103`
+  - `(702)555-0103` -> `(702) 555-0103`
+- Verified a successful API submission still accepts the formatted phone value:
+  - `{"ok":true,"leadId":"cmn3uea620000lwfd84558icy"}`
+
+Scenario C: missing required fields
+- Posted an invalid payload to `/api/quote`.
+- Verified structured validation response now returns clearer field errors:
+  - `Please enter your full name.`
+  - `Please enter your email address.`
+  - `Please enter a phone number.`
+  - `Please enter your city, neighborhood, or area.`
+- Verified the quote page markup now contains dedicated field error containers like:
+  - `error-name`
+  - `error-email`
+  - `error-phone`
+  - `error-service`
+  - `error-location`
+  - `error-message`
+  - `error-consent`
+
+Scenario D: invalid email
+- Invalid email response from `/api/quote` returned:
+  - `Please enter a valid email address.`
+- Verified the submit-area error region now renders as a proper alert container in the quote page markup.
+
+Scenario E: successful submit
+- Verified valid quote submission still succeeds:
+  - `{"ok":true,"leadId":"cmn3uea620000lwfd84558icy"}`
+- Verified success-state guidance still exists in `src/app/quote/page.tsx` and now uses:
+  - `What Happens Next`
+  - `Helpful While You Wait`
+- No quote API contract changes were required for this cleanup.
+
+Build verification
+- `npm run build` passed.
+
+Commit
+- Message: pending
+- SHA: pending
