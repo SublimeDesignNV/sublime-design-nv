@@ -149,7 +149,24 @@ export default function AssetUploader() {
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <h2 className="text-2xl text-charcoal">Upload Photos</h2>
 
-      <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
+      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+        <label className="block">
+          <span className="font-ui text-sm font-semibold text-charcoal">Files</span>
+          <input
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            onChange={(event) => {
+              const selected = Array.from(event.target.files || []);
+              setFiles(selected);
+            }}
+            className="mt-1 block w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal file:mr-4 file:rounded-sm file:border-0 file:bg-navy file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+          />
+          <p className="mt-2 text-xs text-gray-mid">
+            Start by choosing the photo files, then classify them below.
+          </p>
+        </label>
+
         <fieldset>
           <legend className="font-ui text-sm font-semibold text-charcoal">Primary Service</legend>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -180,20 +197,29 @@ export default function AssetUploader() {
           <legend className="font-ui text-sm font-semibold text-charcoal">
             Secondary Services
           </legend>
-          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {SERVICE_TAGS.filter((service) => service.slug !== primaryService).map((service) => (
-              <label
-                key={service.slug}
-                className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 text-sm text-charcoal"
-              >
-                <input
-                  type="checkbox"
-                  checked={secondaryServices.includes(service.slug)}
-                  onChange={() => toggleSecondaryService(service.slug)}
-                />
-                <span>{service.label}</span>
-              </label>
-            ))}
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {SERVICE_TAGS.filter((service) => service.slug !== primaryService).map((service) => {
+              const active = secondaryServices.includes(service.slug);
+
+              return (
+                <label
+                  key={service.slug}
+                  className={`font-ui flex min-h-[48px] cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-sm transition ${
+                    active
+                      ? "border-red bg-red text-white"
+                      : "border-gray-warm bg-cream/40 text-charcoal hover:border-red hover:text-red"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={() => toggleSecondaryService(service.slug)}
+                    className="h-4 w-4 flex-shrink-0 accent-red"
+                  />
+                  <span className="leading-5">{service.label}</span>
+                </label>
+              );
+            })}
           </div>
           <p className="mt-2 text-xs text-gray-mid">
             Add any other service pages where this hybrid project should appear.
@@ -230,20 +256,6 @@ export default function AssetUploader() {
             Add room and feature context tags for future filtering and SEO organization.
           </p>
         </fieldset>
-
-        <label className="block">
-          <span className="font-ui text-sm font-semibold text-charcoal">Files</span>
-          <input
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            onChange={(event) => {
-              const selected = Array.from(event.target.files || []);
-              setFiles(selected);
-            }}
-            className="mt-1 block w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal file:mr-4 file:rounded-sm file:border-0 file:bg-navy file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
-          />
-        </label>
 
         <label className="block">
           <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
