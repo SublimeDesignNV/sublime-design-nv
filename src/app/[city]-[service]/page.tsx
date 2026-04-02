@@ -26,6 +26,7 @@ function getCityLabel(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  if (!params?.city || !params?.service) return {};
   const cityLabel = getCityLabel(params.city) || titleCaseFromSlug(params.city);
   const serviceLabel = titleCaseFromSlug(params.service);
 
@@ -39,6 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CityServicePage({ params }: Props) {
+  if (!params?.city || !params?.service) notFound();
   const city = params.city;
   const service = params.service;
 
