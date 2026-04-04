@@ -5,10 +5,12 @@ export default auth((request) => {
   const { nextUrl } = request;
   const pathname = nextUrl.pathname;
   const isAdminPath = pathname.startsWith("/admin");
+  const isDashboardPath = pathname.startsWith("/dashboard");
+  const isProtectedPath = isAdminPath || isDashboardPath;
   const isLoginPage = pathname === "/admin/login";
   const isAllowedUser = isAllowedAdminEmail(request.auth?.user?.email);
 
-  if (!isAdminPath) {
+  if (!isProtectedPath) {
     return NextResponse.next();
   }
 
@@ -23,9 +25,10 @@ export default auth((request) => {
 
   if (!isAllowedUser) {
     const loginUrl = new URL("/admin/login", nextUrl);
+    const nextPath = `${pathname}${nextUrl.search}`;
     loginUrl.searchParams.set(
       "next",
-      normalizeAdminNextPath(`${pathname}${nextUrl.search}`),
+      nextPath.startsWith("/admin") ? normalizeAdminNextPath(nextPath) : nextPath,
     );
     return NextResponse.redirect(loginUrl);
   }
@@ -34,5 +37,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*"],
 };

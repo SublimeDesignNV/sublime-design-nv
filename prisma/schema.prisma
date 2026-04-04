@@ -156,3 +156,74 @@ enum LeadClassification {
   SPAM
   OTHER
 }
+
+// ─── Intake Lead Flow ────────────────────────────────────────────────────────
+
+enum IntakeServiceType {
+  BARN_DOORS
+  CABINETS
+  CUSTOM_CLOSETS
+  FAUX_BEAMS
+  FLOATING_SHELVES
+  MANTELS
+  TRIM_WORK
+  MULTIPLE
+  OTHER
+}
+
+enum IntakeAssetType {
+  SPACE_PHOTO
+  INSPIRATION_PHOTO
+  VIDEO
+  PRODUCT_LINK
+  INSPIRATION_LINK
+  VISION_RENDER
+}
+
+enum IntakeLeadStatus {
+  NEW
+  INTAKE_SENT
+  INTAKE_STARTED
+  INTAKE_COMPLETE
+  VISION_GENERATED
+  BID_READY
+  CONVERTED
+  CLOSED
+}
+
+enum VisionStatus {
+  PENDING
+  GENERATING
+  COMPLETE
+  FAILED
+}
+
+model IntakeLead {
+  id           String           @id @default(cuid())
+  token        String           @unique @default(cuid())
+  firstName    String
+  lastName     String?
+  phone        String?
+  email        String?
+  serviceType  IntakeServiceType
+  projectNotes String?
+  intakeData   Json?
+  assets       IntakeLeadAsset[]
+  visionPrompt String?
+  visionResult Json?
+  visionStatus VisionStatus     @default(PENDING)
+  status       IntakeLeadStatus @default(NEW)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model IntakeLeadAsset {
+  id           String          @id @default(cuid())
+  leadId       String
+  lead         IntakeLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type         IntakeAssetType
+  url          String
+  cloudinaryId String?
+  caption      String?
+  createdAt    DateTime        @default(now())
+}
