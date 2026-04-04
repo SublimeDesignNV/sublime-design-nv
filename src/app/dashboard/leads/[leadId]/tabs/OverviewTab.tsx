@@ -87,8 +87,6 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
     "BID_READY",
   ];
 
-  const currentIdx = statusTimeline.indexOf(status);
-
   return (
     <div className="space-y-8">
       {/* Status timeline */}

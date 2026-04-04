@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { IntakeLead, IntakeLeadAsset } from "@prisma/client";
-import type { VisionResult } from "@/lib/ai/generateVision";
 import OverviewTab from "./tabs/OverviewTab";
 import MediaTab from "./tabs/MediaTab";
 import VisionTab from "./tabs/VisionTab";
