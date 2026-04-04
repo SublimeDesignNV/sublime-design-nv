@@ -26,28 +26,35 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
     setUploading(true);
     const newPhotos: UploadedPhoto[] = [];
 
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
-      try {
-        const form = new FormData();
-        form.append("file", file);
-        form.append("type", "SPACE_PHOTO");
+    try {
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        try {
+          const form = new FormData();
+          form.append("file", file);
+          form.append("type", "SPACE_PHOTO");
 
-        const res = await fetch(`/api/leads/${leadId}/upload`, {
-          method: "POST",
-          body: form,
-        });
+          const res = await fetch(`/api/leads/${leadId}/upload`, {
+            method: "POST",
+            body: form,
+          });
 
-        if (!res.ok) throw new Error("Upload failed");
-        const data = (await res.json()) as { ok: boolean; asset: { id: string; url: string } };
-        newPhotos.push({ id: data.asset.id, url: data.asset.url, caption: "" });
-      } catch {
-        setError("One or more photos failed to upload. Please try again.");
+          if (!res.ok) {
+            const data = (await res.json().catch(() => ({}))) as { error?: string };
+            throw new Error(data.error ?? `Upload failed (${res.status})`);
+          }
+          const data = (await res.json()) as { ok: boolean; asset: { id: string; url: string } };
+          newPhotos.push({ id: data.asset.id, url: data.asset.url, caption: "" });
+        } catch (err) {
+          console.error("[SpacePhotosStep] upload error:", err);
+          setError("One or more photos failed to upload. Please try again.");
+        }
       }
-    }
 
-    onPhotosChange([...photos, ...newPhotos]);
-    setUploading(false);
+      onPhotosChange([...photos, ...newPhotos]);
+    } finally {
+      setUploading(false);
+    }
   }
 
   function updateCaption(id: string, caption: string) {

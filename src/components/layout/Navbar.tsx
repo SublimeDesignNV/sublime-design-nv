@@ -125,10 +125,10 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
         <div className="hidden items-center gap-4 lg:flex">
           {isAdmin ? (
             <Link
-              href="/admin"
+              href="/dashboard/leads"
               className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid transition-colors hover:text-red"
             >
-              Admin
+              Leads
             </Link>
           ) : null}
           <a
@@ -203,11 +203,11 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
             <div className="mt-2 flex flex-col gap-3 border-t border-gray-warm pt-4">
               {isAdmin ? (
                 <Link
-                  href="/admin"
+                  href="/dashboard/leads"
                   className="font-ui text-sm font-semibold text-gray-mid transition-colors hover:text-red"
                   onClick={closeMenus}
                 >
-                  Admin
+                  Leads
                 </Link>
               ) : null}
               <a

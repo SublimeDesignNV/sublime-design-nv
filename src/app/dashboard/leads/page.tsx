@@ -131,9 +131,12 @@ export default async function DashboardLeadsPage({ searchParams }: Props) {
               </thead>
               <tbody className="divide-y divide-gray-warm">
                 {leads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-warm/20 transition-colors">
+                  <tr key={lead.id} className="hover:bg-gray-warm/20 transition-colors relative">
                     <td className="px-5 py-4">
-                      <Link href={`/dashboard/leads/${lead.id}`} className="font-ui font-semibold text-charcoal hover:text-red transition-colors">
+                      <Link
+                        href={`/dashboard/leads/${lead.id}`}
+                        className="font-ui font-semibold text-charcoal after:absolute after:inset-0"
+                      >
                         {lead.firstName} {lead.lastName ?? ""}
                       </Link>
                       {lead.phone && (

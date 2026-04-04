@@ -4,10 +4,11 @@ import { auth } from "@/lib/auth";
 
 const ADMIN_LINKS = [
   { href: "/admin", label: "Dashboard" },
+  { href: "/dashboard/leads", label: "Client Intakes" },
   { href: "/admin/uploads", label: "Uploads" },
   { href: "/admin/photos/unlinked", label: "Unlinked Photos" },
   { href: "/admin/projects", label: "Projects" },
-  { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/leads", label: "Quote Leads" },
   { href: "/admin/content-audit", label: "Content Audit" },
   { href: "/admin/launch-audit", label: "Launch Audit" },
 ] as const;
