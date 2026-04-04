@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Montserrat, Raleway } from "next/font/google";
+import { headers } from "next/headers";
 import Navbar from "@/components/layout/Navbar";
 import BuildDebugBadge from "@/components/layout/BuildDebugBadge";
 import Footer from "@/components/layout/Footer";
@@ -54,6 +55,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const isStandalone = headersList.get("x-standalone") === "1";
+
   const session = await auth();
   const isAdmin = Boolean(session?.user?.email && isAllowedAdminEmail(session.user.email));
 
@@ -64,10 +68,10 @@ export default async function RootLayout({
     >
       <body className="antialiased">
         {gaMeasurementId && <GoogleAnalytics measurementId={gaMeasurementId} />}
-        <Navbar isAdmin={isAdmin} />
+        {!isStandalone && <Navbar isAdmin={isAdmin} />}
         {children}
-        <BuildDebugBadge />
-        <Footer />
+        {!isStandalone && <BuildDebugBadge />}
+        {!isStandalone && <Footer />}
       </body>
     </html>
   );

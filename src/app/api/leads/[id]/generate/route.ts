@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { generateVision } from "@/lib/ai/generateVision";
 import type { Prisma } from "@prisma/client";
 
+// Vercel: extend timeout to 60s — GPT-4o + DALL-E together exceed the 10s default
+export const maxDuration = 60;
+
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },

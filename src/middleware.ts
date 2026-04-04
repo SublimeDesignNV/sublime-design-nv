@@ -10,6 +10,15 @@ export default auth((request) => {
   const isLoginPage = pathname === "/admin/login";
   const isAllowedUser = isAllowedAdminEmail(request.auth?.user?.email);
 
+  // Standalone pages (no site navbar/footer) — set header so root layout knows
+  const isStandalone =
+    pathname.startsWith("/intake/") || pathname.startsWith("/vision/");
+  if (isStandalone) {
+    const response = NextResponse.next();
+    response.headers.set("x-standalone", "1");
+    return response;
+  }
+
   if (!isProtectedPath) {
     return NextResponse.next();
   }
@@ -37,5 +46,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/intake/:path*", "/vision/:path*"],
 };
