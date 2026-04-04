@@ -12,9 +12,12 @@ import ConfirmStep from "./steps/ConfirmStep";
 
 export type IntakeFormData = {
   space?: string;
+  spaceOther?: string;       // Fix 1 — freeform when space === "Other"
   styles?: string[];
+  styleCustomNote?: string;  // Fix 4 — freeform when "Custom/Not Sure" selected
   budget?: string;
   timeline?: string;
+  asapDate?: string;         // Fix 5 — specific date when timeline === "ASAP"
   finalNotes?: string;
   dontWant?: string;
   howHeard?: string;
@@ -101,12 +104,18 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
 
   function goNext() {
     const nextStep = STEPS[stepIndex + 1];
-    if (nextStep) setStep(nextStep);
+    if (nextStep) {
+      setStep(nextStep);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   function goBack() {
     const prevStep = STEPS[stepIndex - 1];
-    if (prevStep) setStep(prevStep);
+    if (prevStep) {
+      setStep(prevStep);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   async function handleSubmit() {
