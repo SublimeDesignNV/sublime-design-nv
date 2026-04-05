@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { VisionResult } from "@/lib/ai/generateVision";
 
@@ -114,7 +115,7 @@ export default function VisionCard({ initial }: Props) {
       <div className="min-h-screen bg-cream">
         <div className="bg-white border-b border-gray-warm px-6 py-3 flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-light.png" alt="Sublime Design NV" className="h-8 w-auto" />
+          <Image src="/images/logo-light.png" alt="Sublime Design NV" width={120} height={32} className="h-8 w-auto" />
           <span className="text-gray-mid text-sm font-ui">Custom Woodwork · Las Vegas, NV</span>
         </div>
         <div className="max-w-lg mx-auto px-6 py-16 space-y-8">

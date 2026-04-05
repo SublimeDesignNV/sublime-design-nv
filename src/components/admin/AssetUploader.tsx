@@ -268,7 +268,10 @@ export default function AssetUploader() {
                 {previews.map((p) => (
                   <div key={p.name} className="flex flex-col items-center gap-1">
                     {p.previewUrl ? (
-                      <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
+                      </>
                     ) : (
                       <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-charcoal/10 font-ui text-xs text-gray-mid">
                         Video

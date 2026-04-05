@@ -124,9 +124,10 @@ function UploadBucket({
           <div className="w-6 h-6 border-2 border-red border-t-transparent rounded-full animate-spin mx-auto" />
         ) : photos.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto pb-1 justify-center">
-            {photos.slice(0, 4).map((p) => (
-              <img key={p.id} src={p.url} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-            ))}
+            {photos.slice(0, 4).map((p) => {
+              // eslint-disable-next-line @next/next/no-img-element
+              return <img key={p.id} src={p.url} alt="" className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />;
+            })}
             {photos.length > 4 && (
               <div className="w-16 h-16 rounded-lg flex-shrink-0 bg-gray-warm flex items-center justify-center text-xs font-ui font-semibold text-gray-mid">
                 +{photos.length - 4}

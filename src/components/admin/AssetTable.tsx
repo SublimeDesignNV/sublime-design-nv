@@ -685,6 +685,7 @@ export default function AssetTable({
                   </td>
                   <td className="py-2 pr-3">
                     {asset.kind === "IMAGE" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={getAdminPhotoPreviewSrc(asset)}
                         alt={asset.serviceTags[0]?.title || asset.contextTags[0]?.title || "Photo preview"}
@@ -1141,6 +1142,7 @@ export default function AssetTable({
                     key={asset.id}
                     className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-3 md:flex-row md:items-center"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={getAdminPhotoPreviewSrc(asset)}
                       alt={asset.title || "Selected photo"}

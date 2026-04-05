@@ -88,6 +88,7 @@ export default function VisionTab({ lead, renderUrl }: Props) {
       {/* AI Render — shown first */}
       {renderUrl && (
         <div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={renderUrl} alt={vision.headline} className="rounded-xl w-full object-cover max-h-[480px]" />
         </div>
       )}

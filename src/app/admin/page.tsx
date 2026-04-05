@@ -199,6 +199,7 @@ export default async function AdminPage() {
                 <div key={photo.id} className="rounded-lg border border-gray-200 bg-cream/40 p-4">
                   <div className="flex items-center gap-3">
                     {photo.imageUrl || photo.thumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={photo.imageUrl || photo.thumbnailUrl || ""}
                         alt={photo.title || "Unlinked photo"}

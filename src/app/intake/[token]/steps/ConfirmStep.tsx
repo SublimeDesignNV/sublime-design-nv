@@ -79,9 +79,10 @@ export default function ConfirmStep({
         <div>
           <p className="text-xs font-ui font-semibold text-gray-mid uppercase tracking-wide mb-2">Space Photos</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {spacePhotoUrls.slice(0, 3).map((url, i) => (
-              <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-            ))}
+            {spacePhotoUrls.slice(0, 3).map((url, i) => {
+              // eslint-disable-next-line @next/next/no-img-element
+              return <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />;
+            })}
             {spacePhotoUrls.length > 3 && (
               <div className="w-20 h-20 rounded-lg flex-shrink-0 bg-gray-warm flex items-center justify-center text-sm font-ui font-semibold text-gray-mid">
                 +{spacePhotoUrls.length - 3}
@@ -95,9 +96,10 @@ export default function ConfirmStep({
         <div>
           <p className="text-xs font-ui font-semibold text-gray-mid uppercase tracking-wide mb-2">Inspiration</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {inspirationPhotoUrls.slice(0, 3).map((url, i) => (
-              <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
-            ))}
+            {inspirationPhotoUrls.slice(0, 3).map((url, i) => {
+              // eslint-disable-next-line @next/next/no-img-element
+              return <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />;
+            })}
             {inspirationPhotoUrls.length > 3 && (
               <div className="w-20 h-20 rounded-lg flex-shrink-0 bg-gray-warm flex items-center justify-center text-sm font-ui font-semibold text-gray-mid">
                 +{inspirationPhotoUrls.length - 3}

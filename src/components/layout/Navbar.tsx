@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Menu, X } from "lucide-react";
@@ -14,9 +15,11 @@ function Logo() {
   }
 
   return (
-    <img
+    <Image
       src="/images/logo-light.png"
       alt="Sublime Design NV"
+      width={160}
+      height={48}
       className="h-12 w-auto"
       onError={() => setFailed(true)}
     />

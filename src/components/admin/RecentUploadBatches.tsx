@@ -504,6 +504,7 @@ export default function RecentUploadBatches({
                         onClick={() => setLightboxUrl(thumbnail)}
                         className="group relative overflow-hidden rounded-lg"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={thumbnail}
                           alt={`Batch ${batch.uploadBatchId} thumbnail ${index + 1}`}
@@ -753,6 +754,7 @@ export default function RecentUploadBatches({
                           .thumbnails[index] ?? "";
                       return (
                         <label key={assetId} className="block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={thumbnail}
                             alt={`Cover option ${index + 1}`}
@@ -831,6 +833,7 @@ export default function RecentUploadBatches({
           {recentUnlinkedAssets.slice(0, 8).map((asset) => (
             <div key={asset.id} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-cream p-3">
               {getPreviewImage(asset.imageUrl, asset.thumbnailUrl) ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={getPreviewImage(asset.imageUrl, asset.thumbnailUrl)}
                   alt={asset.title || "Unlinked photo"}
@@ -877,6 +880,7 @@ export default function RecentUploadBatches({
             <div key={action.id} className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
                 {action.coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={action.coverImageUrl}
                     alt={action.title}

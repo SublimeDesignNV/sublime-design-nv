@@ -162,6 +162,7 @@ export default function InspirationStep({
           {uploadError && <p className="text-red text-sm">{uploadError}</p>}
           {inspirationPhotos.map((p) => (
             <div key={p.id} className="flex gap-3 items-start bg-white rounded-lg p-3 border border-gray-warm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.url} alt="" className="w-20 h-20 object-cover rounded-md flex-shrink-0" />
               <input
                 type="text"

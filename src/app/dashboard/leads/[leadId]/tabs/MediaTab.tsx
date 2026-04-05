@@ -24,6 +24,7 @@ function PhotoGrid({ assets, label }: { assets: IntakeLeadAsset[]; label: string
         {assets.map((asset) => (
           <div key={asset.id} className="group relative aspect-square overflow-hidden rounded-xl border border-gray-warm">
             <a href={asset.url} target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={asset.url}
                 alt={asset.caption ?? label}

@@ -349,6 +349,7 @@ export default function ProjectTable() {
               {spotlightProjects.slice(0, 5).map((project) => (
                 <div key={project.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-cream/40 p-3">
                   {getAdminProjectPreviewSrc(project) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={getAdminProjectPreviewSrc(project)}
                       alt={project.title}
@@ -382,6 +383,7 @@ export default function ProjectTable() {
                 <div key={action.id} className="rounded-lg border border-gray-200 bg-cream/40 p-3">
                   <div className="flex items-center gap-3">
                     {action.coverImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={action.coverImageUrl}
                         alt={action.title}
@@ -646,6 +648,7 @@ export default function ProjectTable() {
                       return (
                         <div key={asset.id} className="rounded-lg border border-gray-warm bg-cream/40 p-3">
                           <div className="flex items-start gap-3">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={asset.imageUrl || asset.thumbnailUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">

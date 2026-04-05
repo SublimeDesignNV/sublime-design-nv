@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
@@ -14,9 +15,11 @@ function FooterLogo() {
   }
 
   return (
-    <img
+    <Image
       src="/images/logo-dark.png"
       alt="Sublime Design NV"
+      width={160}
+      height={48}
       className="h-12 w-auto"
       onError={() => setFailed(true)}
     />

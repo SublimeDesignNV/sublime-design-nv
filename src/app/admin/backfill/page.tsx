@@ -317,6 +317,7 @@ export default function AdminBackfillPage() {
                   checked={selected.has(asset.public_id)}
                   onChange={() => toggleSelected(asset.public_id)}
                 />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={asset.secure_url}
                   alt={asset.public_id}
