@@ -41,17 +41,22 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 type Props = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; archived?: string }>;
 };
 
 export default async function DashboardLeadsPage({ searchParams }: Props) {
   await requireAdmin("/dashboard/leads");
 
-  const { status } = await searchParams;
+  const { status, archived } = await searchParams;
   const filterStatus = status as IntakeLeadStatus | undefined;
+  const showArchived = archived === "1";
 
   const leads = await db.intakeLead.findMany({
-    where: filterStatus ? { status: filterStatus } : {},
+    where: filterStatus
+      ? { status: filterStatus }
+      : showArchived
+      ? {}
+      : { status: { not: "CLOSED" } },
     include: { _count: { select: { assets: true } } },
     orderBy: { createdAt: "desc" },
   });
@@ -85,16 +90,16 @@ export default async function DashboardLeadsPage({ searchParams }: Props) {
 
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Status filters */}
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8 items-center">
           <Link
             href="/dashboard/leads"
             className={`px-4 py-2 rounded-full text-sm font-ui font-semibold border transition-colors ${
-              !filterStatus ? "bg-charcoal text-white border-charcoal" : "border-gray-warm text-charcoal hover:border-charcoal"
+              !filterStatus && !showArchived ? "bg-charcoal text-white border-charcoal" : "border-gray-warm text-charcoal hover:border-charcoal"
             }`}
           >
             All ({leads.length})
           </Link>
-          {(Object.keys(STATUS_LABELS) as IntakeLeadStatus[]).map((s) => {
+          {(Object.keys(STATUS_LABELS) as IntakeLeadStatus[]).filter((s) => s !== "CLOSED").map((s) => {
             const count = countMap[s] ?? 0;
             if (count === 0) return null;
             return (
@@ -109,6 +114,14 @@ export default async function DashboardLeadsPage({ searchParams }: Props) {
               </Link>
             );
           })}
+          <Link
+            href={showArchived ? "/dashboard/leads" : "/dashboard/leads?archived=1"}
+            className={`px-4 py-2 rounded-full text-sm font-ui font-semibold border transition-colors ml-auto ${
+              showArchived ? "bg-charcoal text-white border-charcoal" : "border-gray-warm text-gray-mid hover:border-charcoal hover:text-charcoal"
+            }`}
+          >
+            {showArchived ? "Hide archived" : `Show archived (${countMap["CLOSED"] ?? 0})`}
+          </Link>
         </div>
 
         {leads.length === 0 ? (

@@ -93,6 +93,13 @@ export default function VisionCard({ initial }: Props) {
 
   return (
     <div className="min-h-screen bg-cream">
+      {/* Branding header */}
+      <div className="bg-white border-b border-gray-warm px-6 py-3 flex items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo-light.png" alt="Sublime Design NV" className="h-8 w-auto" />
+        <span className="text-gray-mid text-sm font-ui">Custom Woodwork · Las Vegas, NV</span>
+      </div>
+
       {/* Hero */}
       <div className="bg-navy text-white py-16 px-6">
         <div className="max-w-3xl mx-auto text-center">
@@ -110,17 +117,15 @@ export default function VisionCard({ initial }: Props) {
         </div>
       </div>
 
-      {/* AI Render */}
+      {/* AI Render — full viewport width */}
       {lead.renderUrl && (
-        <div className="bg-charcoal">
-          <div className="max-w-4xl mx-auto">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lead.renderUrl}
-              alt={vision.headline}
-              className="w-full object-cover max-h-[600px]"
-            />
-          </div>
+        <div className="w-full bg-charcoal">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lead.renderUrl}
+            alt={vision.headline}
+            className="w-full h-[40vh] md:h-[60vh] object-cover"
+          />
         </div>
       )}
 
@@ -186,21 +191,15 @@ export default function VisionCard({ initial }: Props) {
           <h2 className="font-display text-3xl mb-3">Love what you see?</h2>
           <p className="text-white/80 mb-6">We&apos;re ready to build it. Let&apos;s talk next steps.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={`/api/intake/${lead.id}/bid-request`}
-              onClick={async (e) => {
-                e.preventDefault();
-                await fetch(`/api/leads/${lead.id}`, {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ status: "BID_READY" }),
-                });
+            <button
+              onClick={async () => {
+                await fetch(`/api/intake/${lead.id}/bid-request`, { method: "POST" });
                 window.location.href = "/quote?source=vision";
               }}
               className="bg-white text-red font-ui font-bold px-8 py-4 rounded-xl hover:bg-cream transition-colors"
             >
               Request Your Quote
-            </a>
+            </button>
             <a
               href={`/intake/${lead.id}?edit=1`}
               className="border border-white/40 text-white font-ui font-semibold px-8 py-4 rounded-xl hover:border-white transition-colors"

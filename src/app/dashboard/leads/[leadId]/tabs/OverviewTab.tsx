@@ -56,6 +56,7 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
   const [status, setStatus] = useState<IntakeLeadStatus>(lead.status);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [archiveToast, setArchiveToast] = useState(false);
 
   const intake = (lead.intakeData ?? {}) as IntakeData;
 
@@ -77,6 +78,22 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
     await navigator.clipboard.writeText(intakeUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function archiveLead() {
+    setSaving(true);
+    try {
+      await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CLOSED" }),
+      });
+      setStatus("CLOSED");
+      setArchiveToast(true);
+      setTimeout(() => setArchiveToast(false), 3000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const statusTimeline: IntakeLeadStatus[] = [
@@ -143,6 +160,11 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
         {/* Quick actions */}
         <div className="bg-white rounded-xl border border-gray-warm p-6 space-y-4">
           <h3 className="text-sm font-ui font-semibold text-gray-mid uppercase tracking-wide">Actions</h3>
+          {archiveToast && (
+            <div className="bg-charcoal text-white text-sm font-ui font-semibold px-4 py-2 rounded-lg text-center">
+              Lead archived
+            </div>
+          )}
           <div className="space-y-2">
             <button
               onClick={() => void copyLink()}
@@ -158,6 +180,15 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
               >
                 👁 View vision result
               </a>
+            )}
+            {status !== "CLOSED" && (
+              <button
+                onClick={() => void archiveLead()}
+                disabled={saving}
+                className="w-full border border-gray-warm text-gray-mid font-ui font-semibold py-2.5 px-4 rounded-lg hover:border-charcoal hover:text-charcoal text-sm transition-colors text-left disabled:opacity-40"
+              >
+                🗄 Archive lead
+              </button>
             )}
           </div>
           <div>

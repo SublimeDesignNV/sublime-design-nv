@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { db } from "@/lib/db";
-import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { sendSMS } from "@/lib/twilio/sendSMS";
 import { SITE } from "@/lib/constants";
-import type { IntakeLeadStatus, VisionStatus, Prisma } from "@prisma/client";
 
 function escapeHtml(s: string) {
   return String(s)
@@ -26,21 +24,43 @@ const SERVICE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-async function notifyTylerBidRequested(lead: {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  phone: string | null;
-  email: string | null;
-  serviceType: string;
-  intakeData: Prisma.JsonValue;
-}) {
+// Public route — called from client-facing vision page when "Request Your Quote" is clicked
+export async function POST(
+  _request: Request,
+  { params }: { params: Promise<{ leadId: string }> },
+) {
+  const { leadId } = await params;
+
+  const lead = await db.intakeLead.findUnique({
+    where: { id: leadId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      email: true,
+      serviceType: true,
+      intakeData: true,
+      status: true,
+    },
+  });
+
+  if (!lead) {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+  }
+
+  await db.intakeLead.update({
+    where: { id: leadId },
+    data: { status: "BID_READY" },
+  });
+
+  // Fire-and-forget notifications (don't block the response)
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? SITE.url;
   const dashboardUrl = `${baseUrl}/dashboard/leads/${lead.id}`;
   const serviceLabel = SERVICE_LABELS[lead.serviceType] ?? lead.serviceType;
   const intake = (lead.intakeData ?? {}) as Record<string, unknown>;
 
-  // Email
+  // Email Tyler
   const resendApiKey = process.env.RESEND_API_KEY;
   if (resendApiKey) {
     const html = `<!DOCTYPE html>
@@ -70,67 +90,22 @@ async function notifyTylerBidRequested(lead: {
 
     const resend = new Resend(resendApiKey);
     const from = (process.env.LEADS_FROM_EMAIL ?? "").trim() || `${SITE.name} <admin@sublimedesignnv.com>`;
-    await resend.emails.send({
+    resend.emails.send({
       from,
       to: "info@sublimedesignnv.com",
       subject: `🚨 Bid Requested — ${lead.firstName} ${lead.lastName ?? ""} is ready for a quote`,
       html,
-    });
+    }).catch((err) => console.error("[bid-request] email failed:", err));
   }
 
-  // SMS
+  // SMS Tyler
   const tylerPhone = process.env.TYLER_PHONE_NUMBER;
   if (tylerPhone) {
     const smsBody = `New bid request from ${lead.firstName} ${lead.lastName ?? ""} — ${serviceLabel}. View lead: ${dashboardUrl}`;
-    await sendSMS(tylerPhone, smsBody);
-  }
-}
-
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await requireAdminApiSession();
-  if (!session) return unauthorizedResponse();
-
-  const { id } = await params;
-  const lead = await db.intakeLead.findUnique({
-    where: { id },
-    include: { assets: { orderBy: { createdAt: "asc" } } },
-  });
-
-  if (!lead) {
-    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+    sendSMS(tylerPhone, smsBody).catch((err) =>
+      console.error("[bid-request] SMS failed:", err),
+    );
   }
 
-  return NextResponse.json({ ok: true, lead });
-}
-
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await requireAdminApiSession();
-  if (!session) return unauthorizedResponse();
-
-  const { id } = await params;
-  const body = (await request.json()) as {
-    status?: IntakeLeadStatus;
-    visionStatus?: VisionStatus;
-    projectNotes?: string;
-    intakeData?: Record<string, unknown>;
-  };
-
-  const lead = await db.intakeLead.update({
-    where: { id },
-    data: {
-      ...(body.status !== undefined ? { status: body.status } : {}),
-      ...(body.visionStatus !== undefined ? { visionStatus: body.visionStatus } : {}),
-      ...(body.projectNotes !== undefined ? { projectNotes: body.projectNotes } : {}),
-      ...(body.intakeData !== undefined ? { intakeData: body.intakeData as Prisma.InputJsonValue } : {}),
-    },
-    include: { assets: true },
-  });
-
-  return NextResponse.json({ ok: true, lead });
+  return NextResponse.json({ ok: true });
 }

@@ -85,21 +85,20 @@ export default function VisionTab({ lead, renderUrl }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Contractor Notes — most important for contractor view */}
+      {/* AI Render — shown first */}
+      {renderUrl && (
+        <div>
+          <img src={renderUrl} alt={vision.headline} className="rounded-xl w-full object-cover max-h-[480px]" />
+        </div>
+      )}
+
+      {/* Contractor Notes */}
       {vision.contractorNotes && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
           <h3 className="text-sm font-ui font-semibold text-yellow-800 uppercase tracking-wide mb-3">
             📋 Contractor Notes
           </h3>
           <p className="text-yellow-900 whitespace-pre-wrap">{vision.contractorNotes}</p>
-        </div>
-      )}
-
-      {/* AI Render */}
-      {renderUrl && (
-        <div>
-          <h3 className="text-sm font-ui font-semibold text-gray-mid uppercase tracking-wide mb-3">AI Render</h3>
-          <img src={renderUrl} alt={vision.headline} className="rounded-xl border border-gray-warm w-full" />
         </div>
       )}
 
