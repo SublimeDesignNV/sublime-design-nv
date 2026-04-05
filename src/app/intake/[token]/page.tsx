@@ -6,10 +6,13 @@ export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ edit?: string }>;
 };
 
-export default async function IntakePage({ params }: Props) {
+export default async function IntakePage({ params, searchParams }: Props) {
   const { token } = await params;
+  const { edit } = await searchParams;
+  const editMode = edit === "1";
 
   const lead = await db.intakeLead.findUnique({
     where: { token },
@@ -23,8 +26,8 @@ export default async function IntakePage({ params }: Props) {
 
   if (!lead) notFound();
 
-  // Already completed — show a message instead of re-rendering the form
-  if (lead.status === "INTAKE_COMPLETE" || lead.status === "VISION_GENERATED" || lead.status === "BID_READY" || lead.status === "CONVERTED") {
+  // Already completed — show a message instead of re-rendering the form (unless edit mode)
+  if (!editMode && (lead.status === "INTAKE_COMPLETE" || lead.status === "VISION_GENERATED" || lead.status === "BID_READY" || lead.status === "CONVERTED")) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="max-w-md text-center">

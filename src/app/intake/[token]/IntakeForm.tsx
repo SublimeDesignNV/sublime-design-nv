@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { IntakeServiceType } from "@prisma/client";
 import WelcomeStep from "./steps/WelcomeStep";
 import ProjectBasicsStep from "./steps/ProjectBasicsStep";
@@ -54,7 +54,9 @@ function getStorageKey(token: string) {
 
 export default function IntakeForm({ leadId, token, firstName, serviceType }: Props) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("welcome");
+  const searchParams = useSearchParams();
+  const editMode = searchParams.get("edit") === "1";
+  const [step, setStep] = useState<Step>(editMode ? "basics" : "welcome");
   const [formData, setFormData] = useState<IntakeFormData>({});
   const [spacePhotos, setSpacePhotos] = useState<SpacePhoto[]>([]);
   const [inspirationPhotos, setInspirationPhotos] = useState<InspirationPhoto[]>([]);
@@ -74,11 +76,13 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
           step?: Step;
         };
         if (parsed.formData) setFormData(parsed.formData);
-        if (parsed.step && parsed.step !== "welcome") setStep(parsed.step);
+        // In edit mode, always start at basics regardless of saved step
+        if (!editMode && parsed.step && parsed.step !== "welcome") setStep(parsed.step);
       }
     } catch {
       // ignore
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Persist to localStorage on change and show "Progress saved" toast
@@ -272,6 +276,7 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
             productLinkCount={productLinks.filter((l) => l.url).length}
             inspirationLinkCount={inspirationLinks.filter((l) => l.url).length}
             submitting={submitting}
+            editMode={editMode}
             onSubmit={handleSubmit}
             onBack={goBack}
           />

@@ -3,9 +3,24 @@
 import { useEffect, useState } from "react";
 import type { VisionResult } from "@/lib/ai/generateVision";
 
+const SERVICE_LABELS: Record<string, string> = {
+  BARN_DOORS: "Barn Doors",
+  CABINETS: "Cabinets",
+  CUSTOM_CLOSETS: "Custom Closets",
+  FAUX_BEAMS: "Faux Beams",
+  FLOATING_SHELVES: "Floating Shelves",
+  MANTELS: "Mantels",
+  TRIM_WORK: "Trim Work",
+  MULTIPLE: "Multiple Services",
+  OTHER: "Other",
+};
+
 type LeadData = {
   id: string;
+  token: string;
   firstName: string;
+  serviceType: string;
+  intakeData: Record<string, unknown>;
   visionStatus: "PENDING" | "GENERATING" | "COMPLETE" | "FAILED";
   visionResult: VisionResult | null;
   renderUrl: string | null;
@@ -17,6 +32,7 @@ type Props = {
 
 export default function VisionCard({ initial }: Props) {
   const [lead, setLead] = useState(initial);
+  const [confirmed, setConfirmed] = useState(false);
 
   // Poll while generating
   useEffect(() => {
@@ -90,6 +106,67 @@ export default function VisionCard({ initial }: Props) {
 
   const vision = lead.visionResult;
   if (!vision) return null;
+
+  const intake = lead.intakeData;
+
+  if (confirmed) {
+    return (
+      <div className="min-h-screen bg-cream">
+        <div className="bg-white border-b border-gray-warm px-6 py-3 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/logo-light.png" alt="Sublime Design NV" className="h-8 w-auto" />
+          <span className="text-gray-mid text-sm font-ui">Custom Woodwork · Las Vegas, NV</span>
+        </div>
+        <div className="max-w-lg mx-auto px-6 py-16 space-y-8">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-3xl">✓</span>
+            </div>
+            <h1 className="font-display text-4xl text-charcoal mb-3">You&apos;re all set!</h1>
+            <p className="text-gray-mid text-lg leading-relaxed">
+              Tyler at Sublime Design NV has been notified and will reach out within 24 hours
+              to schedule your on-site consultation and put together your bid.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-warm p-6">
+            <h2 className="text-sm font-ui font-semibold text-gray-mid uppercase tracking-wide mb-4">Your Project Summary</h2>
+            <div className="divide-y divide-gray-warm">
+              {[
+                { label: "Service", value: SERVICE_LABELS[lead.serviceType] ?? lead.serviceType },
+                { label: "Space", value: intake.space as string | undefined },
+                { label: "Budget", value: intake.budget as string | undefined },
+                { label: "Timeline", value: intake.timeline as string | undefined },
+              ].filter((r) => r.value).map(({ label, value }) => (
+                <div key={label} className="flex justify-between py-3 text-sm">
+                  <span className="font-ui font-semibold text-gray-mid">{label}</span>
+                  <span className="text-charcoal">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-navy/5 border border-navy/20 rounded-xl p-6 text-center">
+            <p className="font-ui font-semibold text-navy mb-1">Questions in the meantime?</p>
+            <p className="text-gray-mid text-sm mb-4">Call or text Tyler directly</p>
+            <a
+              href="tel:+17028479016"
+              className="inline-block bg-navy text-white font-ui font-bold px-8 py-3 rounded-xl hover:bg-navy/80 transition-colors"
+            >
+              702-847-9016
+            </a>
+          </div>
+
+          <button
+            onClick={() => window.print()}
+            className="w-full border border-gray-warm text-charcoal font-ui font-semibold py-3 rounded-xl hover:border-charcoal transition-colors text-sm"
+          >
+            Save Your Design Concept
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-cream">
@@ -194,14 +271,15 @@ export default function VisionCard({ initial }: Props) {
             <button
               onClick={async () => {
                 await fetch(`/api/intake/${lead.id}/bid-request`, { method: "POST" });
-                window.location.href = "/quote?source=vision";
+                setConfirmed(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
               className="bg-white text-red font-ui font-bold px-8 py-4 rounded-xl hover:bg-cream transition-colors"
             >
               Request Your Quote
             </button>
             <a
-              href={`/intake/${lead.id}?edit=1`}
+              href={`/intake/${lead.token}?edit=1`}
               className="border border-white/40 text-white font-ui font-semibold px-8 py-4 rounded-xl hover:border-white transition-colors"
             >
               I want to make changes

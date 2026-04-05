@@ -16,7 +16,10 @@ export default async function VisionPage({ params }: Props) {
     where: { id: leadId },
     select: {
       id: true,
+      token: true,
       firstName: true,
+      serviceType: true,
+      intakeData: true,
       visionStatus: true,
       visionResult: true,
       assets: {
@@ -33,7 +36,10 @@ export default async function VisionPage({ params }: Props) {
     <VisionCard
       initial={{
         id: lead.id,
+        token: lead.token,
         firstName: lead.firstName,
+        serviceType: lead.serviceType,
+        intakeData: (lead.intakeData ?? {}) as Record<string, unknown>,
         visionStatus: lead.visionStatus as "PENDING" | "GENERATING" | "COMPLETE" | "FAILED",
         visionResult: lead.visionResult as VisionResult | null,
         renderUrl: lead.assets[0]?.url ?? null,

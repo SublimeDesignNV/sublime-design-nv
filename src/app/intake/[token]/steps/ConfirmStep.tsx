@@ -23,6 +23,7 @@ type Props = {
   productLinkCount: number;
   inspirationLinkCount: number;
   submitting: boolean;
+  editMode?: boolean;
   onSubmit: () => void;
   onBack: () => void;
 };
@@ -35,6 +36,7 @@ export default function ConfirmStep({
   productLinkCount,
   inspirationLinkCount,
   submitting,
+  editMode,
   onSubmit,
   onBack,
 }: Props) {
@@ -45,7 +47,9 @@ export default function ConfirmStep({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="font-display text-2xl text-charcoal mb-2">Ready to generate your concept?</h2>
+        <h2 className="font-display text-2xl text-charcoal mb-2">
+          {editMode ? "Update your concept?" : "Ready to generate your concept?"}
+        </h2>
         <p className="text-gray-mid">Here&apos;s a summary of what you&apos;ve shared with us.</p>
       </div>
 
@@ -127,6 +131,8 @@ export default function ConfirmStep({
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Submitting...
             </span>
+          ) : editMode ? (
+            "Update My Concept →"
           ) : (
             "Submit & See My Concept →"
           )}
