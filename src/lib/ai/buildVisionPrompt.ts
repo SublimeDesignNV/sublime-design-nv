@@ -2,19 +2,32 @@ import type { IntakeLead, IntakeLeadAsset } from "@prisma/client";
 
 export type IntakeData = {
   space?: string;
+  spaceOther?: string;
+  spaceChallenge?: string;
   styles?: string[];
+  styleCustomNote?: string;
+  styleFollowUp?: string;
   budget?: string;
+  budgetPriority?: string;
   timeline?: string;
+  asapDate?: string;
+  asapReason?: string;
   finalNotes?: string;
   dontWant?: string;
   howHeard?: string;
+  oneThingThatMatters?: string;
+  woodTone?: string;
+  finishStyle?: string;
+  materialDetails?: Record<string, string>;
   serviceDetails?: Record<string, unknown>;
+  selectedServiceType?: string;
 };
 
 export function buildVisionPrompt(
   lead: IntakeLead & { assets: IntakeLeadAsset[] },
 ): string {
   const intake = (lead.intakeData ?? {}) as IntakeData;
+  const serviceType = intake.selectedServiceType ?? lead.serviceType;
 
   const inspirationAssets = lead.assets.filter(
     (a) => a.type === "INSPIRATION_LINK" || a.type === "PRODUCT_LINK",
@@ -23,15 +36,50 @@ export function buildVisionPrompt(
     (a) => a.type === "SPACE_PHOTO" || a.type === "INSPIRATION_PHOTO",
   );
 
+  const spaceLabel = intake.space === "Other" && intake.spaceOther
+    ? intake.spaceOther
+    : (intake.space ?? "not specified");
+
+  const styleLabel = [
+    intake.styles?.join(", ") ?? "not specified",
+    intake.styleCustomNote ? `(client note: "${intake.styleCustomNote}")` : null,
+    intake.styleFollowUp ? `(follow-up: "${intake.styleFollowUp}")` : null,
+  ].filter(Boolean).join(" ");
+
+  const timelineLabel = [
+    intake.timeline ?? "not specified",
+    intake.asapDate ? `(target date: ${intake.asapDate})` : null,
+    intake.asapReason ? `(reason: "${intake.asapReason}")` : null,
+  ].filter(Boolean).join(" ");
+
+  const budgetLabel = [
+    intake.budget ?? "not specified",
+    intake.budgetPriority ? `(priority: "${intake.budgetPriority}")` : null,
+  ].filter(Boolean).join(" ");
+
+  const materialDetails = intake.materialDetails && Object.keys(intake.materialDetails).length > 0
+    ? Object.entries(intake.materialDetails).map(([k, v]) => `  ${k}: ${v}`).join("\n")
+    : "None specified";
+
   return `You are a professional custom woodwork design consultant helping a client visualize their project before construction begins.
 
 PROJECT DETAILS:
-- Service: ${lead.serviceType}
-- Space: ${intake.space ?? "not specified"}
-- Style preferences: ${intake.styles?.join(", ") ?? "not specified"}
-- Budget range: ${intake.budget ?? "not specified"}
-- Timeline: ${intake.timeline ?? "not specified"}
+- Service: ${serviceType}
+- Space: ${spaceLabel}
+- Space challenge: ${intake.spaceChallenge ?? "not specified"}
+- Style preferences: ${styleLabel}
+- Budget range: ${budgetLabel}
+- Timeline: ${timelineLabel}
 - Contractor notes: ${lead.projectNotes ?? "none"}
+
+THE ONE THING THAT MATTERS MOST TO THE CLIENT:
+${intake.oneThingThatMatters ?? "Not specified"}
+
+MATERIALS & FINISH PREFERENCES:
+- Wood tone: ${intake.woodTone ?? "not specified"}
+- Finish style: ${intake.finishStyle ?? "not specified"}
+- Service-specific material details:
+${materialDetails}
 
 CLIENT'S OWN DESCRIPTION:
 ${intake.finalNotes ?? "No additional notes provided"}

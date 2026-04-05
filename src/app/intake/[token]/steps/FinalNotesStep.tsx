@@ -17,6 +17,20 @@ export default function FinalNotesStep({ data, onChange, onNext, onBack }: Props
         <p className="text-gray-mid">A few final questions to complete your vision profile.</p>
       </div>
 
+      {/* Change 5 — "One Thing" power question */}
+      <div className="bg-navy/5 border border-navy/20 rounded-xl p-5">
+        <label className="block font-display text-xl text-navy mb-3">
+          If we only get one thing right, what should it be?
+        </label>
+        <textarea
+          rows={3}
+          value={data.oneThingThatMatters ?? ""}
+          onChange={(e) => onChange({ oneThingThatMatters: e.target.value })}
+          placeholder="e.g. I want it to feel like it was always part of the house..."
+          className="w-full border border-navy/20 rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-navy bg-white resize-none"
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-ui font-semibold text-charcoal mb-2">
           Anything else we should know?

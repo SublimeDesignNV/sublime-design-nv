@@ -6,8 +6,22 @@ import type { IntakeFormData } from "../IntakeForm";
 const SPACES = ["Kitchen", "Living Room", "Master Bedroom", "Dining Room", "Office", "Garage", "Other"];
 const STYLES = ["Modern", "Rustic", "Industrial", "Traditional", "Farmhouse", "Transitional", "Custom/Not Sure"];
 const TIMELINES = ["ASAP", "1–3 months", "3–6 months", "No rush"];
+const WOOD_TONES = ["Light / Blonde", "Medium / Honey", "Dark / Walnut", "Ebony / Black", "Match existing", "No preference"];
+const FINISH_STYLES = ["Natural / Clear coat", "Stain", "Paint", "Whitewash / Limewash", "No preference"];
+const BUDGET_PRIORITY_OPTS = ["Best quality I can afford", "Get it done fast", "Match existing finishes", "Price is flexible"];
 
-// Fix 2 — consistent prominent label style across all questions
+const SERVICE_TYPES: { value: IntakeServiceType; label: string; emoji: string }[] = [
+  { value: "FLOATING_SHELVES", label: "Floating Shelves", emoji: "📚" },
+  { value: "CABINETS", label: "Cabinets", emoji: "🗄" },
+  { value: "CUSTOM_CLOSETS", label: "Custom Closets", emoji: "👗" },
+  { value: "BARN_DOORS", label: "Barn Doors", emoji: "🚪" },
+  { value: "FAUX_BEAMS", label: "Faux Beams", emoji: "🏠" },
+  { value: "MANTELS", label: "Mantels", emoji: "🔥" },
+  { value: "TRIM_WORK", label: "Trim Work", emoji: "📐" },
+  { value: "MULTIPLE", label: "Multiple", emoji: "✦" },
+  { value: "OTHER", label: "Other", emoji: "💬" },
+];
+
 const Q = "block text-lg font-bold text-charcoal mb-3";
 
 type Props = {
@@ -34,7 +48,94 @@ function ToggleChip({ label, selected, onToggle }: { label: string; selected: bo
   );
 }
 
-// Fix 6 — service context cards
+function MaterialDetailsSection({
+  serviceType,
+  data,
+  onChange,
+}: {
+  serviceType: IntakeServiceType;
+  data: IntakeFormData;
+  onChange: (data: Partial<IntakeFormData>) => void;
+}) {
+  const mat = data.materialDetails ?? {};
+  const update = (key: string, value: string) =>
+    onChange({ materialDetails: { ...mat, [key]: value } });
+
+  const chipRow = (key: string, opts: string[]) => (
+    <div className="flex flex-wrap gap-2">
+      {opts.map((o) => (
+        <ToggleChip key={o} label={o} selected={mat[key] === o} onToggle={() => update(key, o)} />
+      ))}
+    </div>
+  );
+
+  switch (serviceType) {
+    case "BARN_DOORS":
+      return (
+        <div>
+          <label className={Q}>Panel design</label>
+          {chipRow("panelStyle", ["Flat / Simple", "X-brace", "Z-brace", "Horizontal slat", "Not sure"])}
+        </div>
+      );
+    case "CABINETS":
+      return (
+        <div className="space-y-4">
+          <div>
+            <label className={Q}>Hardware style</label>
+            {chipRow("hardwareStyle", ["Bar pulls", "Cup pulls", "Knobs", "No hardware", "Not sure"])}
+          </div>
+          <div>
+            <label className={Q}>Cabinet color <span className="font-normal text-gray-mid text-base">(if painting)</span></label>
+            {chipRow("cabinetColor", ["White", "Cream / Off-white", "Light gray", "Charcoal / Dark", "Navy", "Two-tone"])}
+          </div>
+        </div>
+      );
+    case "CUSTOM_CLOSETS":
+      return (
+        <div>
+          <label className={Q}>Hardware finish</label>
+          {chipRow("hardwareFinish", ["Chrome", "Matte black", "Gold / Brass", "White", "Not sure"])}
+        </div>
+      );
+    case "FLOATING_SHELVES":
+      return (
+        <div className="space-y-4">
+          <div>
+            <label className={Q}>Edge profile</label>
+            {chipRow("edgeProfile", ["Square / Clean", "Rounded", "Beveled / Chamfered", "Live edge", "Not sure"])}
+          </div>
+          <div>
+            <label className={Q}>Bracket style</label>
+            {chipRow("bracketStyle", ["Hidden / Floating", "Visible iron", "Pipe / Industrial", "No preference"])}
+          </div>
+        </div>
+      );
+    case "MANTELS":
+      return (
+        <div>
+          <label className={Q}>Surround wall treatment</label>
+          {chipRow("surroundTreatment", ["Shiplap", "Tile", "Stone / Brick", "Smooth painted", "Not sure"])}
+        </div>
+      );
+    case "FAUX_BEAMS":
+      return (
+        <div>
+          <label className={Q}>Beam finish</label>
+          {chipRow("beamFinish", ["Natural wood", "Dark stain", "Medium stain", "Painted white", "Painted black", "Not sure"])}
+        </div>
+      );
+    case "TRIM_WORK":
+      return (
+        <div>
+          <label className={Q}>Trim color</label>
+          {chipRow("trimColor", ["Bright white", "Warm white / Cream", "Match existing", "Two-tone / accent", "Not sure"])}
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 type ContextItem = { label: string; body: string };
 type ServiceContext = { title: string; items: ContextItem[] | null; prose?: string };
 
@@ -348,16 +449,52 @@ function ServiceSpecificFields({ serviceType, data, onChange }: { serviceType: I
 }
 
 export default function ProjectBasicsStep({ serviceType, data, onChange, onNext, onBack }: Props) {
+  const effectiveServiceType = data.selectedServiceType ?? serviceType;
   const canContinue = !!data.space && !!data.timeline;
   const showOtherSpace = data.space === "Other";
   const showCustomStyle = (data.styles ?? []).includes("Custom/Not Sure");
   const showAsapDate = data.timeline === "ASAP";
-  const hasServiceFields = serviceType !== "MULTIPLE" && serviceType !== "OTHER";
+  const hasServiceFields = effectiveServiceType !== "MULTIPLE" && effectiveServiceType !== "OTHER";
+
+  const selectedStyles = data.styles ?? [];
+  const showRusticFollowUp = selectedStyles.some((s) => ["Rustic", "Farmhouse"].includes(s));
+  const showModernFollowUp = !showRusticFollowUp && selectedStyles.some((s) => ["Modern", "Industrial"].includes(s));
+  const showStyleFollowUp = showRusticFollowUp || showModernFollowUp;
+  const styleFollowUpLabel = showRusticFollowUp
+    ? "What gives it that feel for you?"
+    : "What does 'modern' mean to you for this space?";
+  const styleFollowUpPlaceholder = showRusticFollowUp
+    ? "e.g. reclaimed wood, visible grain, aged finishes..."
+    : "e.g. clean lines, minimal hardware, high contrast...";
+
+  const showBudgetPriority = data.budget === "Under $2,000" || data.budget === "$2,000–$5,000";
 
   return (
     <div className="space-y-8">
 
-      {/* Fix 1 — Space selection + conditional "Other" input */}
+      {/* Change 1 — Editable service type selector */}
+      <div>
+        <label className={Q}>What are we building?</label>
+        <div className="grid grid-cols-3 gap-2">
+          {SERVICE_TYPES.map(({ value, label, emoji }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChange({ selectedServiceType: value, serviceDetails: {}, materialDetails: {} })}
+              className={`flex flex-col items-center gap-1 px-3 py-3 rounded-xl border text-sm font-ui font-semibold transition-colors ${
+                effectiveServiceType === value
+                  ? "bg-red text-white border-red"
+                  : "bg-white text-charcoal border-gray-warm hover:border-red"
+              }`}
+            >
+              <span className="text-lg">{emoji}</span>
+              <span className="leading-tight text-center text-xs">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Space selection + spaceChallenge follow-up */}
       <div>
         <label className={Q}>
           What&apos;s the space we&apos;re working in?
@@ -382,9 +519,24 @@ export default function ProjectBasicsStep({ serviceType, data, onChange, onNext,
             autoFocus
           />
         )}
+        {data.space && (
+          <div className="mt-3">
+            <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
+              What&apos;s the biggest thing you want to change about this space?{" "}
+              <span className="font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. it feels empty and builder-grade..."
+              value={data.spaceChallenge ?? ""}
+              onChange={(e) => onChange({ spaceChallenge: e.target.value })}
+              className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Fix 4 — Style chips + "Custom/Not Sure" freeform */}
+      {/* Style chips + styleFollowUp conditional */}
       <div>
         <label className={Q}>
           How would you describe your style?
@@ -394,12 +546,11 @@ export default function ProjectBasicsStep({ serviceType, data, onChange, onNext,
             <ToggleChip
               key={s}
               label={s}
-              selected={(data.styles ?? []).includes(s)}
+              selected={selectedStyles.includes(s)}
               onToggle={() => {
-                const current = data.styles ?? [];
-                const next = current.includes(s)
-                  ? current.filter((x) => x !== s)
-                  : [...current, s];
+                const next = selectedStyles.includes(s)
+                  ? selectedStyles.filter((x) => x !== s)
+                  : [...selectedStyles, s];
                 onChange({ styles: next });
               }}
             />
@@ -414,9 +565,23 @@ export default function ProjectBasicsStep({ serviceType, data, onChange, onNext,
             className="mt-3 w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red"
           />
         )}
+        {showStyleFollowUp && (
+          <div className="mt-3">
+            <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
+              {styleFollowUpLabel} <span className="font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder={styleFollowUpPlaceholder}
+              value={data.styleFollowUp ?? ""}
+              onChange={(e) => onChange({ styleFollowUp: e.target.value })}
+              className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Budget */}
+      {/* Budget + budgetPriority conditional */}
       <div>
         <label className={Q}>
           Budget range? <span className="font-normal text-gray-mid text-base">(optional)</span>
@@ -433,9 +598,26 @@ export default function ProjectBasicsStep({ serviceType, data, onChange, onNext,
           <option value="$10,000–$20,000">$10,000–$20,000</option>
           <option value="$20,000+">$20,000+</option>
         </select>
+        {showBudgetPriority && (
+          <div className="mt-3">
+            <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
+              What matters most within your budget?
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {BUDGET_PRIORITY_OPTS.map((o) => (
+                <ToggleChip
+                  key={o}
+                  label={o}
+                  selected={data.budgetPriority === o}
+                  onToggle={() => onChange({ budgetPriority: o })}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Fix 5 — Timeline + conditional ASAP date */}
+      {/* Timeline + asapDate + asapReason */}
       <div>
         <label className={Q}>
           When are you hoping to have this done?
@@ -446,30 +628,71 @@ export default function ProjectBasicsStep({ serviceType, data, onChange, onNext,
               key={t}
               label={t}
               selected={data.timeline === t}
-              onToggle={() => onChange({ timeline: t, asapDate: undefined })}
+              onToggle={() => onChange({ timeline: t, asapDate: undefined, asapReason: undefined })}
             />
           ))}
         </div>
         {showAsapDate && (
-          <div className="mt-3">
-            <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
-              Do you have a specific date in mind? <span className="font-normal">(optional)</span>
-            </label>
-            <input
-              type="date"
-              value={data.asapDate ?? ""}
-              onChange={(e) => onChange({ asapDate: e.target.value })}
-              className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red bg-white"
-            />
+          <div className="mt-3 space-y-3">
+            <div>
+              <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
+                Specific date? <span className="font-normal">(optional)</span>
+              </label>
+              <input
+                type="date"
+                value={data.asapDate ?? ""}
+                onChange={(e) => onChange({ asapDate: e.target.value })}
+                className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-ui font-semibold text-gray-mid mb-1.5">
+                What&apos;s driving the urgency? <span className="font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. out-of-town guests, listing the home, event..."
+                value={data.asapReason ?? ""}
+                onChange={(e) => onChange({ asapReason: e.target.value })}
+                className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red"
+              />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Fix 6 — Service context block + service-specific fields */}
-      <div className="border-t border-gray-warm pt-6 space-y-6">
-        <ServiceContextBlock serviceType={serviceType} />
+      {/* Change 2 — Materials & Finish */}
+      <div className="border-t border-gray-warm pt-6 space-y-5">
+        <p className="text-xs font-ui font-semibold text-gray-mid uppercase tracking-wide">Materials &amp; Finish</p>
+
+        <div>
+          <label className={Q}>Wood tone preference</label>
+          <div className="flex flex-wrap gap-2">
+            {WOOD_TONES.map((t) => (
+              <ToggleChip key={t} label={t} selected={data.woodTone === t} onToggle={() => onChange({ woodTone: t })} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className={Q}>Finish style</label>
+          <div className="flex flex-wrap gap-2">
+            {FINISH_STYLES.map((f) => (
+              <ToggleChip key={f} label={f} selected={data.finishStyle === f} onToggle={() => onChange({ finishStyle: f })} />
+            ))}
+          </div>
+        </div>
+
         {hasServiceFields && (
-          <ServiceSpecificFields serviceType={serviceType} data={data} onChange={onChange} />
+          <MaterialDetailsSection serviceType={effectiveServiceType} data={data} onChange={onChange} />
+        )}
+      </div>
+
+      {/* Service context + service-specific fields */}
+      <div className="border-t border-gray-warm pt-6 space-y-6">
+        <ServiceContextBlock serviceType={effectiveServiceType} />
+        {hasServiceFields && (
+          <ServiceSpecificFields serviceType={effectiveServiceType} data={data} onChange={onChange} />
         )}
       </div>
 

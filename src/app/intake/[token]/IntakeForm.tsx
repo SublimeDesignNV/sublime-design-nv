@@ -6,7 +6,6 @@ import type { IntakeServiceType } from "@prisma/client";
 import WelcomeStep from "./steps/WelcomeStep";
 import ProjectBasicsStep from "./steps/ProjectBasicsStep";
 import SpacePhotosStep from "./steps/SpacePhotosStep";
-import InspirationStep from "./steps/InspirationStep";
 import FinalNotesStep from "./steps/FinalNotesStep";
 import ConfirmStep from "./steps/ConfirmStep";
 
@@ -15,14 +14,23 @@ export type IntakeFormData = {
   spaceOther?: string;
   styles?: string[];
   styleCustomNote?: string;
+  styleFollowUp?: string;
   budget?: string;
+  budgetPriority?: string;
   timeline?: string;
   asapDate?: string;
+  asapReason?: string;
+  spaceChallenge?: string;
   finalNotes?: string;
   dontWant?: string;
   howHeard?: string;
+  oneThingThatMatters?: string;
   serviceDetails?: Record<string, unknown>;
+  woodTone?: string;
+  finishStyle?: string;
+  materialDetails?: Record<string, string>;
   photosSkipped?: boolean;
+  selectedServiceType?: IntakeServiceType;
 };
 
 type SpacePhoto = { id: string; url: string; caption: string };
@@ -36,16 +44,15 @@ type Props = {
   serviceType: IntakeServiceType;
 };
 
-const STEPS = ["welcome", "basics", "photos", "inspiration", "notes", "confirm"] as const;
+const STEPS = ["welcome", "basics", "photos", "notes", "confirm"] as const;
 type Step = (typeof STEPS)[number];
 
 const STEP_LABELS = [
   "Welcome",
-  "Project Details",
-  "Your Space",
-  "Inspiration",
-  "Final Notes",
-  "Review",
+  "Your Project",
+  "Show Us Your Space",
+  "Almost Done",
+  "Review & Submit",
 ];
 
 function getStorageKey(token: string) {
@@ -60,6 +67,7 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
   const [formData, setFormData] = useState<IntakeFormData>({});
   const [spacePhotos, setSpacePhotos] = useState<SpacePhoto[]>([]);
   const [inspirationPhotos, setInspirationPhotos] = useState<InspirationPhoto[]>([]);
+  const [detailPhotos, setDetailPhotos] = useState<SpacePhoto[]>([]);
   const [productLinks, setProductLinks] = useState<LinkEntry[]>([]);
   const [inspirationLinks, setInspirationLinks] = useState<LinkEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -147,7 +155,7 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
         })),
       ];
 
-      // Submit intake data
+      // Submit intake data (include serviceType if client changed it)
       await fetch(`/api/intake/${token}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -155,6 +163,7 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
           intakeData: formData,
           status: "INTAKE_COMPLETE",
           assets: linkAssets,
+          ...(formData.selectedServiceType ? { serviceType: formData.selectedServiceType } : {}),
         }),
       });
 
@@ -235,23 +244,17 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
         {step === "photos" && (
           <SpacePhotosStep
             leadId={leadId}
-            photos={spacePhotos}
-            onPhotosChange={setSpacePhotos}
+            spacePhotos={spacePhotos}
+            onSpacePhotosChange={setSpacePhotos}
+            inspirationPhotos={inspirationPhotos}
+            onInspirationPhotosChange={setInspirationPhotos}
+            detailPhotos={detailPhotos}
+            onDetailPhotosChange={setDetailPhotos}
             photosSkipped={formData.photosSkipped ?? false}
             onPhotosSkipped={(skipped) => updateFormData({ photosSkipped: skipped })}
-            onNext={goNext}
-            onBack={goBack}
-          />
-        )}
-
-        {step === "inspiration" && (
-          <InspirationStep
-            leadId={leadId}
-            inspirationPhotos={inspirationPhotos}
             productLinks={productLinks}
-            inspirationLinks={inspirationLinks}
-            onInspirationPhotosChange={setInspirationPhotos}
             onProductLinksChange={setProductLinks}
+            inspirationLinks={inspirationLinks}
             onInspirationLinksChange={setInspirationLinks}
             onNext={goNext}
             onBack={goBack}
@@ -269,10 +272,10 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
 
         {step === "confirm" && (
           <ConfirmStep
-            serviceType={serviceType}
+            serviceType={(formData.selectedServiceType ?? serviceType)}
             data={formData}
             spacePhotoUrls={spacePhotos.map((p) => p.url)}
-            inspirationPhotoUrls={inspirationPhotos.map((p) => p.url)}
+            inspirationPhotoUrls={[...inspirationPhotos, ...detailPhotos].map((p) => p.url)}
             productLinkCount={productLinks.filter((l) => l.url).length}
             inspirationLinkCount={inspirationLinks.filter((l) => l.url).length}
             submitting={submitting}
