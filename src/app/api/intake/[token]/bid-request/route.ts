@@ -25,14 +25,15 @@ const SERVICE_LABELS: Record<string, string> = {
 };
 
 // Public route — called from client-facing vision page when "Request Your Quote" is clicked
+// Segment is named [token] to match sibling routes; value passed may be lead id or token
 export async function POST(
   _request: Request,
-  { params }: { params: Promise<{ leadId: string }> },
+  { params }: { params: Promise<{ token: string }> },
 ) {
-  const { leadId } = await params;
+  const { token } = await params;
 
-  const lead = await db.intakeLead.findUnique({
-    where: { id: leadId },
+  const lead = await db.intakeLead.findFirst({
+    where: { OR: [{ id: token }, { token }] },
     select: {
       id: true,
       firstName: true,
@@ -50,7 +51,7 @@ export async function POST(
   }
 
   await db.intakeLead.update({
-    where: { id: leadId },
+    where: { id: lead.id },
     data: { status: "BID_READY" },
   });
 
