@@ -343,6 +343,108 @@ export const SERVICE_LIST: ServiceDef[] = [
     status: "active",
   },
   {
+    slug: "feature-wall",
+    title: "Feature Walls",
+    shortTitle: "Feature Walls",
+    navLabel: "Feature Walls",
+    description:
+      "Custom feature wall panels, shiplap, board and batten, and architectural wall details built to create a single strong focal point in living rooms, bedrooms, and entryways.",
+    shortDescription:
+      "Shiplap, board and batten, panel details, and custom focal wall treatments.",
+    heroHeadline: "Feature Walls That Change How the Room Reads",
+    heroBody:
+      "We build custom feature walls with shiplap, board and batten, panel systems, and trim details designed to make one wall the clear focal point of the room.",
+    introParagraph:
+      "A strong feature wall does not need a lot of material — it needs the right proportions, clean execution, and a finish that ties the room together. We build shiplap walls, board and batten walls, panel feature walls, and mixed-trim focal walls sized to the room and ready for paint. The result is a wall that reads intentional instead of wallpapered over.",
+    valueBullets: [
+      "Shiplap, vertical shiplap, board and batten, and panel wall options",
+      "Custom sizing and layout tied to the wall and room proportions",
+      "Paint-grade finishes built to match the room direction",
+      "Clean installs that read architectural instead of decorative",
+    ],
+    processSteps: [
+      "Measure the wall and confirm layout, profile, and finish direction",
+      "Build and prep the feature wall panels or trim layout for the exact site conditions",
+      "Install, tune reveals and joints, and hand off a clean finished focal wall",
+    ],
+    faq: [
+      {
+        question: "What types of feature walls do you build?",
+        answer:
+          "We build shiplap walls, vertical shiplap, board and batten, and custom panel feature walls. All are paint-grade and sized to the room.",
+      },
+      {
+        question: "Is this the same as your Trim & Finish category?",
+        answer:
+          "Feature walls are a more focused category for dedicated focal wall projects. Full trim packages — baseboard, casing, crown — live under Trim & Finish.",
+      },
+      {
+        question: "Can a feature wall include integrated shelves or a TV area?",
+        answer:
+          "Yes. Feature walls that include shelving or a media section are a good fit for our Media Walls category, which handles the full integrated build.",
+      },
+    ],
+    relatedServices: ["media-walls", "trim", "floating-shelves"],
+    seoTitle: "Feature Walls Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Custom feature walls in Las Vegas with shiplap, board and batten, panel details, and clean paint-grade finishes built to transform a single focal wall.",
+    ctaLabel: "Get a Feature Wall Quote",
+    sortOrder: 8,
+    aliases: [],
+    status: "active",
+  },
+  {
+    slug: "led-lighting",
+    title: "LED Lighting",
+    shortTitle: "LED Lighting",
+    navLabel: "LED Lighting",
+    description:
+      "Integrated LED tape lighting, puck lighting, and transformer installations built into shelves, cabinets, faux beams, and architectural millwork details.",
+    shortDescription:
+      "LED tape, puck lighting, and transformer installs integrated into millwork details.",
+    heroHeadline: "LED Lighting Built Into the Millwork, Not Added After",
+    heroBody:
+      "We install integrated LED lighting as part of the millwork scope — tape lighting under shelves, puck lighting in cabinets, and transformer setups that work cleanly with the finished detail.",
+    introParagraph:
+      "LED lighting works best when it is planned into the millwork from the start, not stapled on after installation. We handle LED tape lighting under shelves, puck lighting in cabinet interiors, and transformer wiring built into the detail so the final install looks clean. The lighting scope can be added to a shelf, cabinet, beam, or feature wall project, or quoted as a standalone upgrade to an existing detail.",
+    valueBullets: [
+      "LED tape lighting sized and cut for shelf undersides and beam details",
+      "Puck lighting for cabinet interiors and display-focused millwork",
+      "Transformer and driver integration planned into the install, not added after",
+      "Works as an add-on to a shelf, cabinet, or beam project or as a standalone scope",
+    ],
+    processSteps: [
+      "Review the detail, lighting type, and transformer location options",
+      "Run and connect the LED system with clean wire management inside the millwork",
+      "Test, tune, and hand off a finished lighting install that reads built-in",
+    ],
+    faq: [
+      {
+        question: "Do you handle tape lighting and puck lighting?",
+        answer:
+          "Yes. We install both LED tape lighting for shelf and beam details and puck lighting for cabinet and display-focused millwork.",
+      },
+      {
+        question: "Is the transformer included?",
+        answer:
+          "We plan and install the transformer or driver as part of the lighting scope. The scope depends on the detail, run length, and power source location.",
+      },
+      {
+        question: "Can I add LED lighting to an existing shelf or cabinet install?",
+        answer:
+          "Yes. Lighting upgrades to existing millwork are a common standalone scope when the existing detail has room for a clean install.",
+      },
+    ],
+    relatedServices: ["floating-shelves", "cabinets", "faux-beams"],
+    seoTitle: "LED Lighting Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Integrated LED lighting in Las Vegas for floating shelves, cabinets, faux beams, and millwork details including tape lighting, puck lighting, and transformer installs.",
+    ctaLabel: "Get an LED Lighting Quote",
+    sortOrder: 9,
+    aliases: ["lighting", "led"],
+    status: "active",
+  },
+  {
     slug: "trim",
     title: "Trim & Finish Carpentry",
     shortTitle: "Trim & Finish",
@@ -403,6 +505,8 @@ const SERVICE_ORDER = [
   "faux-beams",
   "cabinets",
   "trim",
+  "feature-wall",
+  "led-lighting",
 ] as const;
 
 const SERVICE_ORDER_INDEX = new Map(

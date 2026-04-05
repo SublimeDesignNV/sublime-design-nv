@@ -412,17 +412,41 @@ export default function RecentUploadBatches({
             </div>
           ) : (
             filteredBatches.map((batch) => (
-              <article key={batch.uploadBatchId} className="rounded-xl border border-gray-200 bg-cream/50 p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <article key={batch.uploadBatchId} className="rounded-xl border border-gray-200 bg-cream/50 p-4">
+                <div className="flex items-start gap-4">
+                  {/* Thumbnail — fixed 120px, fallback shows service label */}
+                  <button
+                    type="button"
+                    onClick={() => batch.thumbnails[0] && setLightboxUrl(batch.thumbnails[0])}
+                    className="group relative h-[90px] w-[120px] flex-shrink-0 overflow-hidden rounded-lg bg-gray-warm"
+                  >
+                    {batch.thumbnails[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={batch.thumbnails[0]}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    )}
+                    <div className="flex h-full items-center justify-center p-1 text-center font-ui text-[10px] text-gray-mid">
+                      {SERVICE_TAGS.find((s) => s.slug === batch.serviceSlugs[0])?.label ?? "Photo"}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/20">
+                      <span className="font-ui text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">View</span>
+                    </div>
+                  </button>
+
+                  {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-charcoal">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-ui text-xs font-semibold text-charcoal">
                         Batch {batch.uploadBatchId.slice(0, 8)}
                       </span>
-                      <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] text-gray-mid">
+                      <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
                         {batch.assetCount} photo{batch.assetCount === 1 ? "" : "s"}
                       </span>
-                      <span className={`rounded-full border px-3 py-1 font-ui text-[10px] uppercase tracking-[0.18em] ${
+                      <span className={`rounded-full border px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.16em] ${
                         batch.status === "linked"
                           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : batch.status === "partial"
@@ -432,94 +456,67 @@ export default function RecentUploadBatches({
                         {batch.status}
                       </span>
                     </div>
-                    <p className="mt-3 text-sm text-gray-mid">
-                      Uploaded {new Date(batch.updatedAt).toLocaleString()} • {batch.publishedAssetCount} published • {batch.draftAssetCount} draft
+                    <p className="mt-1.5 font-ui text-[11px] text-gray-mid">
+                      {new Date(batch.updatedAt).toLocaleString()} · {batch.publishedAssetCount} published · {batch.draftAssetCount} draft
                     </p>
                     {batch.projectTitles.length ? (
-                      <p className="mt-2 text-sm text-charcoal">
-                        Linked project: {batch.projectTitles.join(", ")}
+                      <p className="mt-1 font-ui text-xs text-charcoal">
+                        {batch.projectTitles.join(", ")}
                       </p>
                     ) : (
-                      <p className="mt-2 text-sm text-charcoal">No project linked yet.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setLinkBatchId(batch.uploadBatchId); setBatchForm(null); }}
+                        className="mt-1 font-ui text-xs text-navy hover:underline"
+                      >
+                        Link to a project →
+                      </button>
                     )}
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {batch.serviceSlugs.map((slug) => (
                         <span
                           key={slug}
-                          className="rounded-full border border-red/20 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red"
+                          className="rounded-full border border-red/20 bg-white px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] text-red"
                         >
                           {SERVICE_TAGS.find((service) => service.slug === slug)?.label ?? slug}
                         </span>
                       ))}
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => startCreateProject(batch)}
-                        className="rounded-sm bg-red px-4 py-2 font-ui text-sm font-semibold text-white"
-                      >
-                        Create Project from This Batch
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLinkBatchId(batch.uploadBatchId);
-                          setBatchForm(null);
-                        }}
-                        className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
-                      >
-                        Add to Existing Project
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void updateBatchPublish(batch, true)}
-                        disabled={isSubmitting}
-                        className="rounded-sm border border-emerald-300 bg-emerald-50 px-4 py-2 font-ui text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
-                      >
-                        ⚡ Quick Publish
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void updateBatchPublish(batch, false)}
-                        disabled={isSubmitting}
-                        className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal disabled:opacity-60"
-                      >
-                        Hide Photos
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteBatch(batch)}
-                        disabled={isSubmitting || deletingBatchId === batch.uploadBatchId}
-                        className="rounded-sm border border-red/20 px-4 py-2 font-ui text-sm text-red hover:border-red hover:bg-red/5 disabled:opacity-60"
-                      >
-                        {deletingBatchId === batch.uploadBatchId ? "Deleting..." : "Delete Batch"}
-                      </button>
-                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {batch.thumbnails.slice(0, 6).map((thumbnail, index) => (
-                      <button
-                        key={`${batch.uploadBatchId}-${index}`}
-                        type="button"
-                        onClick={() => setLightboxUrl(thumbnail)}
-                        className="group relative overflow-hidden rounded-lg"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={thumbnail}
-                          alt={`Batch ${batch.uploadBatchId} thumbnail ${index + 1}`}
-                          className="h-24 w-full object-cover transition group-hover:scale-105 sm:h-28"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/20">
-                          <span className="font-ui text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">View</span>
-                        </div>
-                      </button>
-                    ))}
-                    {batch.assetCount > 6 && (
-                      <div className="flex h-24 w-full items-center justify-center rounded-lg bg-cream font-ui text-sm font-semibold text-gray-mid sm:h-28">
-                        +{batch.assetCount - 6}
-                      </div>
-                    )}
+
+                  {/* Actions */}
+                  <div className="flex flex-shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => startCreateProject(batch)}
+                      className="whitespace-nowrap rounded-sm bg-red px-3 py-1.5 font-ui text-xs font-semibold text-white"
+                    >
+                      Create Project
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void updateBatchPublish(batch, true)}
+                      disabled={isSubmitting}
+                      className="whitespace-nowrap rounded-sm border border-emerald-300 bg-emerald-50 px-3 py-1.5 font-ui text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
+                    >
+                      ⚡ Quick Publish
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void updateBatchPublish(batch, false)}
+                      disabled={isSubmitting}
+                      className="whitespace-nowrap rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal disabled:opacity-60"
+                    >
+                      Hide Photos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteBatch(batch)}
+                      disabled={isSubmitting || deletingBatchId === batch.uploadBatchId}
+                      className="whitespace-nowrap rounded-sm border border-red/20 px-3 py-1.5 font-ui text-xs text-red hover:border-red hover:bg-red/5 disabled:opacity-60"
+                    >
+                      {deletingBatchId === batch.uploadBatchId ? "Deleting…" : "Delete"}
+                    </button>
                   </div>
                 </div>
 
@@ -855,9 +852,11 @@ export default function RecentUploadBatches({
               </div>
               <Link
                 href={`/admin?focusAsset=${asset.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal"
               >
-                Manage in Photos
+                Manage in Photos ↗
               </Link>
             </div>
           ))}

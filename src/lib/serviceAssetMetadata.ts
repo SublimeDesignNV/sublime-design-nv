@@ -294,6 +294,65 @@ export const SERVICE_ASSET_METADATA_CONFIG: Record<
       },
     ],
   },
+  "feature-wall": {
+    service: "feature-wall",
+    label: "Feature Walls",
+    fields: [
+      {
+        key: "wallType",
+        label: "Wall Type",
+        type: "select",
+        options: [
+          { value: "shiplap", label: "Shiplap" },
+          { value: "vertical-shiplap", label: "Vertical Shiplap" },
+          { value: "board-and-batten", label: "Board and Batten" },
+          { value: "panel-detail", label: "Panel Detail" },
+          { value: "other", label: "Other" },
+        ],
+      },
+      {
+        key: "finishType",
+        label: "Finish Type",
+        type: "select",
+        options: [
+          { value: "paint-grade", label: "Paint-grade" },
+          { value: "stain-grade", label: "Stain-grade" },
+        ],
+      },
+    ],
+  },
+  "led-lighting": {
+    service: "led-lighting",
+    label: "LED Lighting",
+    fields: [
+      {
+        key: "lightingType",
+        label: "Lighting Type",
+        type: "select",
+        options: [
+          { value: "led-tape", label: "LED Tape" },
+          { value: "puck-lighting", label: "Puck Lighting" },
+          { value: "both", label: "Both" },
+        ],
+      },
+      {
+        key: "transformerIncluded",
+        label: "Transformer Included",
+        type: "boolean",
+      },
+      {
+        key: "milllworkContext",
+        label: "Millwork Context",
+        type: "select",
+        options: [
+          { value: "shelves", label: "Shelves" },
+          { value: "cabinets", label: "Cabinets" },
+          { value: "beams", label: "Faux Beams" },
+          { value: "other", label: "Other" },
+        ],
+      },
+    ],
+  },
   trim: {
     service: "trim",
     label: "Trim & Finish",

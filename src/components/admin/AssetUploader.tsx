@@ -39,7 +39,9 @@ export default function AssetUploader() {
   const [contextSlugs, setContextSlugs] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [locationPreset, setLocationPreset] = useState("");
+  const [locationOther, setLocationOther] = useState("");
+  const location = locationPreset === "Other" ? locationOther : locationPreset;
   const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -428,16 +430,35 @@ export default function AssetUploader() {
                   placeholder="Short scope summary, finish notes, or install details"
                 />
               </label>
-              <label className="block">
+              <div>
                 <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
-                  placeholder="Summerlin, Henderson, Anthem, etc."
-                />
-              </label>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {["Summerlin", "Henderson", "Lake Las Vegas", "Anthem", "Red Rock", "North Las Vegas", "Downtown Las Vegas", "Other"].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => { setLocationPreset(preset === locationPreset ? "" : preset); setLocationOther(""); }}
+                      className={`font-ui rounded-sm border px-3 py-1.5 text-xs transition ${
+                        locationPreset === preset
+                          ? "border-navy bg-navy text-white"
+                          : "border-gray-warm text-charcoal hover:border-navy hover:text-navy"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                {locationPreset === "Other" && (
+                  <input
+                    type="text"
+                    value={locationOther}
+                    onChange={(e) => setLocationOther(e.target.value)}
+                    className="mt-2 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
+                    placeholder="Enter location"
+                    autoFocus
+                  />
+                )}
+              </div>
               <ServiceMetadataFields
                 service={primaryService}
                 values={serviceMetadata}
