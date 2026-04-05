@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { IntakeServiceType } from "@prisma/client";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -12,16 +12,17 @@ import ConfirmStep from "./steps/ConfirmStep";
 
 export type IntakeFormData = {
   space?: string;
-  spaceOther?: string;       // Fix 1 — freeform when space === "Other"
+  spaceOther?: string;
   styles?: string[];
-  styleCustomNote?: string;  // Fix 4 — freeform when "Custom/Not Sure" selected
+  styleCustomNote?: string;
   budget?: string;
   timeline?: string;
-  asapDate?: string;         // Fix 5 — specific date when timeline === "ASAP"
+  asapDate?: string;
   finalNotes?: string;
   dontWant?: string;
   howHeard?: string;
   serviceDetails?: Record<string, unknown>;
+  photosSkipped?: boolean;
 };
 
 type SpacePhoto = { id: string; url: string; caption: string };
@@ -60,6 +61,8 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
   const [productLinks, setProductLinks] = useState<LinkEntry[]>([]);
   const [inspirationLinks, setInspirationLinks] = useState<LinkEntry[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Restore from localStorage
   useEffect(() => {
@@ -78,10 +81,15 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
     }
   }, [token]);
 
-  // Persist to localStorage on change
+  // Persist to localStorage on change and show "Progress saved" toast
   useEffect(() => {
     try {
       localStorage.setItem(getStorageKey(token), JSON.stringify({ formData, step }));
+      if (step !== "welcome") {
+        setSavedToast(true);
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = setTimeout(() => setSavedToast(false), 2000);
+      }
     } catch {
       // ignore
     }
@@ -190,6 +198,15 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
         </div>
       )}
 
+      {/* Progress saved toast */}
+      <div
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-charcoal text-white text-sm font-ui font-semibold px-5 py-2.5 rounded-full shadow-lg transition-opacity duration-300 ${
+          savedToast ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        Progress saved
+      </div>
+
       <div className="max-w-lg mx-auto px-4 py-8">
         {step === "welcome" && (
           <WelcomeStep
@@ -216,6 +233,8 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
             leadId={leadId}
             photos={spacePhotos}
             onPhotosChange={setSpacePhotos}
+            photosSkipped={formData.photosSkipped ?? false}
+            onPhotosSkipped={(skipped) => updateFormData({ photosSkipped: skipped })}
             onNext={goNext}
             onBack={goBack}
           />
@@ -248,8 +267,8 @@ export default function IntakeForm({ leadId, token, firstName, serviceType }: Pr
           <ConfirmStep
             serviceType={serviceType}
             data={formData}
-            spacePhotoCount={spacePhotos.length}
-            inspirationPhotoCount={inspirationPhotos.length}
+            spacePhotoUrls={spacePhotos.map((p) => p.url)}
+            inspirationPhotoUrls={inspirationPhotos.map((p) => p.url)}
             productLinkCount={productLinks.filter((l) => l.url).length}
             inspirationLinkCount={inspirationLinks.filter((l) => l.url).length}
             submitting={submitting}

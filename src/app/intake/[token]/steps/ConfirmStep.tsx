@@ -18,8 +18,8 @@ const SERVICE_LABELS: Record<IntakeServiceType, string> = {
 type Props = {
   serviceType: IntakeServiceType;
   data: IntakeFormData;
-  spacePhotoCount: number;
-  inspirationPhotoCount: number;
+  spacePhotoUrls: string[];
+  inspirationPhotoUrls: string[];
   productLinkCount: number;
   inspirationLinkCount: number;
   submitting: boolean;
@@ -30,14 +30,16 @@ type Props = {
 export default function ConfirmStep({
   serviceType,
   data,
-  spacePhotoCount,
-  inspirationPhotoCount,
+  spacePhotoUrls,
+  inspirationPhotoUrls,
   productLinkCount,
   inspirationLinkCount,
   submitting,
   onSubmit,
   onBack,
 }: Props) {
+  const spacePhotoCount = spacePhotoUrls.length;
+  const inspirationPhotoCount = inspirationPhotoUrls.length;
   const totalLinks = productLinkCount + inspirationLinkCount;
 
   return (
@@ -68,6 +70,38 @@ export default function ConfirmStep({
           </div>
         ))}
       </div>
+
+      {spacePhotoUrls.length > 0 && (
+        <div>
+          <p className="text-xs font-ui font-semibold text-gray-mid uppercase tracking-wide mb-2">Space Photos</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {spacePhotoUrls.slice(0, 3).map((url, i) => (
+              <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+            ))}
+            {spacePhotoUrls.length > 3 && (
+              <div className="w-20 h-20 rounded-lg flex-shrink-0 bg-gray-warm flex items-center justify-center text-sm font-ui font-semibold text-gray-mid">
+                +{spacePhotoUrls.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {inspirationPhotoUrls.length > 0 && (
+        <div>
+          <p className="text-xs font-ui font-semibold text-gray-mid uppercase tracking-wide mb-2">Inspiration</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {inspirationPhotoUrls.slice(0, 3).map((url, i) => (
+              <img key={i} src={url} alt="" className="w-20 h-20 object-cover rounded-lg flex-shrink-0" />
+            ))}
+            {inspirationPhotoUrls.length > 3 && (
+              <div className="w-20 h-20 rounded-lg flex-shrink-0 bg-gray-warm flex items-center justify-center text-sm font-ui font-semibold text-gray-mid">
+                +{inspirationPhotoUrls.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="bg-navy/5 border border-navy/20 rounded-xl p-5 text-center">
         <p className="text-navy font-ui font-semibold">

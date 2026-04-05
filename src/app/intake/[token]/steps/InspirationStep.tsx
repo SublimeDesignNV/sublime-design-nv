@@ -199,16 +199,18 @@ export default function InspirationStep({
               </div>
             </div>
           ))}
-          {productLinks.length < 5 && (
+          {productLinks.length === 0 ? (
+            <button
+              onClick={addProductLink}
+              className="w-full border border-dashed border-gray-warm rounded-lg py-4 text-gray-mid text-sm font-ui font-semibold hover:border-red hover:text-red transition-colors"
+            >
+              + Add a link
+            </button>
+          ) : productLinks.length < 5 ? (
             <button onClick={addProductLink} className="text-red text-sm font-ui font-semibold hover:underline">
-              + Add another link
+              + Add another
             </button>
-          )}
-          {productLinks.length === 0 && (
-            <button onClick={addProductLink} className="w-full border border-dashed border-gray-warm rounded-lg py-4 text-gray-mid text-sm hover:border-red transition-colors">
-              + Add a product link
-            </button>
-          )}
+          ) : null}
         </div>
       )}
 
@@ -227,16 +229,18 @@ export default function InspirationStep({
               <button onClick={() => removeInspirationLink(idx)} className="text-gray-mid hover:text-red text-sm px-2">✕</button>
             </div>
           ))}
-          {inspirationLinks.length < 3 && (
-            <button onClick={addInspirationLink} className="text-red text-sm font-ui font-semibold hover:underline">
+          {inspirationLinks.length === 0 ? (
+            <button
+              onClick={addInspirationLink}
+              className="w-full border border-dashed border-gray-warm rounded-lg py-4 text-gray-mid text-sm font-ui font-semibold hover:border-red hover:text-red transition-colors"
+            >
               + Add a link
             </button>
-          )}
-          {inspirationLinks.length === 0 && (
-            <button onClick={addInspirationLink} className="w-full border border-dashed border-gray-warm rounded-lg py-4 text-gray-mid text-sm hover:border-red transition-colors">
-              + Add a video or website link
+          ) : inspirationLinks.length < 3 ? (
+            <button onClick={addInspirationLink} className="text-red text-sm font-ui font-semibold hover:underline">
+              + Add another
             </button>
-          )}
+          ) : null}
         </div>
       )}
 

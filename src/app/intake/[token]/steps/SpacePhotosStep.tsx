@@ -12,11 +12,13 @@ type Props = {
   leadId: string;
   photos: UploadedPhoto[];
   onPhotosChange: (photos: UploadedPhoto[]) => void;
+  photosSkipped: boolean;
+  onPhotosSkipped: (skipped: boolean) => void;
   onNext: () => void;
   onBack: () => void;
 };
 
-export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext, onBack }: Props) {
+export default function SpacePhotosStep({ leadId, photos, onPhotosChange, photosSkipped, onPhotosSkipped, onNext, onBack }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +68,8 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
       <div className="text-center">
         <h2 className="font-display text-2xl text-charcoal mb-2">Show us what we&apos;re working with.</h2>
         <p className="text-gray-mid">
-          Take photos of the actual space. Don&apos;t worry about clutter — we just need to see the
-          dimensions and current state.
+          Take photos of the actual space — the layout, natural light, and any architectural details
+          (windows, doors, vents). Don&apos;t worry about clutter.
         </p>
       </div>
 
@@ -85,7 +87,6 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
           type="file"
           multiple
           accept="image/*"
-          capture="environment"
           className="hidden"
           onChange={(e) => e.target.files && void handleFiles(e.target.files)}
         />
@@ -97,7 +98,7 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
         ) : (
           <>
             <div className="text-4xl mb-3">📷</div>
-            <p className="font-ui font-semibold text-charcoal">Tap to take a photo or upload</p>
+            <p className="font-ui font-semibold text-charcoal">Tap to add photos</p>
             <p className="text-gray-mid text-sm mt-1">or drag and drop files here</p>
           </>
         )}
@@ -124,8 +125,39 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
       )}
 
       <p className="text-gray-mid text-sm text-center">
-        {photos.length === 0 ? "Add at least 1 photo" : photos.length < 3 ? `Great start — adding ${3 - photos.length} more helps a lot` : "Looking great!"}
+        {photosSkipped
+          ? "No worries — you can text or email photos later."
+          : photos.length === 0
+          ? "Add at least 1 photo, or skip for now."
+          : photos.length < 3
+          ? `Great start — adding ${3 - photos.length} more helps a lot`
+          : "Looking great!"}
       </p>
+
+      {photos.length === 0 && !photosSkipped && (
+        <p className="text-center">
+          <button
+            onClick={() => onPhotosSkipped(true)}
+            className="text-gray-mid text-sm underline hover:text-charcoal"
+          >
+            Skip for now — I&apos;ll send photos later
+          </button>
+        </p>
+      )}
+
+      {photosSkipped && (
+        <div className="bg-navy/5 border border-navy/20 rounded-xl p-4 text-center">
+          <p className="text-navy text-sm font-ui font-semibold">
+            Got it! We&apos;ll follow up to collect photos before your consultation.
+          </p>
+          <button
+            onClick={() => onPhotosSkipped(false)}
+            className="text-gray-mid text-xs underline mt-1 hover:text-charcoal"
+          >
+            Actually, I&apos;ll add photos now
+          </button>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <button
@@ -136,7 +168,7 @@ export default function SpacePhotosStep({ leadId, photos, onPhotosChange, onNext
         </button>
         <button
           onClick={onNext}
-          disabled={photos.length === 0}
+          disabled={photos.length === 0 && !photosSkipped}
           className="flex-[2] bg-red text-white font-ui font-bold py-4 rounded-lg hover:bg-red-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Continue →

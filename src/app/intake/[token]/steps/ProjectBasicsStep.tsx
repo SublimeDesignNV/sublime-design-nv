@@ -178,7 +178,7 @@ function ServiceSpecificFields({ serviceType, data, onChange }: { serviceType: I
       return (
         <div className="space-y-5">
           {[
-            { key: "buildType", label: "New build or refacing existing?", opts: ["New build", "Refacing existing"] },
+            { key: "buildType", label: "New space or remodel?", opts: ["New Space", "Remodel", "Not sure"] },
             { key: "cabinetLevel", label: "Upper, lower, or both?", opts: ["Upper only", "Lower only", "Both"] },
             { key: "doorStyle", label: "Door style preference", opts: ["Shaker", "Flat panel", "Raised panel", "Open shelving", "Not Sure"] },
           ].map(({ key, label, opts }) => (
