@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { IntakeLead, IntakeLeadStatus } from "@prisma/client";
+import type { IntakeLead, IntakeLeadStatus, IntakeServiceType } from "@prisma/client";
 
 const STATUS_OPTIONS: IntakeLeadStatus[] = [
   "NEW",
@@ -52,13 +52,72 @@ type Props = {
   intakeUrl: string;
 };
 
+type EditFields = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  serviceType: IntakeServiceType;
+  projectNotes: string;
+};
+
+const SERVICE_TYPE_OPTIONS: IntakeServiceType[] = [
+  "BARN_DOORS",
+  "CABINETS",
+  "CUSTOM_CLOSETS",
+  "FAUX_BEAMS",
+  "FLOATING_SHELVES",
+  "MANTELS",
+  "TRIM_WORK",
+  "MULTIPLE",
+  "OTHER",
+];
+
 export default function OverviewTab({ lead, intakeUrl }: Props) {
   const [status, setStatus] = useState<IntakeLeadStatus>(lead.status);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [archiveToast, setArchiveToast] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editFields, setEditFields] = useState<EditFields>({
+    firstName: lead.firstName,
+    lastName: lead.lastName ?? "",
+    phone: lead.phone ?? "",
+    email: lead.email ?? "",
+    serviceType: lead.serviceType,
+    projectNotes: lead.projectNotes ?? "",
+  });
+  const [displayFields, setDisplayFields] = useState<EditFields>({ ...editFields });
+  const [editSaving, setEditSaving] = useState(false);
 
   const intake = (lead.intakeData ?? {}) as IntakeData;
+
+  function cancelEdit() {
+    setEditFields({ ...displayFields });
+    setEditing(false);
+  }
+
+  async function saveEdit() {
+    setEditSaving(true);
+    try {
+      await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: editFields.firstName,
+          lastName: editFields.lastName || null,
+          phone: editFields.phone || null,
+          email: editFields.email || null,
+          serviceType: editFields.serviceType,
+          projectNotes: editFields.projectNotes || null,
+        }),
+      });
+      setDisplayFields({ ...editFields });
+      setEditing(false);
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
   async function updateStatus(newStatus: IntakeLeadStatus) {
     setSaving(true);
@@ -139,22 +198,112 @@ export default function OverviewTab({ lead, intakeUrl }: Props) {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Contact info */}
         <div className="bg-white rounded-xl border border-gray-warm p-6 space-y-3">
-          <h3 className="text-sm font-ui font-semibold text-gray-mid uppercase tracking-wide">Contact</h3>
-          <div className="space-y-2">
-            <p className="font-ui font-semibold text-charcoal text-lg">{lead.firstName} {lead.lastName}</p>
-            {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="block text-red hover:underline text-sm">{lead.phone}</a>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-ui font-semibold text-gray-mid uppercase tracking-wide">Contact</h3>
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs font-ui font-semibold text-gray-mid hover:text-red transition-colors"
+              >
+                Edit
+              </button>
             )}
-            {lead.email && (
-              <a href={`mailto:${lead.email}`} className="block text-red hover:underline text-sm">{lead.email}</a>
-            )}
-            <p className="text-sm text-gray-mid">
-              Service: <span className="text-charcoal font-semibold">{SERVICE_LABELS[lead.serviceType] ?? lead.serviceType}</span>
-            </p>
-            <p className="text-sm text-gray-mid">
-              Created: {lead.createdAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-            </p>
           </div>
+
+          {editing ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">First name</label>
+                  <input
+                    type="text"
+                    value={editFields.firstName}
+                    onChange={(e) => setEditFields((p) => ({ ...p, firstName: e.target.value }))}
+                    className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">Last name</label>
+                  <input
+                    type="text"
+                    value={editFields.lastName}
+                    onChange={(e) => setEditFields((p) => ({ ...p, lastName: e.target.value }))}
+                    className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={editFields.phone}
+                  onChange={(e) => setEditFields((p) => ({ ...p, phone: e.target.value }))}
+                  className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editFields.email}
+                  onChange={(e) => setEditFields((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">Service type</label>
+                <select
+                  value={editFields.serviceType}
+                  onChange={(e) => setEditFields((p) => ({ ...p, serviceType: e.target.value as IntakeServiceType }))}
+                  className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red bg-white"
+                >
+                  {SERVICE_TYPE_OPTIONS.map((s) => (
+                    <option key={s} value={s}>{SERVICE_LABELS[s] ?? s}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-ui font-semibold text-gray-mid mb-1">Contractor notes</label>
+                <textarea
+                  value={editFields.projectNotes}
+                  onChange={(e) => setEditFields((p) => ({ ...p, projectNotes: e.target.value }))}
+                  rows={3}
+                  className="w-full border border-gray-warm rounded-lg px-3 py-2 text-sm text-charcoal focus:outline-none focus:border-red resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => void saveEdit()}
+                  disabled={editSaving}
+                  className="flex-1 bg-red text-white font-ui font-bold py-2 rounded-lg hover:bg-red-dark transition-colors disabled:opacity-40 text-sm"
+                >
+                  {editSaving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={cancelEdit}
+                  className="flex-1 border border-gray-warm text-charcoal font-ui font-semibold py-2 rounded-lg hover:border-charcoal transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="font-ui font-semibold text-charcoal text-lg">{displayFields.firstName} {displayFields.lastName}</p>
+              {displayFields.phone && (
+                <a href={`tel:${displayFields.phone}`} className="block text-red hover:underline text-sm">{displayFields.phone}</a>
+              )}
+              {displayFields.email && (
+                <a href={`mailto:${displayFields.email}`} className="block text-red hover:underline text-sm">{displayFields.email}</a>
+              )}
+              <p className="text-sm text-gray-mid">
+                Service: <span className="text-charcoal font-semibold">{SERVICE_LABELS[displayFields.serviceType] ?? displayFields.serviceType}</span>
+              </p>
+              <p className="text-sm text-gray-mid">
+                Created: {lead.createdAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Quick actions */}

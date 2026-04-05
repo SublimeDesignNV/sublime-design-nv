@@ -12,7 +12,9 @@ export default auth((request) => {
 
   // Standalone pages (no site navbar/footer) — set header so root layout knows
   const isStandalone =
-    pathname.startsWith("/intake/") || pathname.startsWith("/vision/");
+    pathname.startsWith("/intake/") ||
+    pathname.startsWith("/vision/") ||
+    pathname.startsWith("/dashboard");
   if (isStandalone) {
     const response = NextResponse.next();
     response.headers.set("x-standalone", "1");
