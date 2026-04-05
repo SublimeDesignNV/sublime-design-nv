@@ -73,6 +73,58 @@ export async function uploadFileToCloudinary(file: File): Promise<CloudinaryUplo
   return uploadToCloudinary(file, "Sublime/Portfolio");
 }
 
+export async function uploadFileToCloudinaryWithProgress(
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<CloudinaryUploadResult> {
+  const { cloudName, uploadPreset } = getUploadConfig();
+  const resourceType = file.type.startsWith("video/") ? "video" : "image";
+  const kind = resourceType === "video" ? "VIDEO" : "IMAGE";
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", uploadPreset);
+  formData.append("folder", "Sublime/Portfolio");
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`);
+
+    xhr.upload.addEventListener("progress", (event) => {
+      if (event.lengthComputable) {
+        onProgress(Math.round((event.loaded / event.total) * 90));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText) as CloudinaryUploadApiResponse;
+          onProgress(100);
+          resolve({
+            kind,
+            publicId: data.public_id,
+            imageUrl: data.secure_url,
+            secureUrl: data.secure_url,
+            width: data.width,
+            height: data.height,
+            duration: data.duration,
+            format: data.format,
+            bytes: data.bytes,
+          });
+        } catch {
+          reject(new Error("Failed to parse Cloudinary response."));
+        }
+      } else {
+        reject(new Error(`Cloudinary upload failed (${xhr.status}): ${xhr.responseText}`));
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Network error during upload.")));
+    xhr.send(formData);
+  });
+}
+
 /**
  * Upload a lead/quote photo to the dedicated leads folder.
  * Path: Sublime/Leads/<yyyy>/<mm>

@@ -135,6 +135,8 @@ export default function RecentUploadBatches({
   const [linkBatchId, setLinkBatchId] = useState<string | null>(null);
   const [linkProjectId, setLinkProjectId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [deletingBatchId, setDeletingBatchId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -322,6 +324,29 @@ export default function RecentUploadBatches({
     }
   }
 
+  async function deleteBatch(batch: UploadBatchSummary) {
+    if (!window.confirm(`Delete all ${batch.assetCount} photo${batch.assetCount === 1 ? "" : "s"} in this batch? This cannot be undone.`)) return;
+    setDeletingBatchId(batch.uploadBatchId);
+    setError(null);
+    try {
+      await Promise.all(
+        batch.assetIds.map(async (assetId) => {
+          const response = await fetch(`/api/admin/assets/${assetId}`, { method: "DELETE" });
+          if (!response.ok) {
+            const body = (await response.json().catch(() => ({}))) as { error?: string };
+            throw new Error(body.error || "Failed to delete asset.");
+          }
+        }),
+      );
+      await load();
+      window.dispatchEvent(new Event("admin-assets-refresh"));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete batch.");
+    } finally {
+      setDeletingBatchId(null);
+    }
+  }
+
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -443,35 +468,57 @@ export default function RecentUploadBatches({
                         }}
                         className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
                       >
-                        Add Batch to Existing Project
+                        Add to Existing Project
                       </button>
                       <button
                         type="button"
                         onClick={() => void updateBatchPublish(batch, true)}
                         disabled={isSubmitting}
-                        className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
+                        className="rounded-sm border border-emerald-300 bg-emerald-50 px-4 py-2 font-ui text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
                       >
-                        Publish Batch Photos
+                        ⚡ Quick Publish
                       </button>
                       <button
                         type="button"
                         onClick={() => void updateBatchPublish(batch, false)}
                         disabled={isSubmitting}
-                        className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal"
+                        className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal disabled:opacity-60"
                       >
-                        Hide Batch Photos
+                        Hide Photos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deleteBatch(batch)}
+                        disabled={isSubmitting || deletingBatchId === batch.uploadBatchId}
+                        className="rounded-sm border border-red/20 px-4 py-2 font-ui text-sm text-red hover:border-red hover:bg-red/5 disabled:opacity-60"
+                      >
+                        {deletingBatchId === batch.uploadBatchId ? "Deleting..." : "Delete Batch"}
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {batch.thumbnails.map((thumbnail, index) => (
-                      <img
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {batch.thumbnails.slice(0, 6).map((thumbnail, index) => (
+                      <button
                         key={`${batch.uploadBatchId}-${index}`}
-                        src={thumbnail}
-                        alt={`Batch ${batch.uploadBatchId} thumbnail ${index + 1}`}
-                        className="h-20 w-20 rounded-lg bg-white object-cover"
-                      />
+                        type="button"
+                        onClick={() => setLightboxUrl(thumbnail)}
+                        className="group relative overflow-hidden rounded-lg"
+                      >
+                        <img
+                          src={thumbnail}
+                          alt={`Batch ${batch.uploadBatchId} thumbnail ${index + 1}`}
+                          className="h-24 w-full object-cover transition group-hover:scale-105 sm:h-28"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/20">
+                          <span className="font-ui text-xs font-semibold text-white opacity-0 transition group-hover:opacity-100">View</span>
+                        </div>
+                      </button>
                     ))}
+                    {batch.assetCount > 6 && (
+                      <div className="flex h-24 w-full items-center justify-center rounded-lg bg-cream font-ui text-sm font-semibold text-gray-mid sm:h-28">
+                        +{batch.assetCount - 6}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -869,6 +916,29 @@ export default function RecentUploadBatches({
           ))}
         </div>
       </div>
+
+      {/* Change 4 — Lightbox */}
+      {lightboxUrl ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 rounded-full border border-white/40 bg-black/40 px-3 py-1.5 font-ui text-sm text-white hover:bg-black/60"
+          >
+            ✕ Close
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxUrl}
+            alt="Photo preview"
+            className="max-h-[85vh] max-w-full rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }
