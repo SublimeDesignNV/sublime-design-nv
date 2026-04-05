@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 
+export const maxDuration = 60;
+
 // Public route — returns limited lead fields needed to render the intake form
 export async function GET(
   _request: Request,

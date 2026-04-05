@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { generateVision } from "@/lib/ai/generateVision";
 import type { Prisma } from "@prisma/client";
 
-// Vercel: extend timeout to 60s — GPT-4o + DALL-E together exceed the 10s default
+// Vercel: 60s timeout — GPT-4o + DALL-E together need up to 40–50s
 export const maxDuration = 60;
 
 export async function POST(
@@ -26,56 +26,51 @@ export async function POST(
 
   console.log("[generate-route] lead found, serviceType:", lead.serviceType, "assets:", lead.assets.length);
 
-  // Immediately mark as GENERATING and return — actual work happens async
   await db.intakeLead.update({
     where: { id },
     data: { visionStatus: "GENERATING" },
   });
 
-  console.log("[generate-route] marked GENERATING, starting background job");
+  // Run synchronously within the request — Vercel kills fire-and-forget jobs
+  // when the response is sent, so we must await before returning.
+  try {
+    console.log("[generate-route] calling generateVision");
+    const result = await generateVision(lead);
+    console.log("[generate-route] generateVision returned, headline:", result.headline);
 
-  // Fire-and-forget background generation
-  void (async () => {
-    try {
-      console.log("[generate-route] background job: calling generateVision");
-      const result = await generateVision(lead);
-      console.log("[generate-route] background job: generateVision returned, headline:", result.headline);
-
-      // If there's a render URL, save it as a VISION_RENDER asset
-      if (result.renderUrl) {
-        console.log("[generate-route] background job: saving VISION_RENDER asset");
-        await db.intakeLeadAsset.create({
-          data: {
-            leadId: id,
-            type: "VISION_RENDER",
-            url: result.renderUrl,
-            caption: result.headline,
-          },
-        });
-      }
-
-      await db.intakeLead.update({
-        where: { id },
+    if (result.renderUrl) {
+      console.log("[generate-route] saving VISION_RENDER asset");
+      await db.intakeLeadAsset.create({
         data: {
-          visionPrompt: JSON.stringify(result.imageGenerationPrompt ?? ""),
-          visionResult: result as unknown as Prisma.InputJsonValue,
-          visionStatus: "COMPLETE",
-          status: "VISION_GENERATED",
+          leadId: id,
+          type: "VISION_RENDER",
+          url: result.renderUrl,
+          caption: result.headline,
         },
       });
-
-      console.log("[generate-route] background job: marked COMPLETE for leadId:", id);
-    } catch (err) {
-      console.error("[generate-route] background job: FAILED for leadId:", id);
-      console.error("[generate-route] background job: error name:", err instanceof Error ? err.name : typeof err);
-      console.error("[generate-route] background job: error message:", err instanceof Error ? err.message : String(err));
-      console.error("[generate-route] background job: full error:", err);
-      await db.intakeLead.update({
-        where: { id },
-        data: { visionStatus: "FAILED" },
-      });
     }
-  })();
 
-  return NextResponse.json({ ok: true, status: "GENERATING" });
+    await db.intakeLead.update({
+      where: { id },
+      data: {
+        visionPrompt: JSON.stringify(result.imageGenerationPrompt ?? ""),
+        visionResult: result as unknown as Prisma.InputJsonValue,
+        visionStatus: "COMPLETE",
+        status: "VISION_GENERATED",
+      },
+    });
+
+    console.log("[generate-route] marked COMPLETE for leadId:", id);
+    return NextResponse.json({ ok: true, status: "COMPLETE" });
+  } catch (err) {
+    console.error("[generate-route] FAILED for leadId:", id);
+    console.error("[generate-route] error name:", err instanceof Error ? err.name : typeof err);
+    console.error("[generate-route] error message:", err instanceof Error ? err.message : String(err));
+    console.error("[generate-route] full error:", err);
+    await db.intakeLead.update({
+      where: { id },
+      data: { visionStatus: "FAILED" },
+    });
+    return NextResponse.json({ ok: false, status: "FAILED" }, { status: 500 });
+  }
 }
