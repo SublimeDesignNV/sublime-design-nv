@@ -1,12 +1,7 @@
 import Link from "next/link";
-import type { HeroAsset } from "@/lib/portfolio.server";
 import { buildQuoteHref } from "@/lib/publicLeadCtas";
 
-type HeroProjectProps = {
-  heroAsset: HeroAsset | null;
-};
-
-export default function HeroProject(_props: HeroProjectProps) {
+export default function HeroProject() {
   const quoteHref = buildQuoteHref({
     sourceType: "homepage-hero",
     sourcePath: "/",

@@ -15,7 +15,6 @@ import { getPriorityProjects } from "@/content/projects";
 import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
-import { getHeroAsset } from "@/lib/portfolio.server";
 import {
   getHomepageFeaturedProjects,
   getHomepageSpotlightProjects,
@@ -63,7 +62,6 @@ const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear n
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const heroAsset = await getHeroAsset();
   const [storyProjects, spotlightProjects] = await Promise.all([
     Promise.resolve(getPriorityProjects(3).slice(0, 3)),
     getHomepageSpotlightProjects(3),
@@ -86,7 +84,7 @@ export default async function HomePage() {
 
   return (
     <main className="bg-white">
-      <HeroProject heroAsset={heroAsset} />
+      <HeroProject />
       <TrustSignals />
 
       <section className="bg-cream py-20">
