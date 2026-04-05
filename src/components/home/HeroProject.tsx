@@ -6,7 +6,7 @@ type HeroProjectProps = {
   heroAsset: HeroAsset | null;
 };
 
-export default function HeroProject({ heroAsset: _heroAsset }: HeroProjectProps) {
+export default function HeroProject(_props: HeroProjectProps) {
   const quoteHref = buildQuoteHref({
     sourceType: "homepage-hero",
     sourcePath: "/",
