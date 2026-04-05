@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { HeroAsset } from "@/lib/portfolio.server";
 import { buildQuoteHref } from "@/lib/publicLeadCtas";
@@ -7,12 +6,7 @@ type HeroProjectProps = {
   heroAsset: HeroAsset | null;
 };
 
-const FALLBACK_HERO =
-  "https://images.unsplash.com/photo-1750268746263-52cdef61e177?auto=format&fit=crop&w=2200&q=80";
-
-export default function HeroProject({ heroAsset }: HeroProjectProps) {
-  const imageSrc = heroAsset?.imageUrl || heroAsset?.secureUrl || FALLBACK_HERO;
-  const imageAlt = heroAsset?.alt || "Custom floating shelves and feature wall carpentry in Las Vegas";
+export default function HeroProject({ heroAsset: _heroAsset }: HeroProjectProps) {
   const quoteHref = buildQuoteHref({
     sourceType: "homepage-hero",
     sourcePath: "/",
@@ -21,14 +15,18 @@ export default function HeroProject({ heroAsset }: HeroProjectProps) {
 
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
-      <Image
-        src={imageSrc}
-        alt={imageAlt}
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover"
-      />
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      >
+        <source
+          src="https://res.cloudinary.com/dueaqxh8s/video/upload/q_auto,vc_auto/Sublime/Portfolio/g0mgavsmakqgmlasdmsx.mp4"
+          type="video/mp4"
+        />
+      </video>
       <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
 
       <div className="relative mx-auto flex min-h-[72svh] max-w-7xl items-center px-4 py-16 sm:min-h-[78svh] md:px-8">
