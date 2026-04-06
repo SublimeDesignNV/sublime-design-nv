@@ -1,4 +1,4 @@
-import AdminNav from "@/components/admin/AdminNav";
+
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ACTIVE_SERVICES } from "@/content/services";
@@ -125,9 +125,7 @@ export default async function ShootingChecklistPage() {
   const needsContent = services.filter((s) => s.count < 3).length;
 
   return (
-    <div className="min-h-screen bg-cream">
-      <AdminNav />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-8">
           <h1 className="text-3xl text-charcoal">Shooting Checklist</h1>
           <p className="mt-2 font-ui text-sm text-gray-mid">
@@ -185,7 +183,6 @@ export default async function ShootingChecklistPage() {
             </div>
           ))}
         </div>
-      </main>
-    </div>
+    </main>
   );
 }

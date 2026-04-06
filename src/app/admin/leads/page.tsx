@@ -1,5 +1,5 @@
 import Link from "next/link";
-import AdminNav from "@/components/admin/AdminNav";
+
 import LeadInbox from "@/components/admin/LeadInbox";
 import { requireAdmin } from "@/lib/auth";
 import { getLeadSummary, listLeads } from "@/lib/leads";
@@ -15,7 +15,7 @@ export default async function AdminLeadsPage() {
     : [[], { totalActive: 0, newCount: 0, reviewedCount: 0, contactedCount: 0, archivedCount: 0, thisWeekCount: 0, staleCount: 0, followUpDueCount: 0 }];
 
   return (
-    <main className="bg-cream pt-24 pb-20">
+    <main className="bg-cream pt-8 pb-20">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -29,7 +29,7 @@ export default async function AdminLeadsPage() {
             ← Admin home
           </Link>
         </div>
-        <AdminNav />
+        
 
         {!hasDb ? (
           <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-6">

@@ -1,4 +1,4 @@
-import AdminNav from "@/components/admin/AdminNav";
+
 import Link from "next/link";
 import { isAdminAuthConfigured, requireAdmin } from "@/lib/auth";
 import { FEATURED_PROJECTS, FLAGSHIP_PROJECTS } from "@/content/projects";
@@ -101,7 +101,7 @@ export default async function LaunchAuditPage() {
   const featuredTestimonials = FEATURED_TESTIMONIALS.length;
 
   return (
-    <main className="bg-cream pt-24 pb-20">
+    <main className="bg-cream pt-8 pb-20">
       <div className="mx-auto max-w-4xl px-4 md:px-8">
         {/* Header */}
         <div className="flex items-end justify-between gap-4">
@@ -113,7 +113,7 @@ export default async function LaunchAuditPage() {
             ← Admin home
           </Link>
         </div>
-        <AdminNav />
+        
 
         <div className="mt-8 space-y-6">
           {/* Environment / integrations */}

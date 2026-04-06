@@ -1,5 +1,5 @@
 import Link from "next/link";
-import AdminNav from "@/components/admin/AdminNav";
+
 import { requireAdmin } from "@/lib/auth";
 import { getLeadSummary, listLeads } from "@/lib/leads";
 import {
@@ -53,13 +53,13 @@ export default async function AdminPage() {
   ];
 
   return (
-    <main className="bg-cream px-4 pb-16 pt-20 md:px-8">
+    <main className="bg-cream px-4 pb-16 pt-8 md:px-8">
       <div className="mx-auto max-w-7xl">
         <h1 className="mt-8 text-4xl text-charcoal">Portfolio Admin</h1>
         <p className="font-ui mt-3 text-sm text-gray-mid">
           Choose the task you need right now, then jump into a focused workspace for uploads, unlinked photos, projects, or leads.
         </p>
-        <AdminNav />
+        
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-gray-warm bg-white p-5 shadow-sm">

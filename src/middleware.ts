@@ -14,7 +14,8 @@ export default auth((request) => {
   const isStandalone =
     pathname.startsWith("/intake/") ||
     pathname.startsWith("/vision/") ||
-    pathname.startsWith("/dashboard");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/admin");
   if (isStandalone) {
     const response = NextResponse.next();
     response.headers.set("x-standalone", "1");

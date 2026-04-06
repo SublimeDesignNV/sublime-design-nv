@@ -1,4 +1,4 @@
-import AdminNav from "@/components/admin/AdminNav";
+
 import { requireAdmin } from "@/lib/auth";
 import {
   getAreaContentAuditRows,
@@ -111,7 +111,7 @@ export default async function ContentAuditPage() {
   const launchReadyAreas = areaRows.filter((row) => row.readinessStatus === "launch-ready").length;
 
   return (
-    <main className="min-h-screen bg-cream px-4 pb-20 pt-20 md:px-8">
+    <main className="min-h-screen bg-cream px-4 pb-20 pt-8 md:px-8">
       <div className="mx-auto max-w-6xl">
         <a href="/admin" className="font-ui text-sm font-semibold text-red">
           ← Admin
@@ -120,7 +120,7 @@ export default async function ContentAuditPage() {
         <p className="font-ui mt-2 text-sm text-gray-mid">
           Portfolio readiness by service category.
         </p>
-        <AdminNav />
+        
 
         {/* Summary */}
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
