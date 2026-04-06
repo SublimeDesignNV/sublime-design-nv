@@ -1,12 +1,6 @@
 import Link from "next/link";
 
-export default function KioskAttractPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ mode?: string }>;
-}) {
-  void searchParams; // mode is forwarded via /kiosk/start link
-
+export default function KioskAttractPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-navy px-8 text-center">
       {/* Subtle star-field background */}
@@ -14,8 +8,7 @@ export default function KioskAttractPage({
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-10"
         style={{
-          backgroundImage:
-            "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
           backgroundSize: "60px 60px",
         }}
       />
@@ -30,9 +23,6 @@ export default function KioskAttractPage({
           src="/images/logo-light.png"
           alt="Sublime Design NV"
           className="mx-auto h-20 w-auto"
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = "none";
-          }}
         />
       </div>
 
