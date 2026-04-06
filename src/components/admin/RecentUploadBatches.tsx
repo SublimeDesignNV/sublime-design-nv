@@ -16,6 +16,7 @@ type UploadBatchSummary = {
   status: "linked" | "partial" | "unlinked";
   thumbnails: string[];
   assetIds: string[];
+  publicIds: string[];
   projectIds: string[];
   projectSlugs: string[];
   projectTitles: string[];
@@ -482,6 +483,11 @@ export default function RecentUploadBatches({
                         </span>
                       ))}
                     </div>
+                    {batch.publicIds[0] && (
+                      <p className="mt-1.5 truncate font-mono text-[10px] text-gray-mid" title={batch.publicIds[0]}>
+                        {batch.publicIds[0]}
+                      </p>
+                    )}
                   </div>
 
                   {/* Actions */}

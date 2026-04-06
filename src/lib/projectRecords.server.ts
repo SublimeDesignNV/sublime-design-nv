@@ -119,6 +119,7 @@ export type UploadBatchSummary = {
   status: "linked" | "partial" | "unlinked";
   thumbnails: string[];
   assetIds: string[];
+  publicIds: string[];
   projectIds: string[];
   projectSlugs: string[];
   projectTitles: string[];
@@ -1021,6 +1022,7 @@ export async function listUploadBatchSummaries(options?: {
       status,
       thumbnails: mapped.map((asset) => asset.imageUrl || asset.thumbnailUrl || "").filter(Boolean).slice(0, 4),
       assetIds: mapped.map((asset) => asset.id),
+      publicIds: mapped.map((asset) => asset.publicId).filter(Boolean) as string[],
       projectIds: Array.from(projectMap.keys()),
       projectSlugs: Array.from(projectMap.values()).map((project) => project.slug),
       projectTitles: Array.from(projectMap.values()).map((project) => project.title),

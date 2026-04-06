@@ -24,6 +24,7 @@ type AdminAsset = {
   primaryServiceLabel: string | null;
   serviceMetadata: Record<string, unknown> | null;
   published: boolean;
+  galleryFeature: boolean;
   createdAt: string;
   uploadBatchId?: string | null;
   projectId: string | null;
@@ -246,6 +247,25 @@ export default function AssetTable({
     () => filteredAssets.filter((asset) => selectedAssetIds.includes(asset.id)),
     [filteredAssets, selectedAssetIds],
   );
+
+  async function toggleGalleryFeature(id: string, nextValue: boolean) {
+    const response = await fetch(`/api/admin/assets/${id}/gallery`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ galleryFeature: nextValue }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || "Failed to update gallery feature status.");
+    }
+
+    setAssets((current) =>
+      current.map((asset) =>
+        asset.id === id ? { ...asset, galleryFeature: nextValue } : asset,
+      ),
+    );
+  }
 
   async function togglePublished(id: string, nextPublished: boolean) {
     const response = await fetch(`/api/admin/assets/${id}/publish`, {
@@ -779,6 +799,24 @@ export default function AssetTable({
                   </td>
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        title={asset.galleryFeature ? "Remove from Gallery" : "Mark as Gallery Feature"}
+                        onClick={async () => {
+                          try {
+                            await toggleGalleryFeature(asset.id, !asset.galleryFeature);
+                          } catch (toggleError) {
+                            setError(toggleError instanceof Error ? toggleError.message : "Failed to update gallery status.");
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 font-ui text-xs transition ${
+                          asset.galleryFeature
+                            ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                            : "border-gray-warm text-charcoal hover:border-amber-300 hover:text-amber-700"
+                        }`}
+                      >
+                        ★ {asset.galleryFeature ? "Gallery" : "Add to Gallery"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => startEditing(asset)}

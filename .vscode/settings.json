@@ -13,5 +13,5 @@
     "tab.activeBackground": "#1A0E0E",
     "tab.inactiveBackground": "#120A0A"
   },
-  "prisma.pinToPrisma6": true
+  "prisma.pinToPrisma6": false
 }

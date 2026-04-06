@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
-import { uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
+import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 
 type UploadStatus = {
@@ -26,6 +26,20 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function toTitleCase(str: string) {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function buildAutoText(serviceLabel: string, descriptor: string, location: string) {
+  const parts = ["custom", serviceLabel, descriptor, location, "Las Vegas"].filter(Boolean);
+  return parts.join(" ");
+}
+
+const LOCATION_PRESETS = [
+  "Summerlin", "Henderson", "Lake Las Vegas", "Anthem",
+  "Red Rock", "North Las Vegas", "Downtown Las Vegas", "Other",
+];
+
 export default function AssetUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchSectionRef = useRef<HTMLDivElement>(null);
@@ -37,11 +51,12 @@ export default function AssetUploader() {
   const [secondaryServices, setSecondaryServices] = useState<string[]>([]);
   const [showSecondary, setShowSecondary] = useState(false);
   const [contextSlugs, setContextSlugs] = useState<string[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [locationPreset, setLocationPreset] = useState("");
   const [locationOther, setLocationOther] = useState("");
-  const location = locationPreset === "Other" ? locationOther : locationPreset;
+  const [descriptor, setDescriptor] = useState("");
+  const [title, setTitle] = useState("");
+  const [titleEdited, setTitleEdited] = useState(false);
+  const [description, setDescription] = useState("");
   const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -53,7 +68,23 @@ export default function AssetUploader() {
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Change 3 — pre-select last used service from localStorage
+  const location = locationPreset === "Other" ? locationOther : locationPreset;
+
+  const serviceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label ?? "";
+  const autoAlt = buildAutoText(serviceLabel, descriptor, location);
+  const autoTitle = toTitleCase(autoAlt);
+  const hasVideo = files.some((f) => f.type.startsWith("video/"));
+  const previewPublicId =
+    primaryService && descriptor && location
+      ? buildPublicId({
+          serviceType: primaryService,
+          location,
+          descriptor,
+          isVideo: hasVideo && files.length === 1,
+        })
+      : null;
+
+  // Pre-select last used service from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lastUsedServiceType");
@@ -65,6 +96,13 @@ export default function AssetUploader() {
     }
   }, []);
 
+  // Auto-populate title from descriptor + service + location (unless manually edited)
+  useEffect(() => {
+    if (!titleEdited && autoTitle) {
+      setTitle(autoTitle);
+    }
+  }, [autoTitle, titleEdited]);
+
   // Cleanup preview object URLs on unmount
   useEffect(() => {
     return () => {
@@ -74,7 +112,11 @@ export default function AssetUploader() {
   }, []);
 
   const canUpload =
-    files.length > 0 && Boolean(primaryService) && Boolean(title.trim()) && !isUploading;
+    files.length > 0 &&
+    Boolean(primaryService) &&
+    Boolean(location) &&
+    Boolean(descriptor.trim()) &&
+    !isUploading;
 
   function buildPreviews(selected: File[]): FilePreview[] {
     return selected.map((f) => ({
@@ -97,7 +139,6 @@ export default function AssetUploader() {
     );
   }
 
-  // Change 3 — save last used service to localStorage
   function handleServiceChange(nextService: string) {
     setPrimaryService(nextService);
     setSecondaryServices((current) => current.filter((slug) => slug !== nextService));
@@ -112,7 +153,7 @@ export default function AssetUploader() {
   function toggleSecondaryService(slug: string) {
     setSecondaryServices((current) =>
       current.includes(slug)
-        ? current.filter((currentSlug) => currentSlug !== slug)
+        ? current.filter((s) => s !== slug)
         : [...current, slug],
     );
   }
@@ -120,12 +161,11 @@ export default function AssetUploader() {
   function toggleContext(slug: string) {
     setContextSlugs((current) =>
       current.includes(slug)
-        ? current.filter((currentSlug) => currentSlug !== slug)
+        ? current.filter((s) => s !== slug)
         : [...current, slug],
     );
   }
 
-  // Change 2 — toggle details with localStorage persistence
   function toggleDetails() {
     setDetailsOpen((prev) => {
       const next = !prev;
@@ -152,16 +192,29 @@ export default function AssetUploader() {
     const uploadBatchId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
     const createdAssetIds: string[] = [];
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]!;
       try {
         updateStatus(file.name, { state: "uploading", progress: 0 });
 
-        // Change 5 — progress callback
-        const uploadResult = await uploadFileToCloudinaryWithProgress(file, (percent) => {
-          updateStatus(file.name, { progress: percent });
+        const isVideo = file.type.startsWith("video/");
+        const basePublicId = buildPublicId({
+          serviceType: primaryService,
+          location,
+          descriptor,
+          isVideo,
         });
+        // Append index suffix for files beyond the first to avoid duplicate public_ids
+        const publicId = i === 0 ? basePublicId : `${basePublicId}-${i + 1}`;
+
+        const uploadResult = await uploadFileToCloudinaryWithProgress(
+          file,
+          (percent) => updateStatus(file.name, { progress: percent }),
+          { publicId },
+        );
 
         updateStatus(file.name, { state: "saving", progress: 95 });
+
         const tagSlugs = [primaryService, ...secondaryServices].filter(Boolean);
         const saveResponse = await fetch("/api/admin/assets", {
           method: "POST",
@@ -169,7 +222,8 @@ export default function AssetUploader() {
           body: JSON.stringify({
             ...uploadResult,
             uploadBatchId,
-            title: title.trim(),
+            title: title.trim() || autoTitle,
+            alt: autoAlt,
             description: description.trim() || undefined,
             location: location.trim() || undefined,
             primaryServiceSlug: primaryService,
@@ -213,7 +267,6 @@ export default function AssetUploader() {
           detail: { assetIds: createdAssetIds, uploadBatchId },
         }),
       );
-      // Change 5 — auto-scroll to batch section
       setTimeout(() => {
         batchSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 400);
@@ -226,7 +279,7 @@ export default function AssetUploader() {
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
 
-        {/* Change 1 — Drag and drop zone */}
+        {/* Drag and drop zone */}
         <div>
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -296,9 +349,11 @@ export default function AssetUploader() {
           )}
         </div>
 
-        {/* Change 3 — Service type: flex wrap, pre-selected from localStorage */}
+        {/* Primary Service */}
         <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">Primary Service</legend>
+          <legend className="font-ui text-sm font-semibold text-charcoal">
+            Primary Service <span className="text-red">*</span>
+          </legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {SERVICE_TAGS.map((service) => {
               const active = primaryService === service.slug;
@@ -320,7 +375,82 @@ export default function AssetUploader() {
           </div>
         </fieldset>
 
-        {/* Change 6 — Secondary services behind toggle */}
+        {/* Location — required, outside collapsible */}
+        <div>
+          <span className="font-ui text-sm font-semibold text-charcoal">
+            Location <span className="text-red">*</span>
+          </span>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {LOCATION_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => { setLocationPreset(preset === locationPreset ? "" : preset); setLocationOther(""); }}
+                className={`font-ui rounded-sm border px-3 py-1.5 text-xs transition ${
+                  locationPreset === preset
+                    ? "border-navy bg-navy text-white"
+                    : "border-gray-warm text-charcoal hover:border-navy hover:text-navy"
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+          {locationPreset === "Other" && (
+            <input
+              type="text"
+              value={locationOther}
+              onChange={(e) => setLocationOther(e.target.value)}
+              className="mt-2 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
+              placeholder="Enter location"
+              autoFocus
+            />
+          )}
+        </div>
+
+        {/* Descriptor — required, drives filename */}
+        <div>
+          <label className="block">
+            <span className="font-ui text-sm font-semibold text-charcoal">
+              What does this show? <span className="text-red">*</span>
+            </span>
+            <span className="mt-0.5 block font-ui text-xs text-gray-mid">
+              2–4 words describing the specific shot. This becomes the file name.
+            </span>
+            <input
+              type="text"
+              value={descriptor}
+              onChange={(e) => {
+                const raw = e.target.value.slice(0, 50);
+                setDescriptor(raw);
+              }}
+              className="mt-1.5 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-navy"
+              placeholder="e.g. living-room-walnut-shelves, master-bedroom-black-hardware"
+              maxLength={50}
+            />
+          </label>
+          {/* Live filename preview */}
+          {previewPublicId && (
+            <p className="mt-2 rounded-sm bg-navy/5 px-3 py-2 font-mono text-[11px] text-navy">
+              📁 {previewPublicId}
+            </p>
+          )}
+        </div>
+
+        {/* Title — auto-populated, still editable */}
+        <label className="block">
+          <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
+            onBlur={() => { if (!title.trim()) { setTitleEdited(false); } }}
+            className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-navy"
+            placeholder="Auto-generated from service + descriptor + location"
+          />
+        </label>
+
+        {/* Secondary services behind toggle */}
         <div>
           <label className="font-ui inline-flex cursor-pointer items-center gap-2 text-sm text-charcoal">
             <input
@@ -389,28 +519,18 @@ export default function AssetUploader() {
           </div>
         </fieldset>
 
-        {/* Title — always visible */}
-        <label className="block">
-          <span className="font-ui text-sm font-semibold text-charcoal">Title <span className="text-red">*</span></span>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-navy"
-            placeholder="Double barn door install in Anthem"
-          />
-        </label>
-
-        {/* Change 2 — Collapsible details section */}
+        {/* Collapsible details */}
         <div className="rounded-lg border border-gray-warm">
           <button
             type="button"
             onClick={toggleDetails}
             className="flex w-full items-center justify-between px-4 py-3 text-left"
           >
-            <span className="font-ui text-sm font-semibold text-charcoal">Add Details <span className="font-normal text-gray-mid">(optional)</span></span>
+            <span className="font-ui text-sm font-semibold text-charcoal">
+              Add Details <span className="font-normal text-gray-mid">(optional)</span>
+            </span>
             <span className="flex items-center gap-2">
-              <span className="font-ui text-xs text-gray-mid">Details help with SEO and filtering</span>
+              <span className="font-ui text-xs text-gray-mid">Description, service metadata</span>
               <svg
                 className={`h-4 w-4 text-gray-mid transition-transform ${detailsOpen ? "rotate-180" : ""}`}
                 fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -430,35 +550,6 @@ export default function AssetUploader() {
                   placeholder="Short scope summary, finish notes, or install details"
                 />
               </label>
-              <div>
-                <span className="font-ui text-sm font-semibold text-charcoal">Location</span>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {["Summerlin", "Henderson", "Lake Las Vegas", "Anthem", "Red Rock", "North Las Vegas", "Downtown Las Vegas", "Other"].map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      onClick={() => { setLocationPreset(preset === locationPreset ? "" : preset); setLocationOther(""); }}
-                      className={`font-ui rounded-sm border px-3 py-1.5 text-xs transition ${
-                        locationPreset === preset
-                          ? "border-navy bg-navy text-white"
-                          : "border-gray-warm text-charcoal hover:border-navy hover:text-navy"
-                      }`}
-                    >
-                      {preset}
-                    </button>
-                  ))}
-                </div>
-                {locationPreset === "Other" && (
-                  <input
-                    type="text"
-                    value={locationOther}
-                    onChange={(e) => setLocationOther(e.target.value)}
-                    className="mt-2 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
-                    placeholder="Enter location"
-                    autoFocus
-                  />
-                )}
-              </div>
               <ServiceMetadataFields
                 service={primaryService}
                 values={serviceMetadata}
@@ -479,11 +570,12 @@ export default function AssetUploader() {
 
         {error ? <p className="font-ui text-sm text-red">{error}</p> : null}
 
-        {/* Change 7 — Sticky submit button on mobile */}
+        {/* Sticky submit button on mobile */}
         <div className="sticky bottom-0 -mx-4 bg-white px-4 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:relative md:bottom-auto md:mx-0 md:bg-transparent md:px-0 md:pb-0 md:pt-0 md:shadow-none">
           <button
             type="submit"
             disabled={!canUpload}
+            title={!canUpload && !isUploading ? "Select a service, location, and descriptor first" : undefined}
             className="w-full rounded-sm bg-red px-4 py-3 font-ui text-sm font-semibold text-white transition-colors hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
           >
             {isUploading ? "Uploading..." : `Upload ${files.length > 0 ? files.length + " " : ""}Selected File${files.length !== 1 ? "s" : ""}`}
@@ -491,7 +583,7 @@ export default function AssetUploader() {
         </div>
       </form>
 
-      {/* Change 5 — Per-file progress and status */}
+      {/* Per-file progress and status */}
       {statuses.length > 0 ? (
         <div className="mt-5 space-y-2.5">
           {statuses.map((status) => (
