@@ -15,6 +15,8 @@ export default function HeroProject() {
         muted
         loop
         playsInline
+        preload="none"
+        poster="https://res.cloudinary.com/dueaqxh8s/image/upload/c_fill,w_1280,h_720,g_auto,f_auto,q_auto/v1/Sublime/Portfolio/g0mgavsmakqgmlasdmsx"
         className="absolute inset-0 w-full h-full object-cover"
       >
         <source

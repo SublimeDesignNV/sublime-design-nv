@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -62,15 +63,24 @@ const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear n
 
 export const dynamic = "force-dynamic";
 
+const getCachedHomepageProjects = unstable_cache(
+  async () => {
+    const spotlightProjects = await getHomepageSpotlightProjects(3);
+    const leadSpotlightProject = spotlightProjects[0] ?? null;
+    const supportingFeaturedProjects = await getHomepageFeaturedProjects(3, {
+      excludeSlugs: leadSpotlightProject ? [leadSpotlightProject.slug] : [],
+    });
+    return { spotlightProjects, supportingFeaturedProjects };
+  },
+  ["homepage-projects"],
+  { revalidate: 300 },
+);
+
 export default async function HomePage() {
-  const [storyProjects, spotlightProjects] = await Promise.all([
-    Promise.resolve(getPriorityProjects(3).slice(0, 3)),
-    getHomepageSpotlightProjects(3),
-  ]);
+  const storyProjects = getPriorityProjects(3).slice(0, 3);
+  const { spotlightProjects, supportingFeaturedProjects } =
+    await getCachedHomepageProjects();
   const leadSpotlightProject = spotlightProjects[0] ?? null;
-  const supportingFeaturedProjects = await getHomepageFeaturedProjects(3, {
-    excludeSlugs: leadSpotlightProject ? [leadSpotlightProject.slug] : [],
-  });
   const homepageProjectsMode = leadSpotlightProject ? "db" : "empty";
   const leadProjectCta = leadSpotlightProject
     ? getValidatedProjectPrimaryCta(leadSpotlightProject)
