@@ -7,6 +7,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
+import AreaSchema from "@/components/seo/AreaSchema";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { findArea, getAreaProjects, getAreaReviews, getAreaServices } from "@/content/areas";
 import { getAreaContentAuditRowBySlug, getProjectContentAuditRows } from "@/lib/contentAudit.server";
@@ -149,6 +150,7 @@ export default async function AreaDetailPage({ params }: Props) {
   return (
     <main className="bg-white pb-24 pt-24">
       <LocalBusinessSchema />
+      <AreaSchema area={area} />
 
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <BreadcrumbTrail

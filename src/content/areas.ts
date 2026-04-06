@@ -17,6 +17,7 @@ export type AreaDef = {
   relatedServiceSlugs: string[];
   nearbyAreas: string[];
   status?: AreaStatus;
+  coordinates?: { lat: number; lng: number };
 };
 
 export const AREA_LIST: AreaDef[] = [
@@ -104,6 +105,151 @@ export const AREA_LIST: AreaDef[] = [
     relatedServiceSlugs: ["built-ins", "floating-shelves", "pantry-pullouts", "custom-cabinetry"],
     nearbyAreas: ["las-vegas", "henderson", "spring-valley"],
     status: "active",
+    coordinates: { lat: 36.0800, lng: -115.1372 },
+  },
+  {
+    slug: "lake-las-vegas",
+    name: "Lake Las Vegas",
+    title: "Custom Finish Carpentry in Lake Las Vegas",
+    seoTitle: "Custom Finish Carpentry Lake Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, cabinetry, closet systems, and floating shelves in Lake Las Vegas. Measured and installed by Sublime Design NV.",
+    intro:
+      "Lake Las Vegas homes tend to run toward upscale finishes and resort-influenced design. We build custom carpentry that fits that standard — tight installs, clean lines, and details that hold up to the setting.",
+    heroHeadline: "Custom Carpentry for Lake Las Vegas Homes",
+    heroBody:
+      "Built-ins, cabinetry, floating shelves, closet systems, and mantels measured and installed for homes throughout Lake Las Vegas.",
+    serviceAreaLabel: "Lake Las Vegas",
+    relatedServiceSlugs: ["built-ins", "custom-cabinetry", "floating-shelves", "mantels"],
+    nearbyAreas: ["henderson", "las-vegas", "paradise"],
+    status: "active",
+    coordinates: { lat: 36.1034, lng: -114.9283 },
+  },
+  {
+    slug: "green-valley-ranch",
+    name: "Green Valley Ranch",
+    title: "Custom Finish Carpentry in Green Valley Ranch",
+    seoTitle: "Custom Finish Carpentry Green Valley Ranch | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, pantry pullouts, closet systems, and cabinetry in Green Valley Ranch. Shop-built and installed by Sublime Design NV.",
+    intro:
+      "Green Valley Ranch homes often call for storage upgrades that blend into the existing layout. We build finish carpentry around the room — pantry systems, closet builds, and built-ins that work with the floor plan, not against it.",
+    heroHeadline: "Finish Carpentry for Green Valley Ranch Homes",
+    heroBody:
+      "Custom pantry pullouts, closet systems, built-ins, and cabinetry installed throughout Green Valley Ranch.",
+    serviceAreaLabel: "Green Valley Ranch",
+    relatedServiceSlugs: ["pantry-pullouts", "closet-systems", "built-ins", "custom-cabinetry"],
+    nearbyAreas: ["henderson", "paradise", "las-vegas"],
+    status: "active",
+    coordinates: { lat: 36.0147, lng: -115.0572 },
+  },
+  {
+    slug: "anthem",
+    name: "Anthem",
+    title: "Custom Finish Carpentry in Anthem",
+    seoTitle: "Custom Finish Carpentry Anthem Henderson | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, closet systems, cabinetry, and floating shelves in Anthem. Measured, built, and installed by Sublime Design NV.",
+    intro:
+      "Anthem homes are built with quality expectations. We match that standard with finish carpentry that's measured to the room, built in the shop, and installed cleanly — from one-wall built-ins to full closet and pantry systems.",
+    heroHeadline: "Custom Carpentry for Anthem Homes",
+    heroBody:
+      "Built-ins, closet systems, cabinetry, and floating shelves measured and installed for homes across Anthem in Henderson.",
+    serviceAreaLabel: "Anthem",
+    relatedServiceSlugs: ["built-ins", "closet-systems", "custom-cabinetry", "floating-shelves"],
+    nearbyAreas: ["henderson", "green-valley-ranch", "las-vegas"],
+    status: "active",
+    coordinates: { lat: 35.9727, lng: -115.0845 },
+  },
+  {
+    slug: "red-rock",
+    name: "Red Rock",
+    title: "Custom Finish Carpentry near Red Rock",
+    seoTitle: "Custom Finish Carpentry Red Rock Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, floating shelves, mantels, and cabinetry for homes near Red Rock. Installed by Sublime Design NV.",
+    intro:
+      "Homes near Red Rock tend toward natural materials and open design. We build custom carpentry that fits that aesthetic — floating shelves, built-ins, and mantels with clean profiles and finishes that complement the surroundings.",
+    heroHeadline: "Custom Carpentry for Red Rock Area Homes",
+    heroBody:
+      "Floating shelves, built-ins, mantels, and cabinetry installed for homes near the Red Rock area of Las Vegas.",
+    serviceAreaLabel: "Red Rock",
+    relatedServiceSlugs: ["floating-shelves", "built-ins", "mantels", "custom-cabinetry"],
+    nearbyAreas: ["summerlin", "las-vegas", "spring-valley"],
+    status: "active",
+    coordinates: { lat: 36.1617, lng: -115.4228 },
+  },
+  {
+    slug: "centennial-hills",
+    name: "Centennial Hills",
+    title: "Custom Finish Carpentry in Centennial Hills",
+    seoTitle: "Custom Finish Carpentry Centennial Hills | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, pantry pullouts, closet systems, and cabinetry in Centennial Hills. Measured and installed by Sublime Design NV.",
+    intro:
+      "Centennial Hills is one of the faster-growing parts of the valley, and newer homes here often need the custom storage built-in work the original build left out. We fill those gaps with finish carpentry that fits the home and the daily routine.",
+    heroHeadline: "Custom Carpentry for Centennial Hills Homes",
+    heroBody:
+      "Custom pantry pullouts, built-ins, closet systems, and cabinetry installed throughout Centennial Hills.",
+    serviceAreaLabel: "Centennial Hills",
+    relatedServiceSlugs: ["pantry-pullouts", "built-ins", "closet-systems", "custom-cabinetry"],
+    nearbyAreas: ["las-vegas", "summerlin", "north-las-vegas"],
+    status: "active",
+    coordinates: { lat: 36.2684, lng: -115.2617 },
+  },
+  {
+    slug: "north-las-vegas",
+    name: "North Las Vegas",
+    title: "Custom Finish Carpentry in North Las Vegas",
+    seoTitle: "Custom Finish Carpentry North Las Vegas | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, floating shelves, cabinetry, and closet systems in North Las Vegas. Shop-built and installed by Sublime Design NV.",
+    intro:
+      "North Las Vegas homes range from older builds that need storage updated to newer construction that needs built-ins added. We measure the space, build in the shop, and install cleanly regardless of the existing conditions.",
+    heroHeadline: "Finish Carpentry for North Las Vegas Homes",
+    heroBody:
+      "Custom built-ins, floating shelves, closet systems, and cabinetry installed throughout North Las Vegas.",
+    serviceAreaLabel: "North Las Vegas",
+    relatedServiceSlugs: ["built-ins", "floating-shelves", "closet-systems", "custom-cabinetry"],
+    nearbyAreas: ["las-vegas", "centennial-hills", "paradise"],
+    status: "active",
+    coordinates: { lat: 36.1989, lng: -115.1175 },
+  },
+  {
+    slug: "rhodes-ranch",
+    name: "Rhodes Ranch",
+    title: "Custom Finish Carpentry in Rhodes Ranch",
+    seoTitle: "Custom Finish Carpentry Rhodes Ranch | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, cabinetry, closet systems, and floating shelves in Rhodes Ranch. Measured and installed by Sublime Design NV.",
+    intro:
+      "Rhodes Ranch homes sit in a gated community with consistent quality standards. We build finish carpentry to match — clean installs, tight details, and work that looks like it came with the house.",
+    heroHeadline: "Custom Carpentry for Rhodes Ranch Homes",
+    heroBody:
+      "Built-ins, cabinetry, closet systems, and floating shelves measured and installed for homes in Rhodes Ranch.",
+    serviceAreaLabel: "Rhodes Ranch",
+    relatedServiceSlugs: ["built-ins", "custom-cabinetry", "closet-systems", "floating-shelves"],
+    nearbyAreas: ["spring-valley", "summerlin", "las-vegas"],
+    status: "active",
+    coordinates: { lat: 36.0598, lng: -115.2641 },
+  },
+  {
+    slug: "seven-hills",
+    name: "Seven Hills",
+    title: "Custom Finish Carpentry in Seven Hills",
+    seoTitle: "Custom Finish Carpentry Seven Hills Henderson | Sublime Design NV",
+    seoDescription:
+      "Custom built-ins, cabinetry, closet systems, and mantels in Seven Hills. Measured, built, and installed by Sublime Design NV.",
+    intro:
+      "Seven Hills homes in Henderson are built at a high standard and need finish carpentry to match. We build custom work for these homes — from full closet systems and pantry pullouts to built-ins and mantels that fit the space exactly.",
+    heroHeadline: "Custom Carpentry for Seven Hills Homes",
+    heroBody:
+      "Custom built-ins, cabinetry, closet systems, and mantels installed for homes throughout Seven Hills in Henderson.",
+    serviceAreaLabel: "Seven Hills",
+    relatedServiceSlugs: ["built-ins", "custom-cabinetry", "closet-systems", "mantels"],
+    nearbyAreas: ["henderson", "green-valley-ranch", "anthem"],
+    status: "active",
+    coordinates: { lat: 36.0024, lng: -114.9767 },
   },
 ];
 

@@ -7,7 +7,9 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
+import FAQSchema from "@/components/seo/FAQSchema";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
+import ServiceSchema from "@/components/seo/ServiceSchema";
 import { findService, ACTIVE_SERVICES } from "@/content/services";
 import { getProjectsByService } from "@/content/projects";
 import { getServiceContentAuditRowBySlug } from "@/lib/contentAudit.server";
@@ -231,6 +233,8 @@ export default async function ServiceDetailPage({ params }: Props) {
   return (
     <main className="bg-white pb-24 pt-24">
       <LocalBusinessSchema />
+      <ServiceSchema service={service} />
+      {service.faq.length > 0 && <FAQSchema items={service.faq} />}
 
       <section className="mx-auto max-w-7xl px-4 md:px-8">
         <BreadcrumbTrail
