@@ -507,13 +507,14 @@ export default function AssetTable({
     window.dispatchEvent(new Event("admin-projects-refresh"));
   }
 
-  async function linkSelectionToProject() {
-    if (!linkProjectId) {
+  async function linkSelectionToProject(projectIdOverride?: string) {
+    const pid = projectIdOverride ?? linkProjectId;
+    if (!pid) {
       setError("Choose a project to link the selected photos.");
       return;
     }
 
-    const project = projects.find((item) => item.id === linkProjectId);
+    const project = projects.find((item) => item.id === pid);
     if (!project) {
       setError("Project not found.");
       return;
@@ -562,6 +563,8 @@ export default function AssetTable({
     filteredAssets.length > 0 &&
     filteredAssets.every((asset) => selectedAssetIds.includes(asset.id));
 
+  const orphansOnly = availableFilters.length === 1 && availableFilters[0] === "orphans";
+
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -572,7 +575,7 @@ export default function AssetTable({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {availableFilters.map((value) => (
+          {availableFilters.length > 1 && availableFilters.map((value) => (
             <button
               key={value}
               type="button"
@@ -602,56 +605,101 @@ export default function AssetTable({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-            Bulk Project Actions
-          </p>
-          <p className="mt-1 text-sm text-charcoal">
-            {selectedAssetIds.length} selected. Use this to create one album/project or repair unlinked photos in bulk.
-          </p>
+      {orphansOnly ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-cream px-4 py-3">
+          <label className="flex cursor-pointer items-center gap-2 font-ui text-sm text-charcoal">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleSelectVisible}
+              aria-label="Select all visible photos"
+            />
+            Select All
+          </label>
+          <span className="rounded-full border border-gray-200 bg-white px-2.5 py-0.5 font-ui text-xs text-gray-mid">
+            {selectedAssetIds.length} selected
+          </span>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void createProjectFromSelection()}
+              disabled={selectedAssetIds.length === 0}
+              className="inline-flex items-center gap-1 rounded-sm bg-red px-3 py-2 font-ui text-xs font-semibold text-white disabled:opacity-40"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create Project
+            </button>
+            <select
+              value=""
+              disabled={selectedAssetIds.length === 0}
+              onChange={(event) => {
+                if (event.target.value) {
+                  void linkSelectionToProject(event.target.value);
+                }
+              }}
+              className="rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-40"
+            >
+              <option value="">Link to Existing ▾</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void createProjectFromSelection()}
-            disabled={selectedAssetIds.length === 0}
-            className="inline-flex items-center gap-1 rounded-sm bg-red px-3 py-2 font-ui text-xs font-semibold text-white disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Create Project
-          </button>
-          <select
-            value={linkProjectId}
-            onChange={(event) => setLinkProjectId(event.target.value)}
-            className="rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-xs text-charcoal"
-          >
-            <option value="">Link to existing project</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => void linkSelectionToProject()}
-            disabled={selectedAssetIds.length === 0 || !linkProjectId}
-            className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            Link Photos
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedAssetIds([])}
-            disabled={selectedAssetIds.length === 0}
-            className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
-          >
-            Clear
-          </button>
+      ) : (
+        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-cream p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
+              Bulk Project Actions
+            </p>
+            <p className="mt-1 text-sm text-charcoal">
+              {selectedAssetIds.length} selected. Use this to create one album/project or repair unlinked photos in bulk.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void createProjectFromSelection()}
+              disabled={selectedAssetIds.length === 0}
+              className="inline-flex items-center gap-1 rounded-sm bg-red px-3 py-2 font-ui text-xs font-semibold text-white disabled:opacity-50"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Create Project
+            </button>
+            <select
+              value={linkProjectId}
+              onChange={(event) => setLinkProjectId(event.target.value)}
+              className="rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-xs text-charcoal"
+            >
+              <option value="">Link to existing project</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => void linkSelectionToProject()}
+              disabled={selectedAssetIds.length === 0 || !linkProjectId}
+              className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              Link Photos
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedAssetIds([])}
+              disabled={selectedAssetIds.length === 0}
+              className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal disabled:opacity-50"
+            >
+              Clear
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {isLoading ? <p className="font-ui mt-4 text-sm text-gray-mid">Loading...</p> : null}
       {error ? <p className="font-ui mt-4 text-sm text-red">{error}</p> : null}
@@ -661,14 +709,16 @@ export default function AssetTable({
           <table className="min-w-full border-collapse">
             <thead>
               <tr className="border-b border-gray-warm text-left">
-                <th className="py-2 pr-3">
-                  <input
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleSelectVisible}
-                    aria-label="Select visible photos"
-                  />
-                </th>
+                {!orphansOnly && (
+                  <th className="py-2 pr-3">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleSelectVisible}
+                      aria-label="Select visible photos"
+                    />
+                  </th>
+                )}
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Preview
                 </th>
@@ -676,14 +726,16 @@ export default function AssetTable({
                   Photo
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Services / Context
+                  Type
                 </th>
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Project
                 </th>
-                <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
-                  Published
-                </th>
+                {!orphansOnly && (
+                  <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
+                    Published
+                  </th>
+                )}
                 <th className="font-ui py-2 pr-3 text-xs uppercase tracking-wide text-gray-mid">
                   Created
                 </th>
@@ -695,14 +747,16 @@ export default function AssetTable({
             <tbody>
               {filteredAssets.map((asset) => (
                 <tr key={asset.id} className="border-b border-gray-warm/60 align-top">
-                  <td className="py-2 pr-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedAssetIds.includes(asset.id)}
-                      onChange={() => toggleAssetSelection(asset.id)}
-                      aria-label={`Select ${asset.title || "photo"}`}
-                    />
-                  </td>
+                  {!orphansOnly && (
+                    <td className="py-2 pr-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedAssetIds.includes(asset.id)}
+                        onChange={() => toggleAssetSelection(asset.id)}
+                        aria-label={`Select ${asset.title || "photo"}`}
+                      />
+                    </td>
+                  )}
                   <td className="py-2 pr-3">
                     {asset.kind === "IMAGE" ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -763,37 +817,36 @@ export default function AssetTable({
                   </td>
                   <td className="font-ui py-2 pr-3 text-sm text-charcoal">
                     {asset.projectSlug ? (
-                      <>
-                        <p>{asset.projectSlug}</p>
-                        <p className="mt-1 text-xs text-gray-mid">Linked project</p>
-                      </>
+                      <p className="text-xs text-gray-mid">{asset.projectSlug}</p>
                     ) : (
-                      <>
-                        <p className="text-red">Unlinked photo</p>
-                        <p className="mt-1 text-xs text-gray-mid">Visible on service pages only</p>
-                      </>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-red/20 bg-red/5 px-2.5 py-0.5 font-ui text-[10px] text-red">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red" />
+                        No Project Assigned
+                      </span>
                     )}
                   </td>
-                  <td className="py-2 pr-3">
-                    <label className="font-ui inline-flex items-center gap-2 text-sm text-charcoal">
-                      <input
-                        type="checkbox"
-                        checked={asset.published}
-                        onChange={async (event) => {
-                          try {
-                            await togglePublished(asset.id, event.target.checked);
-                          } catch (toggleError) {
-                            setError(
-                              toggleError instanceof Error
-                                ? toggleError.message
-                                : "Failed to update publish state.",
-                            );
-                          }
-                        }}
-                      />
-                      {asset.published ? "Yes" : "No"}
-                    </label>
-                  </td>
+                  {!orphansOnly && (
+                    <td className="py-2 pr-3">
+                      <label className="font-ui inline-flex items-center gap-2 text-sm text-charcoal">
+                        <input
+                          type="checkbox"
+                          checked={asset.published}
+                          onChange={async (event) => {
+                            try {
+                              await togglePublished(asset.id, event.target.checked);
+                            } catch (toggleError) {
+                              setError(
+                                toggleError instanceof Error
+                                  ? toggleError.message
+                                  : "Failed to update publish state.",
+                              );
+                            }
+                          }}
+                        />
+                        {asset.published ? "Yes" : "No"}
+                      </label>
+                    </td>
+                  )}
                   <td className="font-ui py-2 pr-3 text-sm text-gray-mid">
                     {new Date(asset.createdAt).toLocaleDateString()}
                   </td>
@@ -817,6 +870,19 @@ export default function AssetTable({
                       >
                         ★ {asset.galleryFeature ? "Gallery" : "Add to Gallery"}
                       </button>
+                      {orphansOnly && (
+                        <button
+                          type="button"
+                          onClick={() => toggleAssetSelection(asset.id)}
+                          className={`inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 font-ui text-xs transition ${
+                            selectedAssetIds.includes(asset.id)
+                              ? "border-navy bg-navy text-white"
+                              : "border-gray-warm text-charcoal hover:border-navy"
+                          }`}
+                        >
+                          {selectedAssetIds.includes(asset.id) ? "Selected" : "Select"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => startEditing(asset)}
@@ -825,14 +891,6 @@ export default function AssetTable({
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
-                      <a
-                        href={`/api/admin/assets/${asset.id}/debug`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy"
-                      >
-                        Debug
-                      </a>
                       <button
                         type="button"
                         onClick={() => void deleteAsset(asset)}
@@ -849,7 +907,15 @@ export default function AssetTable({
             </tbody>
           </table>
           {filteredAssets.length === 0 ? (
-            <p className="font-ui py-4 text-sm text-gray-mid">No photos found.</p>
+            orphansOnly ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+                <p className="text-2xl">✓</p>
+                <p className="mt-2 font-ui text-sm font-semibold text-emerald-800">All photos have projects assigned.</p>
+                <p className="mt-1 font-ui text-xs text-emerald-700">Nothing to fix here.</p>
+              </div>
+            ) : (
+              <p className="font-ui py-4 text-sm text-gray-mid">No photos found.</p>
+            )
           ) : null}
         </div>
       ) : null}

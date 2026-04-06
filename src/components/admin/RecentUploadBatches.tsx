@@ -857,9 +857,7 @@ export default function RecentUploadBatches({
                 <p className="mt-1 text-xs text-red">{asset.diagnosis}</p>
               </div>
               <Link
-                href={`/admin?focusAsset=${asset.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/admin/photos/unlinked"
                 className="rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal"
               >
                 Manage in Photos ↗

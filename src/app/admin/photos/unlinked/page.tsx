@@ -10,18 +10,17 @@ export default async function AdminUnlinkedPhotosPage() {
   return (
     <main className="bg-cream px-4 pb-16 pt-8 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mt-8 text-4xl text-charcoal">Unlinked Photos</h1>
+        <h1 className="mt-8 text-4xl text-charcoal">Photos Needing a Project</h1>
         <p className="mt-3 max-w-3xl font-ui text-sm text-gray-mid">
-          Fix photos that are visible and renderable but still need project linkage. Create a project from a selection or attach selected photos to an existing project.
+          These photos are live on the site but have no project assigned. Select one or more, then create a new project or attach to an existing one.
         </p>
-        
 
         <div className="mt-8">
           <AssetTable
             title="Unlinked Photos"
-            description="Use this workspace to repair project linkage, bulk-create projects, and clean up photos that are still living outside the project system."
+            description="Select photos to create a project or link to an existing one."
             defaultFilter="orphans"
-            availableFilters={["orphans", "published", "unpublished", "all"]}
+            availableFilters={["orphans"]}
           />
         </div>
       </div>

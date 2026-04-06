@@ -27,7 +27,6 @@ export default async function AdminPage() {
   const draftProjects = projects.filter((project) => project.status === "DRAFT").length;
   const readyProjects = projects.filter((project) => project.status === "READY").length;
   const publishedProjects = projects.filter((project) => project.status === "PUBLISHED").length;
-  const recentBatches = uploadBatches.slice(0, 3);
   const recentLeadRows = recentLeads.slice(0, 4);
   const quickActions = [
     {
@@ -55,55 +54,50 @@ export default async function AdminPage() {
   return (
     <main className="bg-cream px-4 pb-16 pt-8 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mt-8 text-4xl text-charcoal">Portfolio Admin</h1>
-        <p className="font-ui mt-3 text-sm text-gray-mid">
-          Choose the task you need right now, then jump into a focused workspace for uploads, unlinked photos, projects, or leads.
+        <h1 className="mt-4 text-4xl text-charcoal">Portfolio Admin</h1>
+        <p className="font-ui mt-2 mb-4 text-sm text-gray-mid">
+          Choose the task you need right now, then jump into a focused workspace.
         </p>
-        
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-gray-warm bg-white p-5 shadow-sm">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-xl border border-gray-warm bg-white px-4 py-3 shadow-sm">
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Recent upload batches</p>
-            <p className="mt-3 text-3xl text-charcoal">{uploadBatches.length}</p>
-            <p className="mt-2 text-sm text-gray-mid">Batches uploaded in the last week.</p>
+            <p className="mt-2 text-3xl text-charcoal">{uploadBatches.length}</p>
+            <p className="mt-1 text-sm text-gray-mid">Last 7 days</p>
           </div>
-          <div className="rounded-xl border border-gray-warm bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-warm bg-white px-4 py-3 shadow-sm">
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Unlinked photos</p>
-            <p className="mt-3 text-3xl text-charcoal">{unlinkedPhotos.length}</p>
-            <p className="mt-2 text-sm text-gray-mid">Renderable photos still waiting for project linkage.</p>
+            <p className="mt-2 text-3xl text-charcoal">{unlinkedPhotos.length}</p>
+            <p className="mt-1 text-sm text-gray-mid">Need project linkage</p>
           </div>
-          <div className="rounded-xl border border-gray-warm bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-warm bg-white px-4 py-3 shadow-sm">
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Projects</p>
-            <p className="mt-3 text-3xl text-charcoal">{projects.length}</p>
-            <p className="mt-2 text-sm text-gray-mid">
+            <p className="mt-2 text-3xl text-charcoal">{projects.length}</p>
+            <p className="mt-1 text-sm text-gray-mid">
               {draftProjects} draft, {readyProjects} ready, {publishedProjects} published.
             </p>
           </div>
-          <div className="rounded-xl border border-gray-warm bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-warm bg-white px-4 py-3 shadow-sm">
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">Active leads</p>
-            <p className="mt-3 text-3xl text-charcoal">{leadSummary.totalActive}</p>
-            <p className="mt-2 text-sm text-gray-mid">
+            <p className="mt-2 text-3xl text-charcoal">{leadSummary.totalActive}</p>
+            <p className="mt-1 text-sm text-gray-mid">
               {leadSummary.newCount} new, {leadSummary.staleCount} stale, {leadSummary.followUpDueCount} due follow-up.
             </p>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="rounded-xl border border-gray-warm bg-white p-6 shadow-sm">
             <h2 className="text-2xl text-charcoal">Quick Actions</h2>
-            <p className="mt-2 font-ui text-sm text-gray-mid">
-              Start in the workspace that matches the job you need to finish.
-            </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {quickActions.map((action) => (
                 <Link
                   key={action.href}
                   href={action.href}
                   className="rounded-xl border border-gray-200 bg-cream/40 p-4 transition hover:border-red"
                 >
-                  <p className="font-ui text-xs uppercase tracking-[0.18em] text-red">Open workspace</p>
-                  <h3 className="mt-2 text-lg text-charcoal">{action.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-mid">{action.description}</p>
+                  <h3 className="text-base text-charcoal">{action.title}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-gray-mid">{action.description}</p>
                 </Link>
               ))}
             </div>
@@ -114,13 +108,13 @@ export default async function AdminPage() {
             <p className="mt-2 font-ui text-sm text-gray-mid">
               A quick check on what still needs a response.
             </p>
-            <div className="mt-5 space-y-3">
+            <div className="mt-4 space-y-2.5">
               {recentLeadRows.map((lead) => (
-                <div key={lead.id} className="rounded-lg border border-gray-200 bg-cream/40 p-4">
+                <div key={lead.id} className="rounded-lg border border-gray-200 bg-cream/40 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-ui text-sm font-semibold text-charcoal">{lead.name}</p>
-                      <p className="mt-1 text-xs text-gray-mid">
+                      <p className="mt-0.5 text-xs text-gray-mid">
                         {lead.service || "General inquiry"} • {lead.sourceType || "direct-quote"}
                       </p>
                     </div>
@@ -128,103 +122,16 @@ export default async function AdminPage() {
                       {lead.status.toLowerCase()}
                     </span>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-sm text-gray-mid">{lead.message}</p>
+                  <p className="mt-1.5 line-clamp-2 text-sm text-gray-mid">{lead.message}</p>
                 </div>
               ))}
               {!recentLeadRows.length ? (
                 <p className="font-ui text-sm text-gray-mid">No recent leads yet.</p>
               ) : null}
             </div>
-            <Link href="/admin/leads" className="mt-5 inline-flex rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal">
+            <Link href="/admin/leads" className="mt-4 inline-flex rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal">
               Open Lead Inbox
             </Link>
-          </section>
-        </div>
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-gray-warm bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl text-charcoal">Recent Upload Batches</h2>
-                <p className="mt-2 font-ui text-sm text-gray-mid">
-                  The newest upload sessions that are ready to become projects.
-                </p>
-              </div>
-              <Link href="/admin/uploads" className="font-ui text-sm text-gray-mid hover:text-charcoal">
-                Open uploads →
-              </Link>
-            </div>
-            <div className="mt-5 space-y-3">
-              {recentBatches.map((batch) => (
-                <div key={batch.uploadBatchId} className="rounded-lg border border-gray-200 bg-cream/40 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-ui text-sm font-semibold text-charcoal">
-                        Batch {batch.uploadBatchId.slice(0, 8)}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-mid">
-                        {batch.assetCount} photo{batch.assetCount === 1 ? "" : "s"} • {batch.status} • updated{" "}
-                        {new Date(batch.updatedAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <Link
-                      href={`/admin/uploads?batch=${batch.uploadBatchId}`}
-                      className="rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal"
-                    >
-                      Review
-                    </Link>
-                  </div>
-                </div>
-              ))}
-              {!recentBatches.length ? (
-                <p className="font-ui text-sm text-gray-mid">No recent upload batches yet.</p>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="rounded-xl border border-gray-warm bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl text-charcoal">Unlinked Photo Cleanup</h2>
-                <p className="mt-2 font-ui text-sm text-gray-mid">
-                  Photos that still need project linkage before they can show up in grouped work.
-                </p>
-              </div>
-              <Link href="/admin/photos/unlinked" className="font-ui text-sm text-gray-mid hover:text-charcoal">
-                Open cleanup →
-              </Link>
-            </div>
-            <div className="mt-5 space-y-3">
-              {unlinkedPhotos.slice(0, 4).map((photo) => (
-                <div key={photo.id} className="rounded-lg border border-gray-200 bg-cream/40 p-4">
-                  <div className="flex items-center gap-3">
-                    {photo.imageUrl || photo.thumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={photo.imageUrl || photo.thumbnailUrl || ""}
-                        alt={photo.title || "Unlinked photo"}
-                        className="h-14 w-14 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-white font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                        No photo
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate font-ui text-sm font-semibold text-charcoal">
-                        {photo.title || "Untitled photo"}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-mid">
-                        {photo.primaryServiceSlug || "No service"} • {photo.diagnosis}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {!unlinkedPhotos.length ? (
-                <p className="font-ui text-sm text-gray-mid">No unlinked photos need cleanup right now.</p>
-              ) : null}
-            </div>
           </section>
         </div>
       </div>
