@@ -11,6 +11,7 @@ import TrustSignals from "@/components/home/TrustSignals";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
+import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { getPriorityProjects } from "@/content/projects";
 import { FEATURED_REVIEWS } from "@/content/reviews";
 import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
@@ -84,6 +85,7 @@ export default async function HomePage() {
 
   return (
     <main className="bg-white">
+      <LocalBusinessSchema />
       <HeroProject />
       <TrustSignals />
 

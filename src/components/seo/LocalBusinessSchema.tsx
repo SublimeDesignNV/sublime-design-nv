@@ -6,11 +6,19 @@ export default function LocalBusinessSchema() {
     "@type": "HomeAndConstructionBusiness",
     name: "Sublime Design NV",
     url: siteUrl,
-    telephone: "702-847-9016",
+    telephone: "+17028479016",
     email: "info@sublimedesignnv.com",
     priceRange: "$$",
+    currenciesAccepted: "USD",
     paymentAccepted: "Cash, Check, Credit Card, Zelle",
-    openingHours: "Mo-Fr 08:00-17:00",
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "07:00",
+        closes: "18:00",
+      },
+    ],
     address: {
       "@type": "PostalAddress",
       addressLocality: "Las Vegas",
