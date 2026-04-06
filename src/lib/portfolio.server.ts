@@ -457,6 +457,7 @@ export type ProjectImageAsset = {
   alt: string;
   source: AssetSource;
   caption?: string;
+  resourceType?: "image" | "video";
 };
 
 export type ProjectPreviewAsset = ProjectImageAsset;

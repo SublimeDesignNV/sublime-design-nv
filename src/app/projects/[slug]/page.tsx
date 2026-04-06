@@ -28,6 +28,8 @@ import {
   listPublicProjects,
 } from "@/lib/projectRecords.server";
 import { buildFacetCanonical, getSiteUrl } from "@/lib/seo";
+import type { ProjectFinish } from "@/types/project";
+import { FINISH_CATEGORY_ICONS, FINISH_CATEGORY_LABELS } from "@/types/project";
 
 const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
 
@@ -103,6 +105,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProjectImage({ asset, sizes }: { asset: ProjectImageAsset; sizes: string }) {
+  if (asset.resourceType === "video") {
+    const poster = asset.secureUrl
+      .replace("/video/upload/", "/image/upload/f_auto,q_auto/")
+      .replace(/\.(mp4|mov|webm)$/, ".jpg");
+    return (
+      <video
+        src={asset.secureUrl}
+        controls
+        preload="metadata"
+        poster={poster}
+        className="h-full w-full object-cover"
+        aria-label={asset.alt}
+      />
+    );
+  }
   return (
     <SitePhoto
       publicId={asset.source === "cloudinary" ? asset.publicId : undefined}
@@ -191,6 +208,55 @@ function ProjectGallery({ images }: { images: ProjectImageAsset[] }) {
   );
 }
 
+function MaterialsUsed({ finishes }: { finishes: ProjectFinish[] }) {
+  if (!finishes.length) return null;
+  return (
+    <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">
+      <p className="font-ui text-xs uppercase tracking-widest text-red">Materials Used</p>
+      <h2 className="mt-2 text-3xl text-charcoal">Finishes &amp; Materials</h2>
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {finishes.map((finish) => (
+          <div key={finish.id} className="rounded-xl border border-gray-200 bg-cream p-4">
+            <div className="flex items-center gap-2">
+              <span className="font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                {FINISH_CATEGORY_ICONS[finish.category]} {FINISH_CATEGORY_LABELS[finish.category]}
+              </span>
+              {finish.color ? (
+                <span
+                  className="inline-block h-3.5 w-3.5 flex-shrink-0 rounded-full border border-gray-200"
+                  style={{ backgroundColor: finish.color }}
+                />
+              ) : null}
+            </div>
+            <p className="mt-2 font-ui text-sm font-semibold text-charcoal">
+              {finish.name}
+              {finish.code ? (
+                <span className="ml-1.5 font-normal text-gray-mid">{finish.code}</span>
+              ) : null}
+            </p>
+            {finish.supplier ? (
+              <p className="mt-1 text-xs text-gray-mid">{finish.supplier}</p>
+            ) : null}
+            {finish.notes ? (
+              <p className="mt-1 text-xs text-gray-mid">{finish.notes}</p>
+            ) : null}
+            {finish.url ? (
+              <a
+                href={finish.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-block text-xs font-semibold text-red hover:underline"
+              >
+                Product link ↗
+              </a>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ProjectStructuredData({
   slug,
   title,
@@ -254,14 +320,18 @@ export default async function ProjectDetailPage({ params }: Props) {
     const publicDescription = getPublicProjectDescription(linkedProject);
     const publicEyebrow = getPublicProjectEyebrow(linkedProject);
     const images: ProjectImageAsset[] = linkedProject.assets
-      .filter((asset) => asset.published && asset.renderable && asset.imageUrl)
+      .filter((asset) => asset.published && (
+        (asset.renderable && asset.imageUrl) ||
+        (asset.resourceType === "video" && asset.secureUrl)
+      ))
       .map((asset) => ({
         publicId: asset.publicId ?? undefined,
-        imageUrl: asset.imageUrl ?? "",
+        imageUrl: asset.imageUrl ?? asset.secureUrl ?? "",
         secureUrl: asset.secureUrl ?? asset.imageUrl ?? "",
         alt: asset.title || publicTitle,
         source: asset.publicId ? "cloudinary" : "seed",
         caption: asset.location ?? undefined,
+        resourceType: asset.resourceType as "image" | "video",
       }));
 
     const relatedLinkedProjects = (
@@ -442,6 +512,8 @@ export default async function ProjectDetailPage({ params }: Props) {
             </div>
           </section>
         ) : null}
+
+        <MaterialsUsed finishes={linkedProject.finishes} />
 
         {linkedProject.testimonialPresent && relatedReviews.length ? (
           <section className="mx-auto mt-16 max-w-7xl px-4 md:px-8">

@@ -739,8 +739,18 @@ export default function AssetTable({
                         className="h-16 w-16 rounded-sm bg-cream object-cover"
                       />
                     ) : (
-                      <span className="inline-flex h-16 w-16 items-center justify-center rounded-sm bg-gray-warm text-charcoal">
-                        <Video className="h-5 w-5" />
+                      <span className="relative inline-flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-sm bg-charcoal">
+                        {asset.secureUrl ? (
+                          <video
+                            src={asset.secureUrl}
+                            preload="metadata"
+                            muted
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Video className="h-5 w-5 text-white" />
+                        </span>
                       </span>
                     )}
                   </td>

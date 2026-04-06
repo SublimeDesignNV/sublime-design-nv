@@ -1,5 +1,6 @@
 "use client";
 import { ArrowDown, ArrowUp, Bug, Pencil, Trash2, Unlink, Wrench, X } from "lucide-react";
+import ProjectFinishesEditor from "@/components/admin/ProjectFinishesEditor";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AREA_LIST } from "@/content/areas";
 import { SERVICE_TAGS } from "@/lib/serviceTags";
@@ -681,6 +682,8 @@ export default function ProjectTable() {
                 </div>
               </div>
             </div>
+
+            <ProjectFinishesEditor projectId={editForm.id} />
 
             <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => setEditForm(null)} className="rounded-sm border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal transition hover:border-gray-mid">

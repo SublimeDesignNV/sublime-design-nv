@@ -94,6 +94,7 @@ export type CanonicalProject = {
   internalNotes: string | null;
   featuredReason: string | null;
   coverAssetId: string | null;
+  finishes: import("@/types/project").ProjectFinish[];
   coverImageUrl: string | null;
   coverThumbnailUrl: string | null;
   coverPublicId: string | null;
@@ -246,6 +247,7 @@ export const PROJECT_SELECT = {
   internalNotes: true,
   featuredReason: true,
   coverAssetId: true,
+  finishes: true,
   createdAt: true,
   updatedAt: true,
   assets: {
@@ -530,6 +532,7 @@ function mapProject(project: DbProject): CanonicalProject {
     internalNotes: project.internalNotes,
     featuredReason: project.featuredReason,
     coverAssetId: coverAsset?.id ?? project.coverAssetId ?? null,
+    finishes: Array.isArray(project.finishes) ? (project.finishes as unknown as import("@/types/project").ProjectFinish[]) : [],
     coverImageUrl: coverAsset?.imageUrl ?? null,
     coverThumbnailUrl: coverAsset?.thumbnailUrl ?? null,
     coverPublicId: coverAsset?.publicId ?? null,
