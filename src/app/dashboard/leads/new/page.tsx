@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { IntakeServiceType } from "@prisma/client";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 const SERVICE_OPTIONS: { value: IntakeServiceType; label: string }[] = [
   { value: "BARN_DOORS", label: "Barn Doors" },
@@ -126,12 +127,10 @@ export default function NewLeadPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-ui font-semibold text-charcoal mb-1.5">Phone</label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(v) => update("phone", v)}
                 className="w-full border border-gray-warm rounded-lg px-4 py-3 text-charcoal focus:outline-none focus:border-red bg-white"
-                placeholder="(702) 555-0100"
               />
             </div>
             <div>

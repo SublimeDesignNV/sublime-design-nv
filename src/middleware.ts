@@ -14,6 +14,7 @@ export default auth((request) => {
   const isStandalone =
     pathname.startsWith("/intake/") ||
     pathname.startsWith("/vision/") ||
+    pathname.startsWith("/kiosk") ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin");
   if (isStandalone) {
@@ -49,5 +50,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/intake/:path*", "/vision/:path*"],
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/intake/:path*", "/vision/:path*", "/kiosk/:path*", "/kiosk"],
 };

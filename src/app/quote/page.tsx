@@ -6,10 +6,10 @@ import { uploadLeadPhoto } from "@/lib/cloudinaryUpload";
 import { trackEvent } from "@/lib/analytics";
 import { SERVICES, findService } from "@/content/services";
 import { readQuotePrefill, type QuotePrefillContext } from "@/lib/publicLeadCtas";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import {
   applyQuotePrefillToForm,
   BUDGET_OPTIONS,
-  formatPhoneInput,
   hasVisibleQuoteContext,
   QUOTE_DEFAULT_FORM,
   TIMELINE_OPTIONS,
@@ -713,17 +713,15 @@ export default function QuotePage() {
                 <label className="block text-sm font-medium text-charcoal">
                   Phone <span className="text-red">*</span>
                 </label>
-                <input
-                  ref={(node) => setFieldRef("phone", node)}
-                  type="tel"
+                <PhoneInput
+                  id="phone"
+                  name="phone"
                   required
-                  autoComplete="tel"
                   value={form.phone}
-                  onChange={(e) => set("phone", formatPhoneInput(e.target.value))}
+                  onChange={(v) => set("phone", v)}
                   aria-invalid={Boolean(errors.phone)}
                   aria-describedby={errors.phone ? "error-phone" : undefined}
                   className={inputClass(!!errors.phone)}
-                  placeholder="(702) 555-0100"
                 />
                 <div id="error-phone">
                   <FieldError msg={errors.phone} />

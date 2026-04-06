@@ -212,6 +212,7 @@ model IntakeLead {
   visionPrompt String?
   visionResult Json?
   visionStatus VisionStatus     @default(PENDING)
+  source       String           @default("web")
   status       IntakeLeadStatus @default(NEW)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
