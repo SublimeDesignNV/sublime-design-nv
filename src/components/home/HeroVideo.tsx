@@ -16,6 +16,7 @@ export default function HeroVideo({ src, poster }: { src: string; poster?: strin
   return (
     <video
       ref={videoRef}
+      src={src}
       autoPlay
       muted
       loop
@@ -23,8 +24,6 @@ export default function HeroVideo({ src, poster }: { src: string; poster?: strin
       preload="metadata"
       poster={poster}
       className="absolute inset-0 h-full w-full object-cover"
-    >
-      <source src={src} type="video/mp4" />
-    </video>
+    />
   );
 }
