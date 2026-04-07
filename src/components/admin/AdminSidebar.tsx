@@ -4,15 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  Activity,
   Camera,
-  ClipboardList,
   FileText,
   FolderOpen,
   Image as ImageIcon,
   LayoutDashboard,
   LogOut,
   Menu,
-  Rocket,
   Share2,
   Upload,
   User,
@@ -46,10 +45,9 @@ const NAV_GROUPS = [
   {
     label: "Tools",
     links: [
+      { href: "/admin/site-health", label: "Site Health", icon: Activity },
       { href: "/admin/social", label: "Social Queue", icon: Share2 },
       { href: "/admin/shooting-checklist", label: "Shooting Checklist", icon: Camera },
-      { href: "/admin/content-audit", label: "Content Audit", icon: ClipboardList },
-      { href: "/admin/launch-audit", label: "Launch Audit", icon: Rocket },
     ],
   },
   {
