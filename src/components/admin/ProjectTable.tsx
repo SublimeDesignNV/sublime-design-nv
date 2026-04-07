@@ -555,9 +555,9 @@ export default function ProjectTable() {
       {!isLoading ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProjects.map((project) => {
-            const thumbAssets = project.assets.length > 0
-              ? project.assets.slice(0, 2)
-              : [];
+            const thumbAssets = project.assets
+              .filter((a) => a.renderable)
+              .slice(0, 2);
             const coverFallback = project.coverThumbnailUrl ?? project.coverImageUrl;
             const statusColors: Record<ProjectRecord["status"], string> = {
               DRAFT: "border-amber-200 bg-amber-50 text-amber-700",
@@ -593,31 +593,41 @@ export default function ProjectTable() {
 
                 {/* Thumbnail strip */}
                 <div className="flex h-32 bg-gray-100">
-                  {thumbAssets.length > 0 ? thumbAssets.map((asset) => (
-                    <div key={asset.id} className="relative flex-1 overflow-hidden">
-                      {asset.resourceType === "video" ? (
-                        <>
-                          <video
-                            src={asset.secureUrl ?? undefined}
+                  {thumbAssets.length > 0 ? thumbAssets.map((asset) => {
+                    const isVideo = asset.resourceType === "video";
+                    const src = isVideo
+                      ? (asset.secureUrl ?? undefined)
+                      : (asset.thumbnailUrl ?? asset.imageUrl ?? coverFallback ?? undefined);
+                    return (
+                      <div key={asset.id} className="relative flex-1 overflow-hidden">
+                        {isVideo ? (
+                          <>
+                            <video
+                              src={src}
+                              className="h-full w-full object-cover"
+                              preload="none"
+                              muted
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                              <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white drop-shadow"><polygon points="5,3 19,12 5,21" /></svg>
+                            </div>
+                          </>
+                        ) : src ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={src}
+                            alt=""
                             className="h-full w-full object-cover"
-                            preload="none"
-                            muted
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white drop-shadow"><polygon points="5,3 19,12 5,21" /></svg>
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <span className="font-ui text-xs text-gray-400">No photo</span>
                           </div>
-                        </>
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={asset.thumbnailUrl ?? asset.imageUrl ?? coverFallback ?? undefined}
-                          alt=""
-                          className="h-full w-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                        />
-                      )}
-                    </div>
-                  )) : coverFallback ? (
+                        )}
+                      </div>
+                    );
+                  }) : coverFallback ? (
                     <div className="relative flex-1 overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={coverFallback} alt="" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
@@ -666,9 +676,18 @@ export default function ProjectTable() {
 
                   {/* Actions */}
                   <div className="mt-auto flex flex-wrap gap-2 pt-1">
-                    <a href={`/projects/${project.slug}`} className="inline-flex items-center rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                      View
-                    </a>
+                    {project.status === "PUBLISHED" ? (
+                      <a href={`/projects/${project.slug}`} target="_blank" className="inline-flex items-center rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                        View →
+                      </a>
+                    ) : (
+                      <span
+                        className="inline-flex cursor-not-allowed items-center rounded-sm border border-gray-200 px-2.5 py-1 font-ui text-xs text-gray-300"
+                        title={`Project is ${project.status.toLowerCase()} — publish to view`}
+                      >
+                        View
+                      </span>
+                    )}
                     <button type="button" onClick={() => setEditForm(toEditForm(project))} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
                       <Pencil className="h-3 w-3" />
                       Edit
