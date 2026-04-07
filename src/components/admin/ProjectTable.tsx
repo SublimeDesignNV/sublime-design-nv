@@ -555,9 +555,7 @@ export default function ProjectTable() {
       {!isLoading ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredProjects.map((project) => {
-            const thumbAssets = project.assets
-              .filter((a) => a.renderable)
-              .slice(0, 2);
+            const thumbAssets = project.assets.slice(0, 2);
             const coverFallback = project.coverThumbnailUrl ?? project.coverImageUrl;
             const statusColors: Record<ProjectRecord["status"], string> = {
               DRAFT: "border-amber-200 bg-amber-50 text-amber-700",
