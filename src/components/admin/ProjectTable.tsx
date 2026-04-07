@@ -593,12 +593,10 @@ export default function ProjectTable() {
                 <div className="flex h-32 bg-gray-100">
                   {thumbAssets.length > 0 ? thumbAssets.map((asset) => {
                     const isVideo = asset.resourceType === "video";
-                    const src = isVideo
-                      ? (asset.secureUrl ?? undefined)
-                      : (asset.thumbnailUrl ?? asset.imageUrl ?? coverFallback ?? undefined);
+                    const src = (asset.thumbnailUrl || asset.imageUrl || asset.secureUrl || coverFallback) ?? undefined;
                     return (
                       <div key={asset.id} className="relative flex-1 overflow-hidden">
-                        {isVideo ? (
+                        {isVideo && src ? (
                           <>
                             <video
                               src={src}

@@ -162,7 +162,7 @@ export default function AdminSidebar() {
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-lg bg-navy text-white shadow-lg md:hidden"
+        className="fixed left-4 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-lg bg-[#2E4BB5] text-white shadow-lg md:hidden"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function AdminSidebar() {
 
       {/* Mobile drawer */}
       <div
-        className={`fixed left-0 top-0 z-50 h-full w-60 bg-navy shadow-2xl transition-transform duration-200 md:hidden ${
+        className={`fixed left-0 top-0 z-50 h-full w-60 bg-[#2E4BB5] shadow-2xl transition-transform duration-200 md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -194,7 +194,7 @@ export default function AdminSidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="fixed left-0 top-0 hidden h-full w-60 flex-col bg-navy shadow-xl md:flex">
+      <div className="fixed left-0 top-0 hidden h-full w-60 flex-col bg-[#2E4BB5] shadow-xl md:flex">
         {sidebarContent}
       </div>
     </>

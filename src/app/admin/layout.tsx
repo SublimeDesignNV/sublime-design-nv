@@ -14,7 +14,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-cream">
       <AdminSidebar />
       {/* Breadcrumb bar — sits at very top right of sidebar on desktop, below hamburger on mobile */}
-      <div className="fixed left-0 right-0 top-0 z-30 flex h-12 items-center gap-3 bg-navy px-4 md:left-60 md:px-6">
+      <div className="fixed left-0 right-0 top-0 z-30 flex h-12 items-center gap-3 bg-[#2E4BB5] px-4 md:left-60 md:px-6">
         <AdminBreadcrumb />
       </div>
       {/* Content — offset for sidebar on desktop, top bar everywhere */}
