@@ -54,7 +54,10 @@ function getSecureUrlBase(secureUrl: string | null | undefined) {
   try {
     const url = new URL(secureUrl);
     if (url.hostname !== "res.cloudinary.com") return null;
-    return `${url.protocol}//${url.hostname}`;
+    // Path is /<cloudName>/<resourceType>/upload/... — extract the cloud name
+    const cloudName = url.pathname.split("/")[1];
+    if (!cloudName) return null;
+    return `${url.protocol}//${url.hostname}/${cloudName}`;
   } catch {
     return null;
   }
