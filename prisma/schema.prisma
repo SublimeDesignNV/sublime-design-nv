@@ -103,10 +103,11 @@ model Project {
   scheduledPosts     ScheduledPost[]
 }
 
+
 model ScheduledPost {
   id             String    @id @default(cuid())
-  projectId      String
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String?
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   platform       String
   caption        String
   hashtags       String?
@@ -116,8 +117,29 @@ model ScheduledPost {
   postedAt       DateTime?
   postId         String?
   errorMessage   String?
+  // Pinterest-specific
+  pinTitle       String?
+  pinUrl         String?
+  boardId        String?
+  // YouTube-specific
+  title          String?
+  description    String?
+  visibility     String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model SocialAccount {
+  id           String    @id @default(cuid())
+  platform     String    @unique
+  accountId    String?
+  accountName  String?
+  accessToken  String?
+  refreshToken String?
+  tokenExpiry  DateTime?
+  connected    Boolean   @default(false)
+  connectedAt  DateTime?
+  updatedAt    DateTime  @updatedAt
 }
 
 model ProjectAsset {
