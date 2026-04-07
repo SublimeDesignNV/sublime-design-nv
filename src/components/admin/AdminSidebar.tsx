@@ -10,41 +10,67 @@ import {
   FolderOpen,
   Image as ImageIcon,
   LayoutDashboard,
+  LogOut,
   Menu,
   Rocket,
   Upload,
+  User,
   Users,
   X,
 } from "lucide-react";
+import { logoutAction } from "@/app/admin/_actions";
 
-const ADMIN_LINKS = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/leads", label: "Client Intakes", icon: Users },
-  { href: "/admin/uploads", label: "Upload Photos", icon: Upload },
-  { href: "/admin/photos/unlinked", label: "Unlinked Photos", icon: ImageIcon },
-  { href: "/admin/projects", label: "Projects", icon: FolderOpen },
-  { href: "/admin/leads", label: "Quote Leads", icon: FileText },
-  { href: "/admin/shooting-checklist", label: "Shooting Checklist", icon: Camera },
-  { href: "/admin/content-audit", label: "Content Audit", icon: ClipboardList },
-  { href: "/admin/launch-audit", label: "Launch Audit", icon: Rocket },
+const NAV_GROUPS = [
+  {
+    label: null,
+    links: [
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
+    label: "Leads",
+    links: [
+      { href: "/dashboard/leads", label: "Client Intakes", icon: Users },
+      { href: "/admin/leads", label: "Quote Leads", icon: FileText },
+    ],
+  },
+  {
+    label: "Portfolio",
+    links: [
+      { href: "/admin/uploads", label: "Upload Photos", icon: Upload },
+      { href: "/admin/photos/unlinked", label: "Unlinked Photos", icon: ImageIcon },
+      { href: "/admin/projects", label: "Projects", icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Tools",
+    links: [
+      { href: "/admin/shooting-checklist", label: "Shooting Checklist", icon: Camera },
+      { href: "/admin/content-audit", label: "Content Audit", icon: ClipboardList },
+      { href: "/admin/launch-audit", label: "Launch Audit", icon: Rocket },
+    ],
+  },
+  {
+    label: "Account",
+    links: [
+      { href: "/admin/profile", label: "Profile", icon: User },
+    ],
+  },
 ] as const;
 
 function NavLink({
   href,
   label,
   icon: Icon,
-  exact,
   active,
   onClick,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
-  exact?: boolean;
   active: boolean;
   onClick?: () => void;
 }) {
-  void exact;
   return (
     <Link
       href={href}
@@ -88,28 +114,44 @@ export default function AdminSidebar() {
         </Link>
       </div>
 
-      {/* Nav links */}
+      {/* Nav groups */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="space-y-0.5">
-          {ADMIN_LINKS.map((link) => (
-            <NavLink
-              key={link.href}
-              href={link.href}
-              label={link.label}
-              icon={link.icon}
-              exact={"exact" in link ? link.exact : undefined}
-              active={isActive(link.href, "exact" in link ? link.exact : undefined)}
-              onClick={() => setMobileOpen(false)}
-            />
+        <div className="space-y-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label ?? "_root"}>
+              {group.label ? (
+                <p className="mb-1 px-3 font-ui text-[10px] uppercase tracking-[0.16em] text-white/30">
+                  {group.label}
+                </p>
+              ) : null}
+              <div className="space-y-0.5">
+                {group.links.map((link) => (
+                  <NavLink
+                    key={link.href}
+                    href={link.href}
+                    label={link.label}
+                    icon={link.icon}
+                    active={isActive(link.href, "exact" in link ? link.exact : undefined)}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/10 px-4 py-3">
-        <p className="font-ui text-[10px] uppercase tracking-[0.16em] text-white/30">
-          Admin
-        </p>
+      {/* Footer with logout */}
+      <div className="border-t border-white/10 px-3 py-3">
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 font-ui text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <LogOut className="h-4 w-4 flex-shrink-0 text-white/50" />
+            <span>Log out</span>
+          </button>
+        </form>
       </div>
     </div>
   );

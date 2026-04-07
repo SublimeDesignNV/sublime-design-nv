@@ -212,7 +212,15 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
                 >
                   Leads
                 </Link>
-              ) : null}
+              ) : (
+                <Link
+                  href="/admin/login"
+                  className="font-ui text-xs text-gray-200 transition-colors hover:text-gray-mid"
+                  onClick={closeMenus}
+                >
+                  Admin
+                </Link>
+              )}
               <a
                 href={SITE.phoneHref}
                 className="font-ui text-sm font-semibold text-charcoal"

@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Bug, Pencil, Trash2, Unlink, Wrench, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Trash2, Unlink, Wrench, X } from "lucide-react";
 import ProjectFinishesEditor from "@/components/admin/ProjectFinishesEditor";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AREA_LIST } from "@/content/areas";
@@ -418,79 +418,104 @@ export default function ProjectTable() {
       {isLoading ? <p className="mt-4 font-ui text-sm text-gray-mid">Loading...</p> : null}
 
       {!isLoading ? (
-        <div className="mt-5 grid gap-4">
-          {projects.map((project) => (
-            <article key={project.id} className="rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
-                      {project.serviceLabel || "No service"}
-                    </span>
-                    <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {projects.map((project) => {
+            const thumbAssets = project.assets.slice(0, 2);
+            const statusColors: Record<ProjectRecord["status"], string> = {
+              DRAFT: "border-amber-200 bg-amber-50 text-amber-700",
+              READY: "border-blue-200 bg-blue-50 text-blue-700",
+              PUBLISHED: "border-green-200 bg-green-50 text-green-700",
+            };
+            return (
+              <article key={project.id} className="flex flex-col rounded-xl border border-gray-warm/70 bg-white overflow-hidden">
+                {/* Thumbnail strip */}
+                <div className="flex h-32 bg-gray-100">
+                  {thumbAssets.length > 0 ? thumbAssets.map((asset) => (
+                    <div key={asset.id} className="relative flex-1 overflow-hidden">
+                      {asset.resourceType === "video" ? (
+                        <>
+                          <video
+                            src={asset.secureUrl ?? undefined}
+                            className="h-full w-full object-cover"
+                            preload="none"
+                            muted
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white drop-shadow"><polygon points="5,3 19,12 5,21" /></svg>
+                          </div>
+                        </>
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={asset.thumbnailUrl ?? asset.imageUrl ?? undefined}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                  )) : (
+                    <div className="flex flex-1 items-center justify-center text-gray-300">
+                      <svg viewBox="0 0 24 24" className="h-8 w-8 fill-current"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" fill="white" /><polyline points="21,15 16,10 5,21" stroke="white" strokeWidth="1.5" fill="none" /></svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card body */}
+                <div className="flex flex-1 flex-col gap-3 p-4">
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`rounded-full border px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${statusColors[project.status]}`}>
                       {project.status.toLowerCase()}
                     </span>
-                    {project.areaLabel ? (
-                      <span className="rounded-full border border-gray-200 bg-white px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                        {project.areaLabel}
+                    {project.serviceLabel ? (
+                      <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] text-gray-mid">
+                        {project.serviceLabel}
                       </span>
                     ) : null}
                     {project.featured ? (
-                      <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                      <span className="rounded-full border border-red/20 bg-red/5 px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] text-red">
                         Featured
                       </span>
                     ) : null}
                     {project.homepageSpotlight ? (
-                      <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
+                      <span className="rounded-full border border-red/20 bg-red/5 px-2 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] text-red">
                         Spotlight
                       </span>
                     ) : null}
                   </div>
-                  <h3 className="mt-3 text-xl text-charcoal">{project.title}</h3>
-                  <p className="mt-1 text-sm text-gray-mid">
-                    /projects/{project.slug} • {project.assetCount} linked photo{project.assetCount === 1 ? "" : "s"} • cover {project.coverImageUrl ? "set" : "missing"}
+
+                  {/* Title */}
+                  <h3 className="line-clamp-2 text-base font-semibold leading-snug text-charcoal">{project.title}</h3>
+
+                  {/* Meta */}
+                  <p className="text-xs text-gray-mid">
+                    {project.assetCount} photo{project.assetCount === 1 ? "" : "s"}
+                    {project.location ? ` · ${project.location}` : ""}
+                    {project.areaLabel ? ` · ${project.areaLabel}` : ""}
                   </p>
-                  {project.description ? (
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-mid">{project.description}</p>
-                  ) : null}
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-mid">
-                    <span>{project.location || "No location set"}</span>
-                    <span>{project.coverImageUrl ? "Cover image ready" : "Cover image missing"}</span>
-                    <span>
-                      {project.placements.projectsIndex ? "Live on projects/gallery" : "Not live on projects/gallery"}
-                    </span>
+
+                  {/* Actions */}
+                  <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                    <a href={`/projects/${project.slug}`} className="inline-flex items-center rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                      View
+                    </a>
+                    <button type="button" onClick={() => setEditForm(toEditForm(project))} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </button>
+                    {project.serviceSlug ? (
+                      <a href={`/services/${project.serviceSlug}`} className="inline-flex items-center rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                        Service
+                      </a>
+                    ) : null}
+                    <button type="button" onClick={() => void deleteProject(project)} className="ml-auto inline-flex items-center gap-1 rounded-sm border border-red/30 px-2.5 py-1 font-ui text-xs text-red transition hover:border-red">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <a href={`/projects/${project.slug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                    Public page
-                  </a>
-                  {project.serviceSlug ? (
-                    <a href={`/services/${project.serviceSlug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                      Service page
-                    </a>
-                  ) : null}
-                  {project.areaSlug ? (
-                    <a href={`/areas/${project.areaSlug}`} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                      Area page
-                    </a>
-                  ) : null}
-                  <button type="button" onClick={() => setEditForm(toEditForm(project))} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </button>
-                  <a href={`/api/admin/projects/${project.id}/debug`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-gray-mid transition hover:border-navy hover:text-navy">
-                    <Bug className="h-3.5 w-3.5" />
-                    Debug
-                  </a>
-                  <button type="button" onClick={() => void deleteProject(project)} className="inline-flex items-center gap-1 rounded-sm border border-red/30 px-3 py-1.5 font-ui text-xs text-red transition hover:border-red">
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
           {!projects.length ? (
             <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected photos or a recent batch.</p>
           ) : null}
