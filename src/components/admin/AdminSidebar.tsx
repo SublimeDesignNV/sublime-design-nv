@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   Rocket,
+  Share2,
   Upload,
   User,
   Users,
@@ -45,6 +46,7 @@ const NAV_GROUPS = [
   {
     label: "Tools",
     links: [
+      { href: "/admin/social", label: "Social Queue", icon: Share2 },
       { href: "/admin/shooting-checklist", label: "Shooting Checklist", icon: Camera },
       { href: "/admin/content-audit", label: "Content Audit", icon: ClipboardList },
       { href: "/admin/launch-audit", label: "Launch Audit", icon: Rocket },

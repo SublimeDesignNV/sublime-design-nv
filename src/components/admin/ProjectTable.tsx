@@ -187,6 +187,17 @@ type SocialResult = {
   hashtagSet: string;
 } | null;
 
+type ScheduledPostRecord = {
+  id: string;
+  platform: string;
+  caption: string;
+  status: string;
+  scheduledFor: string | null;
+  postedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
 export default function ProjectTable() {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [orphans, setOrphans] = useState<OrphanAsset[]>([]);
@@ -209,6 +220,14 @@ export default function ProjectTable() {
   const [socialProject, setSocialProject] = useState<ProjectRecord | null>(null);
   const [socialResult, setSocialResult] = useState<SocialResult>(null);
   const [isGeneratingSocial, setIsGeneratingSocial] = useState(false);
+  const [socialTab, setSocialTab] = useState<"compose" | "history">("compose");
+  const [socialPlatform, setSocialPlatform] = useState<"both" | "instagram" | "facebook">("both");
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]);
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPostRecord[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -351,8 +370,22 @@ export default function ProjectTable() {
     await loadProjects();
   }
 
-  async function generateSocial(project: ProjectRecord) {
+  async function loadScheduledPosts(projectId: string) {
+    setIsLoadingPosts(true);
+    const response = await fetch(`/api/admin/social/schedule?projectId=${projectId}`);
+    setIsLoadingPosts(false);
+    if (!response.ok) return;
+    const data = (await response.json()) as { posts: ScheduledPostRecord[] };
+    setScheduledPosts(data.posts ?? []);
+  }
+
+  async function openSocialModal(project: ProjectRecord) {
     setSocialProject(project);
+    setSocialTab("compose");
+    setSocialPlatform("both");
+    setSelectedAssets(project.assets.slice(0, 1).map((a) => a.id));
+    setScheduleMode(false);
+    setScheduledFor("");
     // Pre-fill with stored captions if present
     if (project.instagramCaption || project.facebookCaption) {
       setSocialResult({
@@ -363,6 +396,7 @@ export default function ProjectTable() {
     } else {
       setSocialResult(null);
     }
+    await loadScheduledPosts(project.id);
   }
 
   async function runSocialGenerate() {
@@ -378,6 +412,49 @@ export default function ProjectTable() {
     const data = (await response.json()) as { instagramCaption: string; facebookCaption: string; hashtagSet: string };
     setSocialResult(data);
     await loadProjects();
+  }
+
+  async function handleSocialPost() {
+    if (!socialProject || !socialResult) return;
+    setIsScheduling(true);
+    const caption =
+      socialPlatform === "facebook"
+        ? socialResult.facebookCaption
+        : socialResult.instagramCaption;
+    const response = await fetch("/api/admin/social/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId: socialProject.id,
+        platform: socialPlatform,
+        caption,
+        hashtags: socialResult.hashtagSet || undefined,
+        mediaAssetIds: selectedAssets,
+        scheduledFor: scheduleMode && scheduledFor ? scheduledFor : null,
+      }),
+    });
+    setIsScheduling(false);
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(body.error || "Failed to schedule post.");
+      return;
+    }
+    // If post now: immediately trigger publish
+    if (!scheduleMode) {
+      const schedData = (await response.json()) as { post: { id: string } };
+      await fetch("/api/admin/social/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: schedData.post.id }),
+      });
+    }
+    await loadScheduledPosts(socialProject.id);
+    setSocialTab("history");
+  }
+
+  async function cancelScheduledPost(postId: string) {
+    await fetch(`/api/admin/social/${postId}/cancel`, { method: "PATCH" });
+    if (socialProject) await loadScheduledPosts(socialProject.id);
   }
 
   // Derived filtered + sorted projects
@@ -596,7 +673,7 @@ export default function ProjectTable() {
                       <Pencil className="h-3 w-3" />
                       Edit
                     </button>
-                    <button type="button" onClick={() => void generateSocial(project)} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                    <button type="button" onClick={() => void openSocialModal(project)} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
                       <Share2 className="h-3 w-3" />
                       Social
                     </button>
@@ -857,6 +934,7 @@ export default function ProjectTable() {
       {socialProject ? (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-charcoal/55 p-4 md:p-8">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl text-charcoal">Share to Social</h3>
@@ -867,52 +945,179 @@ export default function ProjectTable() {
               </button>
             </div>
 
-            <div className="mt-5">
-              <button
-                type="button"
-                onClick={() => void runSocialGenerate()}
-                disabled={isGeneratingSocial}
-                className="rounded-sm bg-navy px-4 py-2 font-ui text-sm font-semibold text-white transition hover:bg-navy/90 disabled:opacity-60"
-              >
-                {isGeneratingSocial ? "Generating..." : socialResult ? "Regenerate" : "Generate Social Copy"}
-              </button>
+            {/* Tabs */}
+            <div className="mt-4 flex gap-1 border-b border-gray-warm">
+              {(["compose", "history"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setSocialTab(tab)}
+                  className={`px-4 py-2 font-ui text-xs uppercase tracking-[0.14em] transition ${socialTab === tab ? "border-b-2 border-navy text-navy" : "text-gray-mid hover:text-charcoal"}`}
+                >
+                  {tab === "compose" ? "Compose" : `History ${scheduledPosts.length > 0 ? `(${scheduledPosts.length})` : ""}`}
+                </button>
+              ))}
             </div>
 
-            {socialResult ? (
-              <div className="mt-6 space-y-5">
-                {[
-                  { label: "Instagram Caption", value: socialResult.instagramCaption, key: "instagram" },
-                  { label: "Facebook Post", value: socialResult.facebookCaption, key: "facebook" },
-                  { label: "Hashtags", value: socialResult.hashtagSet, key: "hashtags" },
-                ].map(({ label, value, key }) => (
-                  <div key={key}>
-                    <div className="flex items-center justify-between">
-                      <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">{label}</p>
+            {socialTab === "compose" ? (
+              <div className="mt-5 space-y-5">
+                {/* Platform selector */}
+                <div>
+                  <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">Platform</p>
+                  <div className="mt-2 flex gap-2">
+                    {(["both", "instagram", "facebook"] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setSocialPlatform(p)}
+                        className={`rounded-sm border px-3 py-1.5 font-ui text-xs transition ${socialPlatform === p ? "border-navy bg-navy text-white" : "border-gray-warm text-charcoal hover:border-navy"}`}
+                      >
+                        {p === "both" ? "Both" : p.charAt(0).toUpperCase() + p.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Generate button */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void runSocialGenerate()}
+                    disabled={isGeneratingSocial}
+                    className="rounded-sm bg-navy px-4 py-2 font-ui text-sm font-semibold text-white transition hover:bg-navy/90 disabled:opacity-60"
+                  >
+                    {isGeneratingSocial ? "Generating..." : socialResult ? "Regenerate" : "Generate AI Copy"}
+                  </button>
+                  {!socialResult && !isGeneratingSocial ? (
+                    <p className="font-ui text-xs text-gray-mid">Generate AI-written captions and hashtags</p>
+                  ) : null}
+                </div>
+
+                {/* Captions */}
+                {socialResult ? (
+                  <div className="space-y-4">
+                    {[
+                      { label: "Instagram Caption", value: socialResult.instagramCaption, key: "instagram" },
+                      { label: "Facebook Post", value: socialResult.facebookCaption, key: "facebook" },
+                      { label: "Hashtags", value: socialResult.hashtagSet, key: "hashtags" },
+                    ].map(({ label, value, key }) => (
+                      <div key={key}>
+                        <div className="flex items-center justify-between">
+                          <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">{label}</p>
+                          <button type="button" onClick={() => void navigator.clipboard.writeText(value)} className="font-ui text-xs text-navy transition hover:text-red">Copy</button>
+                        </div>
+                        <textarea
+                          readOnly
+                          value={value}
+                          rows={key === "hashtags" ? 3 : 5}
+                          className="mt-1 w-full rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 font-ui text-sm text-charcoal outline-none"
+                        />
+                        <p className="mt-0.5 font-ui text-[10px] text-gray-mid">{value.length} chars</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {/* Photo selector */}
+                {socialProject.assets.length > 0 ? (
+                  <div>
+                    <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">Photos to include</p>
+                    <div className="mt-2 grid grid-cols-5 gap-1.5">
+                      {socialProject.assets.map((asset) => {
+                        const isSelected = selectedAssets.includes(asset.id);
+                        const order = selectedAssets.indexOf(asset.id) + 1;
+                        return (
+                          <div
+                            key={asset.id}
+                            onClick={() => setSelectedAssets((prev) =>
+                              prev.includes(asset.id)
+                                ? prev.filter((id) => id !== asset.id)
+                                : [...prev, asset.id]
+                            )}
+                            className={`relative cursor-pointer overflow-hidden rounded border-2 ${isSelected ? "border-navy" : "border-transparent"}`}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={asset.thumbnailUrl ?? asset.imageUrl ?? undefined} alt="" className="aspect-square w-full object-cover" />
+                            {isSelected ? (
+                              <div className="absolute inset-0 flex items-center justify-center bg-navy/30">
+                                <span className="font-ui text-sm font-bold text-white">{order}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1 font-ui text-[10px] text-gray-mid">{selectedAssets.length} photo{selectedAssets.length === 1 ? "" : "s"} selected (up to 10 for carousel)</p>
+                  </div>
+                ) : null}
+
+                {/* Schedule toggle */}
+                {socialResult ? (
+                  <div className="space-y-3 border-t border-gray-warm pt-4">
+                    <label className="flex items-center gap-2 font-ui text-sm text-charcoal">
+                      <input type="checkbox" checked={scheduleMode} onChange={(e) => setScheduleMode(e.target.checked)} className="h-4 w-4" />
+                      Schedule for later
+                    </label>
+                    {scheduleMode ? (
+                      <input
+                        type="datetime-local"
+                        value={scheduledFor}
+                        onChange={(e) => setScheduledFor(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                        className="rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                      />
+                    ) : null}
+                    <div className="flex flex-wrap items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => void navigator.clipboard.writeText(value)}
-                        className="font-ui text-xs text-navy transition hover:text-red"
+                        onClick={() => void handleSocialPost()}
+                        disabled={isScheduling || (scheduleMode && !scheduledFor)}
+                        className="rounded-sm bg-red px-4 py-2 font-ui text-sm font-semibold text-white transition hover:bg-red-dark disabled:opacity-60"
                       >
-                        Copy
+                        {isScheduling ? "Saving..." : scheduleMode ? "Schedule Post" : "Post Now"}
                       </button>
+                      <p className="font-ui text-xs text-gray-mid">
+                        {!process.env.NEXT_PUBLIC_SOCIAL_ENABLED
+                          ? "Credentials not connected yet — post will be queued and sent when accounts are ready."
+                          : `Will post to ${socialPlatform === "both" ? "Instagram + Facebook" : socialPlatform}`}
+                      </p>
                     </div>
-                    <textarea
-                      readOnly
-                      value={value}
-                      rows={key === "hashtags" ? 3 : 5}
-                      className="mt-1 w-full rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 font-ui text-sm text-charcoal outline-none"
-                    />
-                    <p className="mt-0.5 font-ui text-[10px] text-gray-mid">{value.length} characters</p>
                   </div>
-                ))}
+                ) : null}
               </div>
-            ) : null}
-
-            {!socialResult && !isGeneratingSocial ? (
-              <p className="mt-4 font-ui text-sm text-gray-mid">
-                Click Generate to create AI-written captions and hashtags for this project.
-              </p>
-            ) : null}
+            ) : (
+              /* History tab */
+              <div className="mt-5">
+                {isLoadingPosts ? (
+                  <p className="font-ui text-sm text-gray-mid">Loading...</p>
+                ) : scheduledPosts.length === 0 ? (
+                  <p className="font-ui text-sm text-gray-mid">No posts yet for this project.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {scheduledPosts.map((post) => {
+                      const statusIcon = post.status === "posted" ? "✓" : post.status === "failed" ? "✗" : post.status === "cancelled" ? "—" : "⏱";
+                      const statusColor = post.status === "posted" ? "text-green-700" : post.status === "failed" ? "text-red" : post.status === "cancelled" ? "text-gray-mid" : "text-blue-700";
+                      const when = post.scheduledFor
+                        ? new Date(post.scheduledFor).toLocaleString()
+                        : new Date(post.createdAt).toLocaleString();
+                      return (
+                        <div key={post.id} className="flex items-center gap-3 rounded-lg border border-gray-warm bg-cream/30 px-4 py-3">
+                          <span className={`font-ui text-sm font-semibold ${statusColor}`}>{statusIcon}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-ui text-xs text-charcoal">{when} · <span className="capitalize">{post.platform}</span></p>
+                            <p className={`font-ui text-[10px] uppercase tracking-[0.14em] ${statusColor}`}>{post.status}</p>
+                            {post.errorMessage ? <p className="mt-0.5 font-ui text-xs text-red">{post.errorMessage}</p> : null}
+                          </div>
+                          {post.status === "pending" ? (
+                            <button type="button" onClick={() => void cancelScheduledPost(post.id)} className="font-ui text-xs text-gray-mid transition hover:text-red">Cancel</button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : null}
