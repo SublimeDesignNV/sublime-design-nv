@@ -212,15 +212,7 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
                 >
                   Leads
                 </Link>
-              ) : (
-                <Link
-                  href="/admin/login"
-                  className="font-ui text-xs text-gray-200 transition-colors hover:text-gray-mid"
-                  onClick={closeMenus}
-                >
-                  Admin
-                </Link>
-              )}
+              ) : null}
               <a
                 href={SITE.phoneHref}
                 className="font-ui text-sm font-semibold text-charcoal"
@@ -236,6 +228,17 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
                 GET A FREE QUOTE
               </Link>
             </div>
+            {!isAdmin ? (
+              <div className="mt-2 border-t border-gray-100 pt-4">
+                <a
+                  href="/admin"
+                  className="font-ui text-xs text-gray-300 transition-colors hover:text-gray-500"
+                  onClick={closeMenus}
+                >
+                  Admin
+                </a>
+              </div>
+            ) : null}
           </nav>
         </div>
       ) : null}

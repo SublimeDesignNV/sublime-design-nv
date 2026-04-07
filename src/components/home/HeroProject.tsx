@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buildQuoteHref } from "@/lib/publicLeadCtas";
+import HeroVideo from "@/components/home/HeroVideo";
 
 export default function HeroProject() {
   const quoteHref = buildQuoteHref({
@@ -10,20 +11,10 @@ export default function HeroProject() {
 
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
+      <HeroVideo
+        src="https://res.cloudinary.com/dueaqxh8s/video/upload/q_auto,vc_auto/Sublime/Portfolio/g0mgavsmakqgmlasdmsx.mp4"
         poster="https://res.cloudinary.com/dueaqxh8s/image/upload/c_fill,w_1280,h_720,g_auto,f_auto,q_auto/v1/Sublime/Portfolio/g0mgavsmakqgmlasdmsx"
-        className="absolute inset-0 w-full h-full object-cover"
-      >
-        <source
-          src="https://res.cloudinary.com/dueaqxh8s/video/upload/q_auto,vc_auto/Sublime/Portfolio/g0mgavsmakqgmlasdmsx.mp4"
-          type="video/mp4"
-        />
-      </video>
+      />
       <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
 
       <div className="relative mx-auto flex min-h-[72svh] max-w-7xl items-center px-4 py-16 sm:min-h-[78svh] md:px-8">
