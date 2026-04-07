@@ -121,7 +121,7 @@ export default function AssetUploader() {
   function buildPreviews(selected: File[]): FilePreview[] {
     return selected.map((f) => ({
       name: f.name,
-      previewUrl: f.type.startsWith("image/") ? URL.createObjectURL(f) : "",
+      previewUrl: URL.createObjectURL(f),
       size: f.size,
       isVideo: f.type.startsWith("video/"),
     }));
@@ -131,6 +131,14 @@ export default function AssetUploader() {
     previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
     setFiles(selected);
     setPreviews(buildPreviews(selected));
+  }
+
+  function removeFile(index: number) {
+    const nextFiles = files.filter((_, i) => i !== index);
+    const nextPreviews = previews.filter((_, i) => i !== index);
+    if (previews[index]?.previewUrl) URL.revokeObjectURL(previews[index].previewUrl);
+    setFiles(nextFiles);
+    setPreviews(nextPreviews);
   }
 
   function updateStatus(name: string, next: Partial<UploadStatus>) {
@@ -320,17 +328,28 @@ export default function AssetUploader() {
               </>
             ) : (
               <div className="flex flex-wrap justify-center gap-3">
-                {previews.map((p) => (
-                  <div key={p.name} className="flex flex-col items-center gap-1">
-                    {p.previewUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
-                      </>
+                {previews.map((p, index) => (
+                  <div key={p.name} className="group relative flex flex-col items-center gap-1">
+                    {p.isVideo ? (
+                      <span className="relative inline-flex h-16 w-16 overflow-hidden rounded-lg bg-charcoal">
+                        <video src={p.previewUrl} preload="metadata" muted className="h-full w-full object-cover" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </span>
+                      </span>
                     ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-charcoal/10 font-ui text-xs text-gray-mid">
-                        Video
-                      </div>
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
+                    )}
+                    {!isUploading && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 font-ui text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        aria-label="Remove file"
+                      >
+                        ✕
+                      </button>
                     )}
                     <span className="max-w-[64px] truncate font-ui text-[10px] text-gray-mid">{p.name}</span>
                     <span className="font-ui text-[10px] text-gray-mid">{formatBytes(p.size)}</span>

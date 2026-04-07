@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AREA_LIST } from "@/content/areas";
 import { SERVICE_TAGS } from "@/lib/serviceTags";
@@ -123,6 +124,7 @@ export default function RecentUploadBatches({
 }: {
   focusBatchId?: string;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<ProjectsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,15 +250,15 @@ export default function RecentUploadBatches({
     });
     setIsSubmitting(false);
 
+    const responseBody = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string; project?: { id?: string } };
     if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error || "Failed to create project from batch.");
+      setError(responseBody.error || "Failed to create project from batch.");
       return;
     }
 
     setBatchForm(null);
-    await load();
     window.dispatchEvent(new Event("admin-projects-refresh"));
+    router.push("/admin/projects");
   }
 
   async function linkBatchToExistingProject() {
@@ -882,18 +884,18 @@ export default function RecentUploadBatches({
           {(data?.recentPublishingActions ?? []).map((action) => (
             <div key={action.id} className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
-                {action.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={action.coverImageUrl}
-                    alt={action.title}
-                    className="h-14 w-14 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                    No cover
-                  </div>
-                )}
+                <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
+                  No cover
+                  {action.coverImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={action.coverImageUrl}
+                      alt={action.title}
+                      className="absolute inset-0 h-full w-full rounded-lg object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                  ) : null}
+                </div>
                 <div>
                   <p className="font-ui text-sm font-semibold text-charcoal">{action.title}</p>
                   <p className="mt-1 text-xs text-gray-mid">
