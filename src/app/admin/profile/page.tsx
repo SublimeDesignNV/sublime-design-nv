@@ -60,8 +60,8 @@ export default async function AdminProfilePage() {
                   className="h-14 w-14 rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#2E4BB5]/10">
-                  <User className="h-7 w-7 text-[#2E4BB5]/60" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-navy/10">
+                  <User className="h-7 w-7 text-navy/60" />
                 </div>
               )}
               <div className="min-w-0">
@@ -71,7 +71,7 @@ export default async function AdminProfilePage() {
                 {user?.email ? (
                   <p className="font-ui text-sm text-gray-mid">{user.email}</p>
                 ) : null}
-                <p className="mt-0.5 font-ui text-xs uppercase tracking-[0.14em] text-[#2E4BB5]">Admin</p>
+                <p className="mt-0.5 font-ui text-xs uppercase tracking-[0.14em] text-navy">Admin</p>
               </div>
             </div>
           </Section>
@@ -109,7 +109,7 @@ export default async function AdminProfilePage() {
                   <input
                     type="checkbox"
                     defaultChecked={defaultChecked}
-                    className="h-4 w-4 rounded border-gray-warm accent-[#2E4BB5]"
+                    className="h-4 w-4 rounded border-gray-warm accent-navy"
                   />
                   <span className="font-ui text-sm text-charcoal">{label}</span>
                 </label>
@@ -130,7 +130,7 @@ export default async function AdminProfilePage() {
                 <div key={email} className="flex items-center justify-between rounded-lg border border-gray-warm bg-gray-50 px-4 py-2.5">
                   <span className="font-ui text-sm text-charcoal">{email}</span>
                   {email === user?.email ? (
-                    <span className="font-ui text-[10px] uppercase tracking-[0.14em] text-[#2E4BB5]">you</span>
+                    <span className="font-ui text-[10px] uppercase tracking-[0.14em] text-navy">you</span>
                   ) : (
                     <span className="font-ui text-xs text-gray-mid">admin</span>
                   )}

@@ -1052,7 +1052,7 @@ export default function ProjectTable() {
                             className={`relative cursor-pointer overflow-hidden rounded border-2 ${isSelected ? "border-navy" : "border-transparent"}`}
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={asset.thumbnailUrl ?? asset.imageUrl ?? undefined} alt="" className="aspect-square w-full object-cover" />
+                            <img src={asset.thumbnailUrl ?? asset.imageUrl ?? asset.secureUrl ?? undefined} alt="" className="aspect-square w-full object-cover" />
                             {isSelected ? (
                               <div className="absolute inset-0 flex items-center justify-center bg-navy/30">
                                 <span className="font-ui text-sm font-bold text-white">{order}</span>

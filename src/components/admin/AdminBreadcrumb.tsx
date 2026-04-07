@@ -25,12 +25,12 @@ export default function AdminBreadcrumb() {
   if (!pageLabel || pathname === "/admin") return null;
 
   return (
-    <div className="flex items-center gap-1.5 font-ui text-xs text-white/50">
-      <Link href="/admin" className="hover:text-white/80 transition-colors">
+    <div className="flex items-center gap-1.5 font-ui text-xs text-gray-400">
+      <Link href="/admin" className="transition-colors hover:text-gray-600">
         Admin
       </Link>
       <span>/</span>
-      <span className="text-white/80">{pageLabel}</span>
+      <span className="text-gray-700">{pageLabel}</span>
     </div>
   );
 }
