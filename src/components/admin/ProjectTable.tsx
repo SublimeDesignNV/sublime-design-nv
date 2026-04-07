@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Pencil, Trash2, Unlink, Wrench, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Pencil, Share2, Trash2, Unlink, X } from "lucide-react";
 import ProjectFinishesEditor from "@/components/admin/ProjectFinishesEditor";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AREA_LIST } from "@/content/areas";
@@ -72,6 +72,9 @@ type ProjectRecord = {
   diagnosis: string;
   readiness: ProjectReadinessChecklist;
   placements: ProjectPlacements;
+  instagramCaption: string | null;
+  facebookCaption: string | null;
+  hashtagSet: string | null;
   updatedAt: string;
 };
 
@@ -178,24 +181,34 @@ function readinessLabel(value: boolean) {
   return value ? "Ready" : "Missing";
 }
 
-function getAdminProjectPreviewSrc(source: {
-  imageUrl?: string | null;
-  thumbnailUrl?: string | null;
-  coverImageUrl?: string | null;
-  coverThumbnailUrl?: string | null;
-}) {
-  return source.imageUrl || source.coverImageUrl || source.thumbnailUrl || source.coverThumbnailUrl || "";
-}
+type SocialResult = {
+  instagramCaption: string;
+  facebookCaption: string;
+  hashtagSet: string;
+} | null;
 
 export default function ProjectTable() {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [orphans, setOrphans] = useState<OrphanAsset[]>([]);
-  const [recentPublishingActions, setRecentPublishingActions] = useState<RecentPublishingAction[]>([]);
   const [editForm, setEditForm] = useState<ProjectEditForm | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isBackfilling, setIsBackfilling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter / sort / search
+  const [filterService, setFilterService] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "title">("newest");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkActing, setIsBulkActing] = useState(false);
+
+  // Social modal
+  const [socialProject, setSocialProject] = useState<ProjectRecord | null>(null);
+  const [socialResult, setSocialResult] = useState<SocialResult>(null);
+  const [isGeneratingSocial, setIsGeneratingSocial] = useState(false);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -209,7 +222,6 @@ export default function ProjectTable() {
       const data = (await response.json()) as ProjectsResponse;
       setProjects(data.projects ?? []);
       setOrphans(data.orphanAssets ?? []);
-      setRecentPublishingActions(data.recentPublishingActions ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Unknown error.");
     } finally {
@@ -232,14 +244,6 @@ export default function ProjectTable() {
   const editProject = useMemo(
     () => projects.find((project) => project.id === editForm?.id) ?? null,
     [projects, editForm],
-  );
-
-  const spotlightProjects = useMemo(
-    () =>
-      projects
-        .filter((project) => project.featured)
-        .sort((a, b) => (a.spotlightRank ?? 999) - (b.spotlightRank ?? 999)),
-    [projects],
   );
 
   async function saveProject() {
@@ -304,130 +308,212 @@ export default function ProjectTable() {
     window.dispatchEvent(new Event("admin-assets-refresh"));
   }
 
-  async function runBackfill() {
-    setIsBackfilling(true);
-    setError(null);
-    const response = await fetch("/api/admin/projects/backfill", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autoCreateDrafts: false }),
-    });
-    setIsBackfilling(false);
-
-    if (!response.ok) {
-      const body = (await response.json().catch(() => ({}))) as { error?: string };
-      setError(body.error || "Failed to backfill project records.");
-      return;
+  async function bulkPublish() {
+    if (!selectedIds.length) return;
+    setIsBulkActing(true);
+    for (const id of selectedIds) {
+      await fetch(`/api/admin/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PUBLISHED", published: true }),
+      });
     }
-
+    setSelectedIds([]);
+    setIsBulkActing(false);
     await loadProjects();
   }
 
+  async function bulkFeature() {
+    if (!selectedIds.length) return;
+    setIsBulkActing(true);
+    for (const id of selectedIds) {
+      await fetch(`/api/admin/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featured: true }),
+      });
+    }
+    setSelectedIds([]);
+    setIsBulkActing(false);
+    await loadProjects();
+  }
+
+  async function bulkDelete() {
+    if (!selectedIds.length) return;
+    const confirmed = window.confirm(`Delete ${selectedIds.length} project${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`);
+    if (!confirmed) return;
+    setIsBulkActing(true);
+    for (const id of selectedIds) {
+      await fetch(`/api/admin/projects/${id}`, { method: "DELETE" });
+    }
+    setSelectedIds([]);
+    setIsBulkActing(false);
+    await loadProjects();
+  }
+
+  async function generateSocial(project: ProjectRecord) {
+    setSocialProject(project);
+    // Pre-fill with stored captions if present
+    if (project.instagramCaption || project.facebookCaption) {
+      setSocialResult({
+        instagramCaption: project.instagramCaption ?? "",
+        facebookCaption: project.facebookCaption ?? "",
+        hashtagSet: project.hashtagSet ?? "",
+      });
+    } else {
+      setSocialResult(null);
+    }
+  }
+
+  async function runSocialGenerate() {
+    if (!socialProject) return;
+    setIsGeneratingSocial(true);
+    const response = await fetch(`/api/admin/projects/${socialProject.id}/social`, { method: "POST" });
+    setIsGeneratingSocial(false);
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(body.error || "Failed to generate social copy.");
+      return;
+    }
+    const data = (await response.json()) as { instagramCaption: string; facebookCaption: string; hashtagSet: string };
+    setSocialResult(data);
+    await loadProjects();
+  }
+
+  // Derived filtered + sorted projects
+  const filteredProjects = useMemo(() => {
+    let result = projects;
+    if (filterService) result = result.filter((p) => p.serviceSlug === filterService);
+    if (filterStatus) result = result.filter((p) => p.status === filterStatus);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((p) => p.title.toLowerCase().includes(q) || p.slug.includes(q));
+    }
+    if (sortBy === "oldest") result = [...result].sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+    else if (sortBy === "title") result = [...result].sort((a, b) => a.title.localeCompare(b.title));
+    // "newest" is default sort from API (updatedAt desc)
+    return result;
+  }, [projects, filterService, filterStatus, searchQuery, sortBy]);
+
+  const uniqueServices = useMemo(
+    () => Array.from(new Set(projects.map((p) => p.serviceSlug).filter(Boolean))).map((slug) => ({
+      slug: slug!,
+      label: projects.find((p) => p.serviceSlug === slug)?.serviceLabel ?? slug!,
+    })),
+    [projects],
+  );
+
+  const stats = useMemo(() => ({
+    total: projects.length,
+    published: projects.filter((p) => p.status === "PUBLISHED").length,
+    ready: projects.filter((p) => p.status === "READY").length,
+    draft: projects.filter((p) => p.status === "DRAFT").length,
+    featured: projects.filter((p) => p.featured).length,
+  }), [projects]);
+
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl text-charcoal">Projects</h2>
-          <p className="font-ui mt-1 text-xs uppercase tracking-[0.16em] text-gray-mid">
-            Explicit status, readiness, homepage spotlight control, and visibility preview for every project.
-          </p>
+      <h2 className="text-2xl text-charcoal">Projects</h2>
+
+      {/* Stats bar */}
+      {!isLoading && projects.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-4">
+          {[
+            { label: "Total", value: stats.total, color: "text-charcoal" },
+            { label: "Published", value: stats.published, color: "text-green-700" },
+            { label: "Ready", value: stats.ready, color: "text-blue-700" },
+            { label: "Draft", value: stats.draft, color: "text-amber-700" },
+            { label: "Featured", value: stats.featured, color: "text-red" },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="flex items-baseline gap-1.5">
+              <span className={`font-ui text-lg font-semibold ${color}`}>{value}</span>
+              <span className="font-ui text-xs uppercase tracking-[0.14em] text-gray-mid">{label}</span>
+            </div>
+          ))}
         </div>
-        <button
-          type="button"
-          onClick={() => void runBackfill()}
-          disabled={isBackfilling}
-          className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy disabled:opacity-60"
-        >
-          <Wrench className="h-3.5 w-3.5" />
-          {isBackfilling ? "Repairing..." : "Repair Covers / Audit Orphans"}
-        </button>
+      ) : null}
+
+      {/* Filter / sort / search */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <select value={filterService} onChange={(e) => setFilterService(e.target.value)} className="rounded-sm border border-gray-warm bg-white px-3 py-1.5 font-ui text-xs text-charcoal outline-none focus:border-navy">
+          <option value="">All Services</option>
+          {uniqueServices.map((s) => (
+            <option key={s.slug} value={s.slug}>{s.label}</option>
+          ))}
+        </select>
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="rounded-sm border border-gray-warm bg-white px-3 py-1.5 font-ui text-xs text-charcoal outline-none focus:border-navy">
+          <option value="">All Statuses</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="READY">Ready</option>
+          <option value="DRAFT">Draft</option>
+        </select>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)} className="rounded-sm border border-gray-warm bg-white px-3 py-1.5 font-ui text-xs text-charcoal outline-none focus:border-navy">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="title">A–Z</option>
+        </select>
+        <input
+          type="search"
+          placeholder="Search..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="min-w-[140px] flex-1 rounded-sm border border-gray-warm bg-white px-3 py-1.5 font-ui text-xs text-charcoal outline-none focus:border-navy"
+        />
       </div>
-
-      <details className="mt-5 rounded-xl border border-gray-warm/70 bg-cream/40 p-4">
-        <summary className="cursor-pointer list-none font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-          Secondary project tools
-        </summary>
-        <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-              Homepage spotlight
-            </p>
-            <div className="mt-3 space-y-3">
-              {spotlightProjects.slice(0, 5).map((project) => (
-                <div key={project.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-cream/40 p-3">
-                  {getAdminProjectPreviewSrc(project) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getAdminProjectPreviewSrc(project)}
-                      alt={project.title}
-                      className="h-12 w-12 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cream font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                      No cover
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-ui text-sm font-semibold text-charcoal">{project.title}</p>
-                    <p className="mt-1 text-xs text-gray-mid">
-                      {project.status.toLowerCase()} • spotlight {project.spotlightRank ?? "n/a"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-              {!spotlightProjects.length ? (
-                <p className="font-ui text-sm text-gray-mid">No featured projects yet.</p>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-              Recent project checks
-            </p>
-            <div className="mt-3 space-y-3">
-              {recentPublishingActions.map((action) => (
-                <div key={action.id} className="rounded-lg border border-gray-200 bg-cream/40 p-3">
-                  <div className="flex items-center gap-3">
-                    {action.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={action.coverImageUrl}
-                        alt={action.title}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-ui text-sm font-semibold text-charcoal">{action.title}</p>
-                      <p className="mt-1 text-xs text-gray-mid">
-                        {action.status.toLowerCase()} • updated {new Date(action.updatedAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {!recentPublishingActions.length ? (
-                <p className="font-ui text-sm text-gray-mid">No recent updates yet.</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </details>
 
       {error ? <p className="mt-4 font-ui text-sm text-red">{error}</p> : null}
       {isLoading ? <p className="mt-4 font-ui text-sm text-gray-mid">Loading...</p> : null}
 
+      {/* Bulk action bar */}
+      {selectedIds.length > 0 ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
+          <span className="font-ui text-xs text-blue-700">{selectedIds.length} selected</span>
+          <button type="button" onClick={() => void bulkPublish()} disabled={isBulkActing} className="rounded-sm border border-green-300 bg-green-50 px-3 py-1 font-ui text-xs text-green-700 transition hover:bg-green-100 disabled:opacity-50">Publish</button>
+          <button type="button" onClick={() => void bulkFeature()} disabled={isBulkActing} className="rounded-sm border border-red/20 bg-red/5 px-3 py-1 font-ui text-xs text-red transition hover:bg-red/10 disabled:opacity-50">Feature</button>
+          <button type="button" onClick={() => void bulkDelete()} disabled={isBulkActing} className="rounded-sm border border-red/30 px-3 py-1 font-ui text-xs text-red transition hover:border-red disabled:opacity-50">Delete</button>
+          <button type="button" onClick={() => setSelectedIds([])} className="ml-auto font-ui text-xs text-gray-mid hover:text-charcoal">Clear</button>
+        </div>
+      ) : null}
+
       {!isLoading ? (
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {projects.map((project) => {
-            const thumbAssets = project.assets.slice(0, 2);
+          {filteredProjects.map((project) => {
+            const thumbAssets = project.assets.length > 0
+              ? project.assets.slice(0, 2)
+              : [];
+            const coverFallback = project.coverThumbnailUrl ?? project.coverImageUrl;
             const statusColors: Record<ProjectRecord["status"], string> = {
               DRAFT: "border-amber-200 bg-amber-50 text-amber-700",
               READY: "border-blue-200 bg-blue-50 text-blue-700",
               PUBLISHED: "border-green-200 bg-green-50 text-green-700",
             };
+            const needsAttention =
+              !project.coverImageUrl ||
+              !project.description ||
+              project.status === "DRAFT" ||
+              project.assetCount === 0;
+            const isSelected = selectedIds.includes(project.id);
+            const completionLabel =
+              project.completionMonth && project.completionYear
+                ? new Date(project.completionYear, project.completionMonth - 1).toLocaleString("en-US", { month: "short", year: "numeric" })
+                : null;
             return (
-              <article key={project.id} className="flex flex-col rounded-xl border border-gray-warm/70 bg-white overflow-hidden">
+              <article key={project.id} className={`relative flex flex-col rounded-xl border bg-white overflow-hidden transition ${isSelected ? "border-blue-400 ring-1 ring-blue-300" : "border-gray-warm/70"}`}>
+                {/* Select checkbox */}
+                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded bg-white/80 shadow-sm">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => setSelectedIds((prev) => e.target.checked ? [...prev, project.id] : prev.filter((id) => id !== project.id))}
+                    className="h-3.5 w-3.5"
+                  />
+                </label>
+
+                {/* Needs attention indicator */}
+                {needsAttention ? (
+                  <span className="absolute right-2 top-2 z-10 h-2 w-2 rounded-full bg-red shadow-sm" title="Needs attention" />
+                ) : null}
+
                 {/* Thumbnail strip */}
                 <div className="flex h-32 bg-gray-100">
                   {thumbAssets.length > 0 ? thumbAssets.map((asset) => (
@@ -447,13 +533,19 @@ export default function ProjectTable() {
                       ) : (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={asset.thumbnailUrl ?? asset.imageUrl ?? undefined}
+                          src={asset.thumbnailUrl ?? asset.imageUrl ?? coverFallback ?? undefined}
                           alt=""
                           className="h-full w-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                         />
                       )}
                     </div>
-                  )) : (
+                  )) : coverFallback ? (
+                    <div className="relative flex-1 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={coverFallback} alt="" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    </div>
+                  ) : (
                     <div className="flex flex-1 items-center justify-center text-gray-300">
                       <svg viewBox="0 0 24 24" className="h-8 w-8 fill-current"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" fill="white" /><polyline points="21,15 16,10 5,21" stroke="white" strokeWidth="1.5" fill="none" /></svg>
                     </div>
@@ -492,6 +584,7 @@ export default function ProjectTable() {
                     {project.assetCount} photo{project.assetCount === 1 ? "" : "s"}
                     {project.location ? ` · ${project.location}` : ""}
                     {project.areaLabel ? ` · ${project.areaLabel}` : ""}
+                    {completionLabel ? ` · ${completionLabel}` : ""}
                   </p>
 
                   {/* Actions */}
@@ -503,11 +596,10 @@ export default function ProjectTable() {
                       <Pencil className="h-3 w-3" />
                       Edit
                     </button>
-                    {project.serviceSlug ? (
-                      <a href={`/services/${project.serviceSlug}`} className="inline-flex items-center rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
-                        Service
-                      </a>
-                    ) : null}
+                    <button type="button" onClick={() => void generateSocial(project)} className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-2.5 py-1 font-ui text-xs text-charcoal transition hover:border-navy hover:text-navy">
+                      <Share2 className="h-3 w-3" />
+                      Social
+                    </button>
                     <button type="button" onClick={() => void deleteProject(project)} className="ml-auto inline-flex items-center gap-1 rounded-sm border border-red/30 px-2.5 py-1 font-ui text-xs text-red transition hover:border-red">
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -516,6 +608,9 @@ export default function ProjectTable() {
               </article>
             );
           })}
+          {!filteredProjects.length && projects.length > 0 ? (
+            <p className="col-span-full font-ui text-sm text-gray-mid">No projects match the current filters.</p>
+          ) : null}
           {!projects.length ? (
             <p className="font-ui text-sm text-gray-mid">No projects yet. Create one from selected photos or a recent batch.</p>
           ) : null}
@@ -754,6 +849,70 @@ export default function ProjectTable() {
                 {isSaving ? "Saving..." : "Save Project"}
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Social modal */}
+      {socialProject ? (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center bg-charcoal/55 p-4 md:p-8">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl text-charcoal">Share to Social</h3>
+                <p className="mt-1 font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">{socialProject.title}</p>
+              </div>
+              <button type="button" onClick={() => { setSocialProject(null); setSocialResult(null); }} className="rounded-full border border-gray-200 p-2 text-gray-mid transition hover:border-red hover:text-red">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => void runSocialGenerate()}
+                disabled={isGeneratingSocial}
+                className="rounded-sm bg-navy px-4 py-2 font-ui text-sm font-semibold text-white transition hover:bg-navy/90 disabled:opacity-60"
+              >
+                {isGeneratingSocial ? "Generating..." : socialResult ? "Regenerate" : "Generate Social Copy"}
+              </button>
+            </div>
+
+            {socialResult ? (
+              <div className="mt-6 space-y-5">
+                {[
+                  { label: "Instagram Caption", value: socialResult.instagramCaption, key: "instagram" },
+                  { label: "Facebook Post", value: socialResult.facebookCaption, key: "facebook" },
+                  { label: "Hashtags", value: socialResult.hashtagSet, key: "hashtags" },
+                ].map(({ label, value, key }) => (
+                  <div key={key}>
+                    <div className="flex items-center justify-between">
+                      <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">{label}</p>
+                      <button
+                        type="button"
+                        onClick={() => void navigator.clipboard.writeText(value)}
+                        className="font-ui text-xs text-navy transition hover:text-red"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <textarea
+                      readOnly
+                      value={value}
+                      rows={key === "hashtags" ? 3 : 5}
+                      className="mt-1 w-full rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 font-ui text-sm text-charcoal outline-none"
+                    />
+                    <p className="mt-0.5 font-ui text-[10px] text-gray-mid">{value.length} characters</p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {!socialResult && !isGeneratingSocial ? (
+              <p className="mt-4 font-ui text-sm text-gray-mid">
+                Click Generate to create AI-written captions and hashtags for this project.
+              </p>
+            ) : null}
           </div>
         </div>
       ) : null}

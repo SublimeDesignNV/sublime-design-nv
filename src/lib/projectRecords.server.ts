@@ -96,6 +96,10 @@ export type CanonicalProject = {
   featuredReason: string | null;
   coverAssetId: string | null;
   finishes: import("@/types/project").ProjectFinish[];
+  instagramCaption: string | null;
+  facebookCaption: string | null;
+  hashtagSet: string | null;
+  socialExportedAt: string | null;
   coverImageUrl: string | null;
   coverThumbnailUrl: string | null;
   coverPublicId: string | null;
@@ -250,6 +254,10 @@ export const PROJECT_SELECT = {
   featuredReason: true,
   coverAssetId: true,
   finishes: true,
+  instagramCaption: true,
+  facebookCaption: true,
+  hashtagSet: true,
+  socialExportedAt: true,
   createdAt: true,
   updatedAt: true,
   assets: {
@@ -537,6 +545,10 @@ function mapProject(project: DbProject): CanonicalProject {
     featuredReason: project.featuredReason,
     coverAssetId: coverAsset?.id ?? project.coverAssetId ?? null,
     finishes: Array.isArray(project.finishes) ? (project.finishes as unknown as import("@/types/project").ProjectFinish[]) : [],
+    instagramCaption: project.instagramCaption,
+    facebookCaption: project.facebookCaption,
+    hashtagSet: project.hashtagSet,
+    socialExportedAt: project.socialExportedAt?.toISOString() ?? null,
     coverImageUrl: coverAsset?.imageUrl ?? null,
     coverThumbnailUrl: coverAsset?.thumbnailUrl ?? null,
     coverPublicId: coverAsset?.publicId ?? null,
