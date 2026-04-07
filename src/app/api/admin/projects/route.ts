@@ -29,6 +29,7 @@ type CreateProjectBody = {
   primaryCtaHref?: string;
   testimonialPresent?: boolean;
   completionYear?: number | null;
+  completionMonth?: number | null;
   internalNotes?: string;
   featuredReason?: string;
   coverAssetId?: string;
@@ -134,6 +135,8 @@ export async function POST(request: NextRequest) {
       testimonialPresent: Boolean(body.testimonialPresent),
       completionYear:
         typeof body.completionYear === "number" ? body.completionYear : null,
+      completionMonth:
+        typeof body.completionMonth === "number" ? body.completionMonth : null,
       internalNotes: body.internalNotes?.trim() || null,
       featuredReason: body.featuredReason?.trim() || null,
       coverAssetId: body.coverAssetId?.trim() || null,

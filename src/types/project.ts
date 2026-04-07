@@ -3,6 +3,9 @@ export type FinishCategory =
   | "paint"
   | "stain"
   | "hardware"
+  | "led_tape"
+  | "led_controller"
+  | "led_power"
   | "lighting"
   | "product"
   | "other";
@@ -12,7 +15,10 @@ export const FINISH_CATEGORY_LABELS: Record<FinishCategory, string> = {
   paint: "Paint",
   stain: "Stain",
   hardware: "Hardware",
-  lighting: "Lighting",
+  led_tape: "LED Tape",
+  led_controller: "LED Controller",
+  led_power: "LED Power Supply",
+  lighting: "Lighting (Other)",
   product: "Product",
   other: "Other",
 };
@@ -22,6 +28,9 @@ export const FINISH_CATEGORY_ICONS: Record<FinishCategory, string> = {
   paint: "🎨",
   stain: "🖌️",
   hardware: "⚙️",
+  led_tape: "💡",
+  led_controller: "🎛️",
+  led_power: "🔌",
   lighting: "💡",
   product: "📦",
   other: "📋",

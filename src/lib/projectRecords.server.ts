@@ -91,6 +91,7 @@ export type CanonicalProject = {
   primaryCtaHref: string | null;
   testimonialPresent: boolean;
   completionYear: number | null;
+  completionMonth: number | null;
   internalNotes: string | null;
   featuredReason: string | null;
   coverAssetId: string | null;
@@ -244,6 +245,7 @@ export const PROJECT_SELECT = {
   primaryCtaHref: true,
   testimonialPresent: true,
   completionYear: true,
+  completionMonth: true,
   internalNotes: true,
   featuredReason: true,
   coverAssetId: true,
@@ -318,6 +320,7 @@ type ProjectMutationInput = {
   primaryCtaHref?: string | null;
   testimonialPresent?: boolean;
   completionYear?: number | null;
+  completionMonth?: number | null;
   internalNotes?: string | null;
   featuredReason?: string | null;
   coverAssetId?: string | null;
@@ -529,6 +532,7 @@ function mapProject(project: DbProject): CanonicalProject {
     primaryCtaHref: project.primaryCtaHref,
     testimonialPresent: project.testimonialPresent,
     completionYear: project.completionYear,
+    completionMonth: project.completionMonth,
     internalNotes: project.internalNotes,
     featuredReason: project.featuredReason,
     coverAssetId: coverAsset?.id ?? project.coverAssetId ?? null,
@@ -671,6 +675,7 @@ function normalizeCreateUpdateData(input: ProjectMutationInput) {
       primaryCtaHref: input.primaryCtaHref?.trim() || null,
       testimonialPresent: Boolean(input.testimonialPresent),
       completionYear: input.completionYear ?? null,
+      completionMonth: input.completionMonth ?? null,
       internalNotes: input.internalNotes?.trim() || null,
       featuredReason: input.featuredReason?.trim() || null,
     },

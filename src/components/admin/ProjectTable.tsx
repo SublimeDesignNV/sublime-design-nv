@@ -12,6 +12,8 @@ type ProjectAsset = {
   location: string | null;
   imageUrl: string | null;
   thumbnailUrl: string | null;
+  secureUrl: string | null;
+  resourceType: "image" | "video";
   published: boolean;
   renderable: boolean;
 };
@@ -58,6 +60,7 @@ type ProjectRecord = {
   primaryCtaHref: string | null;
   testimonialPresent: boolean;
   completionYear: number | null;
+  completionMonth: number | null;
   internalNotes: string | null;
   featuredReason: string | null;
   coverAssetId: string | null;
@@ -121,6 +124,7 @@ type ProjectEditForm = {
   primaryCtaHref: string;
   testimonialPresent: boolean;
   completionYear: string;
+  completionMonth: string;
   internalNotes: string;
   featuredReason: string;
   coverAssetId: string;
@@ -153,6 +157,7 @@ function toEditForm(project: ProjectRecord): ProjectEditForm {
     primaryCtaHref: project.primaryCtaHref || "",
     testimonialPresent: project.testimonialPresent,
     completionYear: project.completionYear?.toString() || "",
+    completionMonth: project.completionMonth?.toString() || "",
     internalNotes: project.internalNotes || "",
     featuredReason: project.featuredReason || "",
     coverAssetId: project.coverAssetId || project.assets[0]?.id || "",
@@ -260,6 +265,7 @@ export default function ProjectTable() {
         primaryCtaHref: editForm.primaryCtaHref.trim() || undefined,
         testimonialPresent: editForm.testimonialPresent,
         completionYear: editForm.completionYear ? Number(editForm.completionYear) : null,
+        completionMonth: editForm.completionMonth ? Number(editForm.completionMonth) : null,
         internalNotes: editForm.internalNotes.trim() || undefined,
         featuredReason: editForm.featuredReason.trim() || undefined,
         coverAssetId: editForm.coverAssetId || undefined,
@@ -521,16 +527,22 @@ export default function ProjectTable() {
               <div className="space-y-4">
                 <label className="block">
                   <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
-                  <input type="text" value={editForm.title} onChange={(event) => setEditForm((current) => current ? { ...current, title: event.target.value, slug: current.slug || slugify(event.target.value) } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
-                </label>
-                <label className="block">
-                  <span className="font-ui text-sm font-semibold text-charcoal">Slug</span>
-                  <input type="text" value={editForm.slug} onChange={(event) => setEditForm((current) => current ? { ...current, slug: slugify(event.target.value) } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                  <input type="text" value={editForm.title} onChange={(event) => setEditForm((current) => current ? { ...current, title: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                 </label>
                 <label className="block">
                   <span className="font-ui text-sm font-semibold text-charcoal">Description</span>
                   <textarea value={editForm.description} onChange={(event) => setEditForm((current) => current ? { ...current, description: event.target.value } : current)} className="mt-1 min-h-[96px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
                 </label>
+                <div className="block">
+                  <span className="font-ui text-sm font-semibold text-charcoal">URL Slug</span>
+                  <p className="mt-0.5 font-ui text-xs text-gray-mid">sublimedesignnv.com/projects/{editForm.slug || "…"}</p>
+                  <div className="mt-1 flex gap-2">
+                    <input type="text" value={editForm.slug} onChange={(event) => setEditForm((current) => current ? { ...current, slug: slugify(event.target.value) } : current)} className="flex-1 rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
+                    <button type="button" onClick={() => setEditForm((current) => current ? { ...current, slug: slugify(current.title) } : current)} className="flex-shrink-0 rounded-sm border border-gray-warm px-3 py-2 font-ui text-xs text-gray-mid transition hover:border-navy hover:text-navy" title="Regenerate slug from title">
+                      ↺ Sync
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className="font-ui text-sm font-semibold text-charcoal">Service</span>
@@ -579,10 +591,23 @@ export default function ProjectTable() {
                   Valid internal CTA metadata can show up as an optional secondary public button. The standard site quote CTA still appears as the main fallback when these fields are blank or invalid.
                 </p>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="font-ui text-sm font-semibold text-charcoal">Completion Year</span>
-                    <input type="number" min="2000" max="2100" value={editForm.completionYear} onChange={(event) => setEditForm((current) => current ? { ...current, completionYear: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
-                  </label>
+                  <div className="block">
+                    <span className="font-ui text-sm font-semibold text-charcoal">Completion Date</span>
+                    <div className="mt-1 flex gap-2">
+                      <select value={editForm.completionMonth} onChange={(event) => setEditForm((current) => current ? { ...current, completionMonth: event.target.value } : current)} className="flex-1 rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy">
+                        <option value="">Month</option>
+                        {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                          <option key={i} value={String(i + 1)}>{m}</option>
+                        ))}
+                      </select>
+                      <select value={editForm.completionYear} onChange={(event) => setEditForm((current) => current ? { ...current, completionYear: event.target.value } : current)} className="flex-1 rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy">
+                        <option value="">Year</option>
+                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                          <option key={y} value={String(y)}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <label className="block">
                     <span className="font-ui text-sm font-semibold text-charcoal">Spotlight Rank</span>
                     <input type="number" min="1" value={editForm.spotlightRank} onChange={(event) => setEditForm((current) => current ? { ...current, spotlightRank: event.target.value } : current)} className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy" />
@@ -649,8 +674,19 @@ export default function ProjectTable() {
                       return (
                         <div key={asset.id} className="rounded-lg border border-gray-warm bg-cream/40 p-3">
                           <div className="flex items-start gap-3">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={asset.imageUrl || asset.thumbnailUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
+                            {asset.resourceType === "video" ? (
+                              <span className="relative inline-flex h-16 w-16 flex-shrink-0 overflow-hidden rounded-sm bg-charcoal">
+                                {asset.secureUrl ? (
+                                  <video src={asset.secureUrl} preload="metadata" muted className="h-full w-full object-cover" />
+                                ) : null}
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                </span>
+                              </span>
+                            ) : (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={asset.imageUrl || asset.thumbnailUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
+                            )}
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="truncate font-ui text-sm font-semibold text-charcoal">

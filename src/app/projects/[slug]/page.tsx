@@ -407,7 +407,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             ) : null}
             {linkedProject.completionYear ? (
               <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                Completed {linkedProject.completionYear}
+                Completed {linkedProject.completionMonth ? new Date(linkedProject.completionYear, linkedProject.completionMonth - 1).toLocaleString("en-US", { month: "long" }) + " " : ""}{linkedProject.completionYear}
               </span>
             ) : null}
             <span className="rounded-full border border-red/20 bg-red/5 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-red">
@@ -488,7 +488,9 @@ export default async function ProjectDetailPage({ params }: Props) {
                 {linkedProject.completionYear ? (
                   <div>
                     <dt className="font-ui text-[10px] uppercase tracking-widest text-gray-mid">Completion</dt>
-                    <dd className="mt-1 text-sm text-charcoal">{linkedProject.completionYear}</dd>
+                    <dd className="mt-1 text-sm text-charcoal">
+                      {linkedProject.completionMonth ? new Date(linkedProject.completionYear, linkedProject.completionMonth - 1).toLocaleString("en-US", { month: "long" }) + " " : ""}{linkedProject.completionYear}
+                    </dd>
                   </div>
                 ) : null}
               </dl>

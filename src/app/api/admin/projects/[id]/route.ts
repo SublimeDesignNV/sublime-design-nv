@@ -23,6 +23,7 @@ type UpdateProjectBody = {
   primaryCtaHref?: string | null;
   testimonialPresent?: boolean;
   completionYear?: number | null;
+  completionMonth?: number | null;
   internalNotes?: string | null;
   featuredReason?: string | null;
   coverAssetId?: string | null;
@@ -91,6 +92,8 @@ export async function PATCH(
       testimonialPresent: Boolean(body.testimonialPresent),
       completionYear:
         typeof body.completionYear === "number" ? body.completionYear : null,
+      completionMonth:
+        typeof body.completionMonth === "number" ? body.completionMonth : null,
       internalNotes: body.internalNotes?.trim() || null,
       featuredReason: body.featuredReason?.trim() || null,
       coverAssetId: body.coverAssetId?.trim() || null,

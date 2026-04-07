@@ -87,6 +87,7 @@ model Project {
   primaryCtaHref     String?
   testimonialPresent Boolean        @default(false)
   completionYear     Int?
+  completionMonth    Int?
   internalNotes      String?
   featuredReason     String?
   coverAssetId       String?
