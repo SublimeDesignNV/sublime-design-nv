@@ -131,6 +131,33 @@ model ScheduledPost {
   updatedAt      DateTime  @updatedAt
 }
 
+model BusinessSettings {
+  id              String   @id @default(cuid())
+  companyName     String   @default("Sublime Design NV")
+  tagline         String?  @default("Custom Woodwork. Elevated.")
+  phone           String   @default("702-847-9016")
+  email           String   @default("info@sublimedesignnv.com")
+  address         String?
+  city            String?  @default("Las Vegas")
+  state           String?  @default("NV")
+  zip             String?
+  licenseC3       String?  @default("C3 #82320")
+  licenseB2       String?  @default("B2 #92234")
+  website         String?  @default("https://sublimedesignnv.com")
+  instagramHandle String?
+  facebookUrl     String?
+  pinterestUrl    String?
+  youtubeUrl      String?
+  googlePlaceId   String?
+  gbpLocationId   String?
+  hoursMonFri     String?  @default("7:00 AM – 6:00 PM")
+  hoursSat        String?
+  hoursSun        String?
+  serviceRadius   Int?     @default(50)
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+}
+
 model PinterestBoard {
   id          String   @id @default(cuid())
   boardId     String   @unique

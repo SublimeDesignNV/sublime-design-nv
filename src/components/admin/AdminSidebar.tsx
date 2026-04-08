@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Settings,
   Share2,
   Upload,
   User,
@@ -53,6 +54,7 @@ const NAV_GROUPS = [
   {
     label: "Account",
     links: [
+      { href: "/admin/settings", label: "Settings", icon: Settings },
       { href: "/admin/profile", label: "Profile", icon: User },
     ],
   },

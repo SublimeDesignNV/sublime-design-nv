@@ -1,17 +1,9 @@
 import { requireAdmin } from "@/lib/auth";
 import { logoutAction } from "@/app/admin/_actions";
+import { getBusinessSettings } from "@/lib/settings";
 import { LogOut, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-const BUSINESS = {
-  name: "Sublime Design NV",
-  phone: "702-847-9016",
-  email: "info@sublimedesignnv.com",
-  address: "6325 S Pecos Rd #14, Las Vegas NV 89120",
-  licenses: "C3 #82320 / B2 #92234",
-  website: "sublimedesignnv.com",
-};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -37,6 +29,7 @@ export default async function AdminProfilePage() {
   const session = await requireAdmin("/admin/profile");
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const user = session!.user;
+  const biz = await getBusinessSettings();
 
   const adminEmails = (process.env.ADMIN_ALLOWED_EMAILS ?? "")
     .split(",")
@@ -79,19 +72,19 @@ export default async function AdminProfilePage() {
           {/* Business info */}
           <Section title="Business Info">
             <div className="divide-y divide-gray-warm/60">
-              <Row label="Company" value={BUSINESS.name} />
-              <Row label="Phone" value={BUSINESS.phone} />
-              <Row label="Email" value={BUSINESS.email} />
-              <Row label="Address" value={BUSINESS.address} />
-              <Row label="License" value={BUSINESS.licenses} />
-              <Row label="Website" value={BUSINESS.website} />
+              <Row label="Company" value={biz.companyName} />
+              <Row label="Phone" value={biz.phone} />
+              <Row label="Email" value={biz.email} />
+              {biz.address ? <Row label="Address" value={[biz.address, biz.city, biz.state, biz.zip].filter(Boolean).join(", ")} /> : null}
+              {(biz.licenseC3 ?? biz.licenseB2) ? <Row label="License" value={[biz.licenseC3, biz.licenseB2].filter(Boolean).join(" / ")} /> : null}
+              {biz.website ? <Row label="Website" value={biz.website.replace(/^https?:\/\//, "")} /> : null}
             </div>
             <div className="mt-4">
               <a
-                href="#"
+                href="/admin/settings"
                 className="inline-block rounded-sm border border-gray-warm px-4 py-2 font-ui text-xs text-gray-mid transition hover:border-navy hover:text-navy"
               >
-                Edit Business Info
+                Edit Business Info →
               </a>
             </div>
           </Section>

@@ -1,33 +1,23 @@
-"use client";
-
-import Image from "next/image";
-import { useState } from "react";
 import Link from "next/link";
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import { ACTIVE_SERVICES } from "@/content/services";
+import { getBusinessSettings } from "@/lib/settings";
+import FooterLogo from "@/components/layout/FooterLogo";
 
-function FooterLogo() {
-  const [failed, setFailed] = useState(false);
-
-  if (failed) {
-    return <span className="font-display text-2xl text-white">{SITE.name}</span>;
-  }
-
-  return (
-    <Image
-      src="/images/logo-dark.png"
-      alt="Sublime Design NV"
-      width={160}
-      height={48}
-      className="h-12 w-auto"
-      onError={() => setFailed(true)}
-    />
-  );
-}
-
-export default function Footer() {
+export default async function Footer() {
   const year = new Date().getFullYear();
+  const biz = await getBusinessSettings();
+
+  const phone = biz.phone || SITE.phone;
+  const email = biz.email || SITE.email;
+  const address = biz.address
+    ? [biz.address, biz.city, biz.state].filter(Boolean).join(", ")
+    : SITE.address;
+  const phoneHref = `tel:${phone.replace(/\D/g, "")}`;
+  const emailHref = `mailto:${email}`;
+  const hoursWeekdays = biz.hoursMonFri ?? SITE.hours.weekdays;
+  const hoursWeekend = biz.hoursSat ?? SITE.hours.weekend;
 
   return (
     <footer className="mt-20 bg-charcoal text-white">
@@ -50,8 +40,8 @@ export default function Footer() {
           <Link href="/" aria-label={SITE.name} className="inline-block">
             <FooterLogo />
           </Link>
-          <p className="font-ui text-sm text-white/80">{SITE.tagline}</p>
-          <p className="font-ui text-sm text-white/80">Las Vegas, NV</p>
+          <p className="font-ui text-sm text-white/80">{biz.tagline ?? SITE.tagline}</p>
+          <p className="font-ui text-sm text-white/80">{biz.city ?? "Las Vegas"}, NV</p>
         </div>
 
         <div>
@@ -76,19 +66,19 @@ export default function Footer() {
             <div className="flex items-start gap-3">
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
               <a
-                href={SITE.phoneHref}
+                href={phoneHref}
                 className="font-ui text-sm text-white/80 transition-colors hover:text-white"
               >
-                {SITE.phone}
+                {phone}
               </a>
             </div>
             <div className="flex items-start gap-3">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
               <a
-                href={SITE.emailHref}
+                href={emailHref}
                 className="font-ui text-sm text-white/80 transition-colors hover:text-white"
               >
-                {SITE.email}
+                {email}
               </a>
             </div>
             <div className="flex items-start gap-3">
@@ -97,14 +87,14 @@ export default function Footer() {
                 href={SITE.addressHref}
                 className="font-ui text-sm text-white/80 transition-colors hover:text-white"
               >
-                {SITE.address}
+                {address}
               </a>
             </div>
             <div className="flex items-start gap-3">
               <Clock className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
               <div className="font-ui text-sm text-white/80">
-                <p>{SITE.hours.weekdays}</p>
-                <p>{SITE.hours.weekend}</p>
+                <p>{hoursWeekdays}</p>
+                <p>{hoursWeekend}</p>
               </div>
             </div>
           </div>

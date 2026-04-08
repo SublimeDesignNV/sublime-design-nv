@@ -1,13 +1,28 @@
-export default function LocalBusinessSchema() {
+import { getBusinessSettings } from "@/lib/settings";
+
+export default async function LocalBusinessSchema() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
+  const biz = await getBusinessSettings();
+
+  const phone = biz.phone ? `+1${biz.phone.replace(/\D/g, "")}` : "+17028479016";
+  const email = biz.email || "info@sublimedesignnv.com";
+  const city = biz.city ?? "Las Vegas";
+  const state = biz.state ?? "NV";
+
+  const sameAs = [
+    biz.instagramHandle
+      ? `https://www.instagram.com/${biz.instagramHandle.replace(/^@/, "")}`
+      : "https://www.instagram.com/sublimedesignnv",
+    biz.facebookUrl ?? "https://www.facebook.com/sublimedesignnv",
+  ].filter(Boolean);
 
   const schema = {
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
-    name: "Sublime Design NV",
-    url: siteUrl,
-    telephone: "+17028479016",
-    email: "info@sublimedesignnv.com",
+    name: biz.companyName,
+    url: biz.website ?? siteUrl,
+    telephone: phone,
+    email,
     priceRange: "$$",
     currenciesAccepted: "USD",
     paymentAccepted: "Cash, Check, Credit Card, Zelle",
@@ -21,8 +36,10 @@ export default function LocalBusinessSchema() {
     ],
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Las Vegas",
-      addressRegion: "NV",
+      streetAddress: biz.address ?? undefined,
+      addressLocality: city,
+      postalCode: biz.zip ?? undefined,
+      addressRegion: state,
       addressCountry: "US",
     },
     geo: {
@@ -51,58 +68,31 @@ export default function LocalBusinessSchema() {
       itemListElement: [
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Floating Shelves",
-            url: `${siteUrl}/services/floating-shelves`,
-          },
+          itemOffered: { "@type": "Service", name: "Floating Shelves", url: `${siteUrl}/services/floating-shelves` },
         },
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Built-Ins",
-            url: `${siteUrl}/services/built-ins`,
-          },
+          itemOffered: { "@type": "Service", name: "Built-Ins", url: `${siteUrl}/services/built-ins` },
         },
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Pantry Pullouts",
-            url: `${siteUrl}/services/pantry-pullouts`,
-          },
+          itemOffered: { "@type": "Service", name: "Pantry Pullouts", url: `${siteUrl}/services/pantry-pullouts` },
         },
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Closet Systems",
-            url: `${siteUrl}/services/closet-systems`,
-          },
+          itemOffered: { "@type": "Service", name: "Closet Systems", url: `${siteUrl}/services/closet-systems` },
         },
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Custom Cabinetry",
-            url: `${siteUrl}/services/custom-cabinetry`,
-          },
+          itemOffered: { "@type": "Service", name: "Custom Cabinetry", url: `${siteUrl}/services/custom-cabinetry` },
         },
         {
           "@type": "Offer",
-          itemOffered: {
-            "@type": "Service",
-            name: "Mantels",
-            url: `${siteUrl}/services/mantels`,
-          },
+          itemOffered: { "@type": "Service", name: "Mantels", url: `${siteUrl}/services/mantels` },
         },
       ],
     },
-    sameAs: [
-      "https://www.instagram.com/sublimedesignnv",
-      "https://www.facebook.com/sublimedesignnv",
-    ],
+    sameAs,
   };
 
   return (
