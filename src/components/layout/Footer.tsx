@@ -63,40 +63,48 @@ export default async function Footer() {
         <div>
           <h3 className="font-ui text-base font-semibold text-white">Contact</h3>
           <div className="mt-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-              <a
-                href={phoneHref}
-                className="font-ui text-sm text-white/80 transition-colors hover:text-white"
-              >
-                {phone}
-              </a>
-            </div>
-            <div className="flex items-start gap-3">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-              <a
-                href={emailHref}
-                className="font-ui text-sm text-white/80 transition-colors hover:text-white"
-              >
-                {email}
-              </a>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-              <a
-                href={SITE.addressHref}
-                className="font-ui text-sm text-white/80 transition-colors hover:text-white"
-              >
-                {address}
-              </a>
-            </div>
-            <div className="flex items-start gap-3">
-              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
-              <div className="font-ui text-sm text-white/80">
-                <p>{hoursWeekdays}</p>
-                <p>{hoursWeekend}</p>
+            {biz.showPhone && (
+              <div className="flex items-start gap-3">
+                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
+                <a
+                  href={phoneHref}
+                  className="font-ui text-sm text-white/80 transition-colors hover:text-white"
+                >
+                  {phone}
+                </a>
               </div>
-            </div>
+            )}
+            {biz.showEmail && (
+              <div className="flex items-start gap-3">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
+                <a
+                  href={emailHref}
+                  className="font-ui text-sm text-white/80 transition-colors hover:text-white"
+                >
+                  {email}
+                </a>
+              </div>
+            )}
+            {biz.showAddress && address && (
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
+                <a
+                  href={SITE.addressHref}
+                  className="font-ui text-sm text-white/80 transition-colors hover:text-white"
+                >
+                  {address}
+                </a>
+              </div>
+            )}
+            {biz.showHours && (
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-white/80" />
+                <div className="font-ui text-sm text-white/80">
+                  <p>{hoursWeekdays}</p>
+                  {hoursWeekend && <p>{hoursWeekend}</p>}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

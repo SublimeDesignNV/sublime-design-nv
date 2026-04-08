@@ -153,9 +153,16 @@ model BusinessSettings {
   hoursMonFri     String?  @default("7:00 AM – 6:00 PM")
   hoursSat        String?
   hoursSun        String?
-  serviceRadius   Int?     @default(50)
-  updatedAt       DateTime @updatedAt
-  updatedBy       String?
+  serviceRadius       Int?     @default(50)
+  showAddress         Boolean  @default(true)
+  showPhone           Boolean  @default(true)
+  showEmail           Boolean  @default(true)
+  showHours           Boolean  @default(true)
+  showLicenseNumbers  Boolean  @default(true)
+  showServiceArea     Boolean  @default(true)
+  showSocialLinks     Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+  updatedBy           String?
 }
 
 model PinterestBoard {

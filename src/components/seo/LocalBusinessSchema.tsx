@@ -9,39 +9,45 @@ export default async function LocalBusinessSchema() {
   const city = biz.city ?? "Las Vegas";
   const state = biz.state ?? "NV";
 
-  const sameAs = [
-    biz.instagramHandle
-      ? `https://www.instagram.com/${biz.instagramHandle.replace(/^@/, "")}`
-      : "https://www.instagram.com/sublimedesignnv",
-    biz.facebookUrl ?? "https://www.facebook.com/sublimedesignnv",
-  ].filter(Boolean);
+  const sameAs = biz.showSocialLinks
+    ? [
+        biz.instagramHandle
+          ? `https://www.instagram.com/${biz.instagramHandle.replace(/^@/, "")}`
+          : "https://www.instagram.com/sublimedesignnv",
+        biz.facebookUrl ?? "https://www.facebook.com/sublimedesignnv",
+      ].filter(Boolean)
+    : [];
 
   const schema = {
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
     name: biz.companyName,
     url: biz.website ?? siteUrl,
-    telephone: phone,
-    email,
+    ...(biz.showPhone && { telephone: phone }),
+    ...(biz.showEmail && { email }),
     priceRange: "$$",
     currenciesAccepted: "USD",
     paymentAccepted: "Cash, Check, Credit Card, Zelle",
-    openingHoursSpecification: [
-      {
-        "@type": "OpeningHoursSpecification",
-        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-        opens: "07:00",
-        closes: "18:00",
+    ...(biz.showHours && {
+      openingHoursSpecification: [
+        {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          opens: "07:00",
+          closes: "18:00",
+        },
+      ],
+    }),
+    ...(biz.showAddress && {
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: biz.address ?? undefined,
+        addressLocality: city,
+        postalCode: biz.zip ?? undefined,
+        addressRegion: state,
+        addressCountry: "US",
       },
-    ],
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: biz.address ?? undefined,
-      addressLocality: city,
-      postalCode: biz.zip ?? undefined,
-      addressRegion: state,
-      addressCountry: "US",
-    },
+    }),
     geo: {
       "@type": "GeoCoordinates",
       latitude: 36.1699,
@@ -92,7 +98,7 @@ export default async function LocalBusinessSchema() {
         },
       ],
     },
-    sameAs,
+    ...(sameAs.length > 0 && { sameAs }),
   };
 
   return (

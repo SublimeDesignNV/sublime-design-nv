@@ -24,6 +24,13 @@ export type BusinessSettings = {
   hoursSat: string | null;
   hoursSun: string | null;
   serviceRadius: number | null;
+  showAddress: boolean;
+  showPhone: boolean;
+  showEmail: boolean;
+  showHours: boolean;
+  showLicenseNumbers: boolean;
+  showServiceArea: boolean;
+  showSocialLinks: boolean;
   updatedAt: Date;
   updatedBy: string | null;
 };
@@ -51,6 +58,13 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   hoursSat: SITE.hours.weekend,
   hoursSun: null,
   serviceRadius: 50,
+  showAddress: true,
+  showPhone: true,
+  showEmail: true,
+  showHours: true,
+  showLicenseNumbers: true,
+  showServiceArea: true,
+  showSocialLinks: true,
   updatedAt: new Date(),
   updatedBy: null,
 };
