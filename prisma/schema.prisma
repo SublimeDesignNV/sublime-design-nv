@@ -118,15 +118,32 @@ model ScheduledPost {
   postId         String?
   errorMessage   String?
   // Pinterest-specific
-  pinTitle       String?
-  pinUrl         String?
-  boardId        String?
+  pinTitle          String?
+  pinUrl            String?
+  boardId           String?
+  pinterestBoardId  String?
+  altText           String?
   // YouTube-specific
   title          String?
   description    String?
   visibility     String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model PinterestBoard {
+  id          String   @id @default(cuid())
+  boardId     String   @unique
+  name        String
+  description String?
+  url         String?
+  imageUrl    String?
+  pinCount    Int      @default(0)
+  serviceType String?
+  area        String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model SocialAccount {

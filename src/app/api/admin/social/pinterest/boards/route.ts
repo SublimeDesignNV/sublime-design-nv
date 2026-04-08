@@ -1,19 +1,56 @@
 import { requireAdminApiSession, unauthorizedResponse } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createPinterestBoard, syncPinterestBoards } from "@/lib/social/pinterest";
 
 export async function GET() {
   if (!(await requireAdminApiSession())) return unauthorizedResponse();
 
-  const account = await db.socialAccount.findUnique({ where: { platform: "pinterest" } });
-  if (!account?.connected || !account.accessToken) {
-    return Response.json({ boards: [] });
+  const boards = await db.pinterestBoard.findMany({ orderBy: { name: "asc" } });
+  return Response.json({ boards });
+}
+
+export async function POST(req: Request) {
+  if (!(await requireAdminApiSession())) return unauthorizedResponse();
+
+  const body = (await req.json().catch(() => ({}))) as {
+    action?: string;
+    name?: string;
+    description?: string;
+    serviceType?: string;
+    area?: string;
+  };
+
+  // Sync from Pinterest API
+  if (body.action === "sync") {
+    try {
+      const count = await syncPinterestBoards();
+      return Response.json({ ok: true, synced: count });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Sync failed.";
+      return Response.json({ ok: false, error: message }, { status: 500 });
+    }
   }
 
-  const res = await fetch("https://api.pinterest.com/v5/boards?page_size=50", {
-    headers: { Authorization: `Bearer ${account.accessToken}` },
-  });
-  if (!res.ok) return Response.json({ boards: [] });
+  // Create new board
+  if (!body.name?.trim()) {
+    return Response.json({ ok: false, error: "name is required." }, { status: 400 });
+  }
 
-  const data = (await res.json()) as { items?: Array<{ id: string; name: string }> };
-  return Response.json({ boards: data.items ?? [] });
+  try {
+    const apiBoard = await createPinterestBoard(body.name.trim(), body.description?.trim() ?? "");
+    const board = await db.pinterestBoard.create({
+      data: {
+        boardId: (apiBoard as { id?: string }).id ?? body.name.trim(),
+        name: body.name.trim(),
+        description: body.description?.trim() ?? null,
+        serviceType: body.serviceType ?? null,
+        area: body.area ?? null,
+        updatedAt: new Date(),
+      },
+    });
+    return Response.json({ ok: true, board }, { status: 201 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to create board.";
+    return Response.json({ ok: false, error: message }, { status: 500 });
+  }
 }

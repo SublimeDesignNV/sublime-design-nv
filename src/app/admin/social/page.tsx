@@ -818,6 +818,20 @@ function SettingsTab({ accounts, onAccountsChange }: { accounts: SocialAccount[]
         </div>
       </div>
 
+      {/* Pinterest board manager */}
+      <div>
+        <h2 className="mb-4 font-ui text-sm font-semibold uppercase tracking-[0.14em] text-gray-mid">Pinterest Boards</h2>
+        <div className="rounded-xl border border-gray-warm bg-white p-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-ui text-sm text-charcoal">Manage boards and map them to services for auto-selection when composing pins.</p>
+            <p className="mt-0.5 font-ui text-xs text-gray-mid">Connect Pinterest above, then sync your boards and set defaults.</p>
+          </div>
+          <a href="/admin/social/pinterest" className="shrink-0 rounded-lg border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal transition hover:border-navy hover:text-navy">
+            Manage Boards →
+          </a>
+        </div>
+      </div>
+
       {/* Cron info */}
       <div>
         <h2 className="mb-4 font-ui text-sm font-semibold uppercase tracking-[0.14em] text-gray-mid">Automation</h2>

@@ -8,6 +8,7 @@ import {
   publishInstagramCarousel,
   postToFacebook,
 } from "@/lib/social/meta";
+import { createPin } from "@/lib/social/pinterest";
 
 type PublishBody = {
   postId?: string;
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Post already published." }, { status: 400 });
   }
 
-  const platform = scheduledPost.platform as "instagram" | "facebook" | "both";
+  const platform = scheduledPost.platform as "instagram" | "facebook" | "both" | "pinterest";
   const fullCaption = scheduledPost.hashtags
     ? `${scheduledPost.caption}\n\n${scheduledPost.hashtags}`
     : scheduledPost.caption;
@@ -36,8 +37,9 @@ export async function POST(request: NextRequest) {
   // If credentials not configured, queue for later
   const igEnabled = platform === "instagram" || platform === "both" ? SOCIAL_ENABLED.instagram : true;
   const fbEnabled = platform === "facebook" || platform === "both" ? SOCIAL_ENABLED.facebook : true;
+  const pinterestEnabled = platform === "pinterest" ? SOCIAL_ENABLED.pinterest : true;
 
-  if (!igEnabled || !fbEnabled) {
+  if (!igEnabled || !fbEnabled || !pinterestEnabled) {
     return NextResponse.json({
       ok: true,
       queued: true,
@@ -82,6 +84,23 @@ export async function POST(request: NextRequest) {
     if (platform === "facebook" || platform === "both") {
       const result = await postToFacebook(fullCaption, firstImageUrl);
       results.push({ platform: "facebook", postId: result.id ?? "" });
+    }
+
+    if (platform === "pinterest") {
+      const boardId = scheduledPost.pinterestBoardId ?? scheduledPost.boardId;
+      if (!boardId) throw new Error("Pinterest post requires a board.");
+      if (!firstImageUrl) throw new Error("Pinterest post requires at least one image.");
+
+      const projectUrl = scheduledPost.pinUrl ?? "";
+      const result = await createPin({
+        boardId,
+        title: scheduledPost.pinTitle ?? scheduledPost.caption.slice(0, 100),
+        description: scheduledPost.caption,
+        imageUrl: firstImageUrl,
+        link: projectUrl,
+        altText: scheduledPost.altText ?? undefined,
+      });
+      results.push({ platform: "pinterest", postId: result.id ?? "" });
     }
 
     await db.scheduledPost.update({
