@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { ACTIVE_SERVICES } from "@/content/services";
 import { saveLead } from "@/lib/leads";
 import { SITE } from "@/lib/constants";
+import { getBusinessSettings } from "@/lib/settings";
 import { getRecentPublicProjectLinks } from "@/lib/projectRecords.server";
 import {
   buildQuoteSubject,
@@ -437,13 +438,30 @@ export async function POST(request: Request) {
     }
 
     const resend = new Resend(resendApiKey);
+
+    // Load notification preferences from DB settings
+    const bizSettings = await getBusinessSettings().catch(() => null);
+    if (bizSettings && !bizSettings.notifyNewLead) {
+      // Notifications for new leads are disabled — skip email, return success
+      return NextResponse.json({ ok: true, leadId }, { status: 200 });
+    }
+
+    const fromName = bizSettings?.emailFromName ?? "Sublime Design NV";
+    const fromAddr = bizSettings?.emailFromAddress ?? "admin@sublimedesignnv.com";
+    const replyToAddr = bizSettings?.emailReplyTo ?? fromAddr;
     const from =
       (typeof process.env.LEADS_FROM_EMAIL === "string" ? process.env.LEADS_FROM_EMAIL.trim() : "") ||
-      "Sublime Design NV <admin@sublimedesignnv.com>";
+      `${fromName} <${fromAddr}>`;
 
-    const recipients = ["admin@sublimedesignnv.com"];
-    const cc = typeof process.env.LEADS_CC_EMAIL === "string" ? process.env.LEADS_CC_EMAIL.trim() : "";
-    if (cc) recipients.push(cc);
+    // Use DB notify addresses if set, fall back to env vars
+    let recipients: string[];
+    if (bizSettings?.emailNotifyAddresses?.length) {
+      recipients = bizSettings.emailNotifyAddresses;
+    } else {
+      recipients = ["admin@sublimedesignnv.com"];
+      const cc = typeof process.env.LEADS_CC_EMAIL === "string" ? process.env.LEADS_CC_EMAIL.trim() : "";
+      if (cc) recipients.push(cc);
+    }
 
     const subject = buildQuoteSubject(
       {
@@ -482,7 +500,7 @@ export async function POST(request: Request) {
       from,
       to: recipients,
       subject,
-      replyTo: fields.email,
+      replyTo: fields.email || replyToAddr,
       html: buildHtmlEmail(emailFields),
       text: buildTextEmail(emailFields),
     });

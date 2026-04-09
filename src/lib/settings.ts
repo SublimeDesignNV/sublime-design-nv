@@ -29,6 +29,21 @@ export type BusinessSettings = {
   heroHeadline: string | null;
   heroSubheadline: string | null;
   heroCtaLabel: string | null;
+  cloudinaryFolder: string;
+  cloudinaryQuality: string;
+  cloudinaryMaxSizeMB: number;
+  emailFromName: string;
+  emailFromAddress: string;
+  emailReplyTo: string;
+  emailNotifyAddresses: string[];
+  notifyNewLead: boolean;
+  notifyStaleLead: boolean;
+  notifyIntakeComplete: boolean;
+  notifyKioskSubmit: boolean;
+  notifyDailyDigest: boolean;
+  notifyWeeklyDigest: boolean;
+  notifySmsIntakeLink: boolean;
+  notifySmsKiosk: boolean;
   showAddress: boolean;
   showPhone: boolean;
   showEmail: boolean;
@@ -78,6 +93,21 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   heroHeadline: null,
   heroSubheadline: null,
   heroCtaLabel: "Start with a Quote",
+  cloudinaryFolder: "Sublime/Portfolio/",
+  cloudinaryQuality: "auto",
+  cloudinaryMaxSizeMB: 15,
+  emailFromName: "Sublime Design NV",
+  emailFromAddress: "info@sublimedesignnv.com",
+  emailReplyTo: "info@sublimedesignnv.com",
+  emailNotifyAddresses: ["info@sublimedesignnv.com"],
+  notifyNewLead: true,
+  notifyStaleLead: true,
+  notifyIntakeComplete: true,
+  notifyKioskSubmit: true,
+  notifyDailyDigest: false,
+  notifyWeeklyDigest: false,
+  notifySmsIntakeLink: true,
+  notifySmsKiosk: true,
   showAddress: true,
   showPhone: true,
   showEmail: true,

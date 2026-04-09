@@ -31,6 +31,21 @@ type Settings = {
   heroHeadline: string | null;
   heroSubheadline: string | null;
   heroCtaLabel: string | null;
+  cloudinaryFolder: string;
+  cloudinaryQuality: string;
+  cloudinaryMaxSizeMB: number;
+  emailFromName: string;
+  emailFromAddress: string;
+  emailReplyTo: string;
+  emailNotifyAddresses: string[];
+  notifyNewLead: boolean;
+  notifyStaleLead: boolean;
+  notifyIntakeComplete: boolean;
+  notifyKioskSubmit: boolean;
+  notifyDailyDigest: boolean;
+  notifyWeeklyDigest: boolean;
+  notifySmsIntakeLink: boolean;
+  notifySmsKiosk: boolean;
   showAddress: boolean;
   showPhone: boolean;
   showEmail: boolean;
@@ -255,6 +270,8 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [testEmailStatus, setTestEmailStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [newNotifyAddr, setNewNotifyAddr] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/settings");
@@ -541,7 +558,246 @@ export default function SettingsPage() {
 
         {/* ── Integrations ─────────────────────────────── */}
         {tab === "integrations" && (
-          <div className="mt-6 space-y-6">
+          <div className="mt-6 space-y-8">
+
+            {/* ── Cloudinary ── */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <SectionTitle>Media Storage (Cloudinary)</SectionTitle>
+                <span className={`rounded-full border px-2.5 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME ? "border-green-200 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"}`}>
+                  {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME ? "✓ Configured" : "Not configured"}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
+                {(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? process.env.CLOUDINARY_CLOUD_NAME) && (
+                  <div className="flex items-center gap-6 border-b border-gray-warm pb-4">
+                    <div>
+                      <p className="font-ui text-xs text-gray-mid">Cloud</p>
+                      <p className="font-ui text-sm font-medium text-charcoal">{process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? process.env.CLOUDINARY_CLOUD_NAME}</p>
+                    </div>
+                  </div>
+                )}
+                <SectionTitle>Upload Settings</SectionTitle>
+                <Field label="Default Folder" value={str(settings.cloudinaryFolder)} onChange={(v) => set("cloudinaryFolder", v)} placeholder="Sublime/Portfolio/" />
+                <div>
+                  <label className="mb-1 block font-ui text-xs text-gray-mid">Image Quality</label>
+                  <select
+                    value={settings.cloudinaryQuality}
+                    onChange={(e) => set("cloudinaryQuality", e.target.value)}
+                    className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                  >
+                    <option value="auto">Auto (recommended)</option>
+                    <option value="auto:best">Auto: Best</option>
+                    <option value="auto:good">Auto: Good</option>
+                    <option value="80">80 (High)</option>
+                    <option value="60">60 (Medium)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block font-ui text-xs text-gray-mid">Max Upload Size</label>
+                  <select
+                    value={settings.cloudinaryMaxSizeMB}
+                    onChange={(e) => set("cloudinaryMaxSizeMB", parseInt(e.target.value))}
+                    className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                  >
+                    {[5, 10, 15, 25, 50, 100].map((n) => (
+                      <option key={n} value={n}>{n} MB</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5">
+                <SectionTitle>Quick Links</SectionTitle>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Open Media Library", href: "https://console.cloudinary.com/pm/media-library" },
+                    { label: "View Usage", href: "https://console.cloudinary.com/pm/developer-dashboard" },
+                    { label: "API Credentials", href: "https://console.cloudinary.com/pm/settings/api-keys" },
+                    { label: "Documentation", href: "https://cloudinary.com/documentation" },
+                  ].map(({ label, href }) => (
+                    <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-gray-warm px-3 py-1.5 font-ui text-xs text-navy hover:border-navy">
+                      {label} →
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-3 font-ui text-xs text-gray-mid">API credentials are managed via Railway environment variables and are never exposed here.</p>
+              </div>
+            </div>
+
+            {/* ── Resend ── */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <SectionTitle>Transactional Email (Resend)</SectionTitle>
+                <span className={`rounded-full border px-2.5 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${process.env.RESEND_API_KEY ? "border-green-200 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"}`}>
+                  {process.env.RESEND_API_KEY ? "✓ Configured" : "Not configured"}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
+                <SectionTitle>Email Settings</SectionTitle>
+                <Field label="From Name" value={str(settings.emailFromName)} onChange={(v) => set("emailFromName", v)} placeholder="Sublime Design NV" />
+                <Field label="From Email" value={str(settings.emailFromAddress)} onChange={(v) => set("emailFromAddress", v)} type="email" placeholder="info@sublimedesignnv.com" />
+                <Field label="Reply-To" value={str(settings.emailReplyTo)} onChange={(v) => set("emailReplyTo", v)} type="email" placeholder="info@sublimedesignnv.com" />
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
+                <SectionTitle>Lead Notification Recipients</SectionTitle>
+                <div className="space-y-2">
+                  {settings.emailNotifyAddresses.map((addr, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="flex-1 rounded-lg border border-gray-warm bg-gray-50 px-3 py-2 font-ui text-sm text-charcoal">{addr}</span>
+                      <button
+                        type="button"
+                        onClick={() => set("emailNotifyAddresses", settings.emailNotifyAddresses.filter((_, j) => j !== i))}
+                        className="font-ui text-xs text-gray-mid hover:text-red-500"
+                        disabled={settings.emailNotifyAddresses.length <= 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={newNotifyAddr}
+                    onChange={(e) => setNewNotifyAddr(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newNotifyAddr.includes("@")) {
+                        set("emailNotifyAddresses", [...settings.emailNotifyAddresses, newNotifyAddr.trim()]);
+                        setNewNotifyAddr("");
+                      }
+                    }}
+                    placeholder="Add email address"
+                    className="flex-1 rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newNotifyAddr.includes("@")) {
+                        set("emailNotifyAddresses", [...settings.emailNotifyAddresses, newNotifyAddr.trim()]);
+                        setNewNotifyAddr("");
+                      }
+                    }}
+                    className="rounded-lg border border-gray-warm px-3 py-2 font-ui text-xs text-charcoal hover:border-navy"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-3">
+                <SectionTitle>Notification Events</SectionTitle>
+                {([
+                  { key: "notifyNewLead", label: "New quote request received" },
+                  { key: "notifyStaleLead", label: "Lead marked as stale (3+ days no contact)" },
+                  { key: "notifyIntakeComplete", label: "Client intake completed" },
+                  { key: "notifyKioskSubmit", label: "Kiosk form submitted" },
+                  { key: "notifyDailyDigest", label: "Daily lead summary" },
+                  { key: "notifyWeeklyDigest", label: "Weekly analytics digest" },
+                ] as { key: keyof Settings; label: string }[]).map(({ key, label }) => (
+                  <label key={key} className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings[key] as boolean}
+                      onChange={() => set(key, !settings[key])}
+                      className="h-4 w-4 rounded border-gray-warm accent-navy"
+                    />
+                    <span className="font-ui text-sm text-charcoal">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-3">
+                <SectionTitle>Quick Links</SectionTitle>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Email Dashboard", href: "https://resend.com/emails" },
+                    { label: "Domain Settings", href: "https://resend.com/domains" },
+                    { label: "API Keys", href: "https://resend.com/api-keys" },
+                    { label: "Analytics", href: "https://resend.com/analytics" },
+                  ].map(({ label, href }) => (
+                    <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-gray-warm px-3 py-1.5 font-ui text-xs text-navy hover:border-navy">
+                      {label} →
+                    </a>
+                  ))}
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={testEmailStatus === "sending" || !process.env.RESEND_API_KEY}
+                    onClick={async () => {
+                      setTestEmailStatus("sending");
+                      try {
+                        const res = await fetch("/api/admin/settings/test-email", { method: "POST" });
+                        setTestEmailStatus(res.ok ? "ok" : "error");
+                        setTimeout(() => setTestEmailStatus("idle"), 4000);
+                      } catch { setTestEmailStatus("error"); setTimeout(() => setTestEmailStatus("idle"), 4000); }
+                    }}
+                    className="rounded-lg border border-gray-warm px-4 py-2 font-ui text-sm text-charcoal hover:border-navy disabled:opacity-40"
+                  >
+                    {testEmailStatus === "sending" ? "Sending…" : testEmailStatus === "ok" ? "✓ Sent!" : testEmailStatus === "error" ? "✗ Failed" : "Send Test Email"}
+                  </button>
+                  {!process.env.RESEND_API_KEY && <p className="mt-1.5 font-ui text-xs text-gray-mid">Set RESEND_API_KEY in Railway to enable.</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Twilio ── */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <SectionTitle>SMS (Twilio)</SectionTitle>
+                <span className={`rounded-full border px-2.5 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${process.env.TWILIO_ACCOUNT_SID ? "border-green-200 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"}`}>
+                  {process.env.TWILIO_ACCOUNT_SID ? "✓ Configured" : "Not configured"}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-3">
+                {process.env.TWILIO_PHONE_NUMBER && (
+                  <div className="flex items-center gap-6 border-b border-gray-warm pb-4">
+                    <div>
+                      <p className="font-ui text-xs text-gray-mid">From Number</p>
+                      <p className="font-ui text-sm font-medium text-charcoal">{process.env.TWILIO_PHONE_NUMBER}</p>
+                    </div>
+                  </div>
+                )}
+                <SectionTitle>Send SMS For</SectionTitle>
+                {([
+                  { key: "notifySmsIntakeLink", label: "New intake form link (send to client)" },
+                  { key: "notifySmsKiosk", label: "Kiosk form completion" },
+                ] as { key: keyof Settings; label: string }[]).map(({ key, label }) => (
+                  <label key={key} className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={settings[key] as boolean}
+                      onChange={() => set(key, !settings[key])}
+                      className="h-4 w-4 rounded border-gray-warm accent-navy"
+                    />
+                    <span className="font-ui text-sm text-charcoal">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-3">
+                <SectionTitle>Quick Links</SectionTitle>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Twilio Console", href: "https://console.twilio.com" },
+                    { label: "Message Logs", href: "https://console.twilio.com/us1/monitor/logs/sms" },
+                    { label: "API Credentials", href: "https://console.twilio.com/us1/account/keys-credentials/api-keys" },
+                  ].map(({ label, href }) => (
+                    <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-gray-warm px-3 py-1.5 font-ui text-xs text-navy hover:border-navy">
+                      {label} →
+                    </a>
+                  ))}
+                </div>
+                <p className="font-ui text-xs text-gray-mid">Credentials managed via Railway. <a href="https://railway.app" target="_blank" rel="noopener noreferrer" className="text-navy hover:underline">Open Railway →</a></p>
+              </div>
+            </div>
+
+            {/* ── Google ── */}
             <div className="space-y-3">
               <SectionTitle>Google</SectionTitle>
               <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
@@ -570,42 +826,28 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <IntegrationRow
-                label="Google Analytics"
-                status={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ? "configured" : "not-configured"}
-                value={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ? `Measurement ID: ${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-???"}` : undefined}
-                placeholder="Set NEXT_PUBLIC_GA_MEASUREMENT_ID in Railway"
-              />
-              <IntegrationRow
-                label="Google Search Console"
-                status="not-configured"
-                placeholder="Connect via Google OAuth to see keyword data"
-              />
-              <IntegrationRow
-                label="Google Calendar"
-                status="not-configured"
-                placeholder="Connect to send booking links to leads"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <SectionTitle>Email</SectionTitle>
-              <IntegrationRow
-                label="Resend (Transactional Email)"
-                status={process.env.RESEND_API_KEY ? "configured" : "not-configured"}
-                value={process.env.RESEND_API_KEY ? "API key set" : undefined}
-                placeholder="Set RESEND_API_KEY in Railway"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <SectionTitle>Media</SectionTitle>
-              <IntegrationRow
-                label="Cloudinary"
-                status={process.env.CLOUDINARY_CLOUD_NAME ? "configured" : "not-configured"}
-                value={process.env.CLOUDINARY_CLOUD_NAME ? `Cloud: ${process.env.CLOUDINARY_CLOUD_NAME}` : undefined}
-                placeholder="Set CLOUDINARY_CLOUD_NAME in Railway"
-              />
+              {[
+                { label: "Google Analytics", configured: !!process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID, value: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ? `Measurement ID: ${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}` : undefined, placeholder: "Set NEXT_PUBLIC_GA_MEASUREMENT_ID in Railway", links: [{ label: "Analytics Dashboard", href: "https://analytics.google.com" }] },
+                { label: "Google Search Console", configured: false, placeholder: "Connect via Google OAuth to see keyword data", links: [{ label: "Search Console", href: "https://search.google.com/search-console" }] },
+                { label: "Google Calendar", configured: false, placeholder: "Connect to send booking links to leads", links: [{ label: "Google Calendar", href: "https://calendar.google.com" }] },
+              ].map(({ label, configured, value, placeholder, links }) => (
+                <div key={label} className="rounded-lg border border-gray-warm bg-white px-4 py-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-ui text-sm font-medium text-charcoal">{label}</p>
+                      {value ? <p className="font-ui text-xs text-gray-mid">{value}</p> : placeholder ? <p className="font-ui text-xs text-gray-mid">{placeholder}</p> : null}
+                    </div>
+                    <span className={`shrink-0 rounded-full border px-2.5 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${configured ? "border-green-200 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"}`}>
+                      {configured ? "✓ Configured" : "Not configured"}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {links.map(({ label: ll, href }) => (
+                      <a key={href} href={href} target="_blank" rel="noopener noreferrer" className="font-ui text-xs text-navy hover:underline">{ll} →</a>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <button type="button" onClick={() => void save()} disabled={isSaving} className="rounded-lg bg-navy px-6 py-2.5 font-ui text-sm text-white transition hover:bg-navy/90 disabled:opacity-50">
