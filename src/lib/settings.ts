@@ -11,8 +11,6 @@ export type BusinessSettings = {
   city: string | null;
   state: string | null;
   zip: string | null;
-  licenseC3: string | null;
-  licenseB2: string | null;
   website: string | null;
   instagramHandle: string | null;
   facebookUrl: string | null;
@@ -24,6 +22,13 @@ export type BusinessSettings = {
   hoursSat: string | null;
   hoursSun: string | null;
   serviceRadius: number | null;
+  primaryTrade: string | null;
+  secondaryTrade: string | null;
+  brandPrimary: string;
+  brandSecondary: string;
+  heroHeadline: string | null;
+  heroSubheadline: string | null;
+  heroCtaLabel: string | null;
   showAddress: boolean;
   showPhone: boolean;
   showEmail: boolean;
@@ -33,6 +38,16 @@ export type BusinessSettings = {
   showSocialLinks: boolean;
   updatedAt: Date;
   updatedBy: string | null;
+};
+
+export type ContractorLicense = {
+  id: string;
+  licenseType: string;
+  licenseNumber: string;
+  issuingState: string | null;
+  expiresAt: Date | null;
+  showOnSite: boolean;
+  position: number;
 };
 
 const DEFAULT_SETTINGS: BusinessSettings = {
@@ -45,8 +60,6 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   city: "Las Vegas",
   state: "NV",
   zip: null,
-  licenseC3: "C3 #82320",
-  licenseB2: "B2 #92234",
   website: SITE.url,
   instagramHandle: null,
   facebookUrl: null,
@@ -58,6 +71,13 @@ const DEFAULT_SETTINGS: BusinessSettings = {
   hoursSat: SITE.hours.weekend,
   hoursSun: null,
   serviceRadius: 50,
+  primaryTrade: "Finish Carpentry",
+  secondaryTrade: null,
+  brandPrimary: "#CC2027",
+  brandSecondary: "#1B2A6B",
+  heroHeadline: null,
+  heroSubheadline: null,
+  heroCtaLabel: "Start with a Quote",
   showAddress: true,
   showPhone: true,
   showEmail: true,
@@ -76,5 +96,17 @@ export async function getBusinessSettings(): Promise<BusinessSettings> {
     return (settings as BusinessSettings) ?? DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
+  }
+}
+
+export async function getLicenses(): Promise<ContractorLicense[]> {
+  if (!process.env.DATABASE_URL) return [
+    { id: "lic-c3", licenseType: "C3 Carpentry", licenseNumber: "#82320", issuingState: "NV", expiresAt: null, showOnSite: true, position: 0 },
+    { id: "lic-b2", licenseType: "B2 General Contractor", licenseNumber: "#92234", issuingState: "NV", expiresAt: null, showOnSite: true, position: 1 },
+  ];
+  try {
+    return (await db.contractorLicense.findMany({ orderBy: { position: "asc" } })) as ContractorLicense[];
+  } catch {
+    return [];
   }
 }

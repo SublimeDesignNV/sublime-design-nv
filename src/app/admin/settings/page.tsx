@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import LicensesManager from "@/components/admin/LicensesManager";
 
 type Settings = {
   id: string;
@@ -12,8 +13,6 @@ type Settings = {
   city: string | null;
   state: string | null;
   zip: string | null;
-  licenseC3: string | null;
-  licenseB2: string | null;
   website: string | null;
   instagramHandle: string | null;
   facebookUrl: string | null;
@@ -25,6 +24,13 @@ type Settings = {
   hoursSat: string | null;
   hoursSun: string | null;
   serviceRadius: number | null;
+  primaryTrade: string | null;
+  secondaryTrade: string | null;
+  brandPrimary: string;
+  brandSecondary: string;
+  heroHeadline: string | null;
+  heroSubheadline: string | null;
+  heroCtaLabel: string | null;
   showAddress: boolean;
   showPhone: boolean;
   showEmail: boolean;
@@ -34,12 +40,13 @@ type Settings = {
   showSocialLinks: boolean;
 };
 
-type Tab = "business" | "hours" | "social" | "integrations";
+type Tab = "business" | "hours" | "social" | "appearance" | "integrations";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "business", label: "Business Info" },
   { id: "hours", label: "Hours & Service Area" },
   { id: "social", label: "Social Accounts" },
+  { id: "appearance", label: "Appearance" },
   { id: "integrations", label: "Integrations" },
 ];
 
@@ -47,6 +54,24 @@ const COMMUNITIES = [
   "Las Vegas", "Henderson", "Summerlin", "North Las Vegas",
   "Lake Las Vegas", "Green Valley Ranch", "Anthem", "Rhodes Ranch",
   "Seven Hills", "Aliante", "Centennial Hills", "Silverado Ranch",
+];
+
+const TRADE_OPTIONS = [
+  "Finish Carpentry",
+  "Custom Woodwork",
+  "General Contractor",
+  "Framing",
+  "Cabinet Installation",
+  "Roofing",
+  "Plumbing",
+  "Electrical",
+  "HVAC",
+  "Flooring",
+  "Tile",
+  "Painting",
+  "Landscaping",
+  "Concrete",
+  "Other",
 ];
 
 function Field({
@@ -71,6 +96,33 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+      />
+    </div>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block font-ui text-xs text-gray-mid">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy resize-none"
       />
     </div>
   );
@@ -165,6 +217,38 @@ function IntegrationRow({
   );
 }
 
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block font-ui text-xs text-gray-mid">{label}</label>
+      <div className="flex items-center gap-3">
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 cursor-pointer rounded border border-gray-warm bg-white p-0.5"
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#CC2027"
+          className="w-32 rounded-lg border border-gray-warm bg-white px-3 py-2 font-mono text-sm text-charcoal outline-none focus:border-navy"
+        />
+        <span className="h-7 w-7 rounded border border-gray-warm" style={{ backgroundColor: value }} />
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("business");
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -213,13 +297,13 @@ export default function SettingsPage() {
         <h1 className="mt-8 text-4xl text-charcoal">Settings</h1>
 
         {/* Tab bar */}
-        <div className="mt-6 flex gap-1 border-b border-gray-warm">
+        <div className="mt-6 flex gap-1 overflow-x-auto border-b border-gray-warm">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`px-4 py-2.5 font-ui text-sm transition-colors ${tab === id ? "border-b-2 border-navy text-navy -mb-px" : "text-gray-mid hover:text-charcoal"}`}
+              className={`shrink-0 px-4 py-2.5 font-ui text-sm transition-colors ${tab === id ? "border-b-2 border-navy text-navy -mb-px" : "text-gray-mid hover:text-charcoal"}`}
             >
               {label}
             </button>
@@ -246,6 +330,34 @@ export default function SettingsPage() {
             </div>
 
             <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
+              <SectionTitle>Trade / Service Type</SectionTitle>
+              <div>
+                <label className="mb-1 block font-ui text-xs text-gray-mid">Primary Trade</label>
+                <input
+                  list="trade-options"
+                  value={str(settings.primaryTrade)}
+                  onChange={(e) => set("primaryTrade", e.target.value)}
+                  placeholder="Finish Carpentry"
+                  className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                />
+                <datalist id="trade-options">
+                  {TRADE_OPTIONS.map((t) => <option key={t} value={t} />)}
+                </datalist>
+              </div>
+              <div>
+                <label className="mb-1 block font-ui text-xs text-gray-mid">Secondary Trade (optional)</label>
+                <input
+                  list="trade-options"
+                  value={str(settings.secondaryTrade)}
+                  onChange={(e) => set("secondaryTrade", e.target.value)}
+                  placeholder="Cabinet Installation"
+                  className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy"
+                />
+              </div>
+              <p className="font-ui text-xs text-gray-mid">Used to tailor AI caption generation and schema type.</p>
+            </div>
+
+            <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <SectionTitle>Address</SectionTitle>
                 <div className="mb-3 flex items-center gap-2">
@@ -268,18 +380,10 @@ export default function SettingsPage() {
               <VisibilityHint visible={settings.showAddress} />
             </div>
 
-            <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <SectionTitle>License Numbers</SectionTitle>
-                <div className="mb-3 flex items-center gap-2">
-                  <Toggle checked={settings.showLicenseNumbers} onChange={() => set("showLicenseNumbers", !settings.showLicenseNumbers)} />
-                  <span className="font-ui text-xs text-gray-mid">Show on site</span>
-                </div>
-              </div>
-              <Field label="C3 License" value={str(settings.licenseC3)} onChange={(v) => set("licenseC3", v)} placeholder="C3 #82320" />
-              <Field label="B2 License" value={str(settings.licenseB2)} onChange={(v) => set("licenseB2", v)} placeholder="B2 #92234" />
-              <VisibilityHint visible={settings.showLicenseNumbers} />
-            </div>
+            <LicensesManager
+              showLicensesOnSite={settings.showLicenseNumbers}
+              onToggleSection={() => set("showLicenseNumbers", !settings.showLicenseNumbers)}
+            />
 
             <button type="button" onClick={() => void save()} disabled={isSaving} className="rounded-lg bg-navy px-6 py-2.5 font-ui text-sm text-white transition hover:bg-navy/90 disabled:opacity-50">
               {isSaving ? "Saving…" : "Save Changes"}
@@ -379,6 +483,58 @@ export default function SettingsPage() {
 
             <button type="button" onClick={() => void save()} disabled={isSaving} className="rounded-lg bg-navy px-6 py-2.5 font-ui text-sm text-white transition hover:bg-navy/90 disabled:opacity-50">
               {isSaving ? "Saving…" : "Save Profile URLs"}
+            </button>
+          </div>
+        )}
+
+        {/* ── Appearance ───────────────────────────────── */}
+        {tab === "appearance" && (
+          <div className="mt-6 space-y-6">
+            <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-5">
+              <SectionTitle>Hero Section</SectionTitle>
+              <Field
+                label="Headline"
+                value={str(settings.heroHeadline)}
+                onChange={(v) => set("heroHeadline", v)}
+                placeholder="Premium Finish Carpentry for the Signature Spaces"
+              />
+              <TextArea
+                label="Subheadline"
+                value={str(settings.heroSubheadline)}
+                onChange={(v) => set("heroSubheadline", v)}
+                placeholder="Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim upgrades designed, built, and installed in Las Vegas Valley."
+                rows={3}
+              />
+              <Field
+                label="CTA Button Label"
+                value={str(settings.heroCtaLabel)}
+                onChange={(v) => set("heroCtaLabel", v)}
+                placeholder="Start with a Quote"
+              />
+              <p className="font-ui text-xs text-gray-mid">Changes take effect immediately — no redeploy needed.</p>
+            </div>
+
+            <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-5">
+              <SectionTitle>Brand Colors</SectionTitle>
+              <ColorField
+                label="Primary (buttons, accents)"
+                value={settings.brandPrimary}
+                onChange={(v) => set("brandPrimary", v)}
+              />
+              <ColorField
+                label="Secondary (navy, headers)"
+                value={settings.brandSecondary}
+                onChange={(v) => set("brandSecondary", v)}
+              />
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="font-ui text-xs text-amber-700">
+                  ⚠ Brand color changes are stored in the database and will be applied after the next deploy. Redeploy in Railway to activate new colors.
+                </p>
+              </div>
+            </div>
+
+            <button type="button" onClick={() => void save()} disabled={isSaving} className="rounded-lg bg-navy px-6 py-2.5 font-ui text-sm text-white transition hover:bg-navy/90 disabled:opacity-50">
+              {isSaving ? "Saving…" : "Save Appearance"}
             </button>
           </div>
         )}

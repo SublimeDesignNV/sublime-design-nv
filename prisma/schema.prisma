@@ -132,28 +132,33 @@ model ScheduledPost {
 }
 
 model BusinessSettings {
-  id              String   @id @default(cuid())
-  companyName     String   @default("Sublime Design NV")
-  tagline         String?  @default("Custom Woodwork. Elevated.")
-  phone           String   @default("702-847-9016")
-  email           String   @default("info@sublimedesignnv.com")
-  address         String?
-  city            String?  @default("Las Vegas")
-  state           String?  @default("NV")
-  zip             String?
-  licenseC3       String?  @default("C3 #82320")
-  licenseB2       String?  @default("B2 #92234")
-  website         String?  @default("https://sublimedesignnv.com")
-  instagramHandle String?
-  facebookUrl     String?
-  pinterestUrl    String?
-  youtubeUrl      String?
-  googlePlaceId   String?
-  gbpLocationId   String?
-  hoursMonFri     String?  @default("7:00 AM – 6:00 PM")
-  hoursSat        String?
-  hoursSun        String?
-  serviceRadius       Int?     @default(50)
+  id                String   @id @default(cuid())
+  companyName       String   @default("Sublime Design NV")
+  tagline           String?  @default("Custom Woodwork. Elevated.")
+  phone             String   @default("702-847-9016")
+  email             String   @default("info@sublimedesignnv.com")
+  address           String?
+  city              String?  @default("Las Vegas")
+  state             String?  @default("NV")
+  zip               String?
+  website           String?  @default("https://sublimedesignnv.com")
+  instagramHandle   String?
+  facebookUrl       String?
+  pinterestUrl      String?
+  youtubeUrl        String?
+  googlePlaceId     String?
+  gbpLocationId     String?
+  hoursMonFri       String?  @default("7:00 AM – 6:00 PM")
+  hoursSat          String?
+  hoursSun          String?
+  serviceRadius     Int?     @default(50)
+  primaryTrade      String?  @default("Finish Carpentry")
+  secondaryTrade    String?
+  brandPrimary      String   @default("#CC2027")
+  brandSecondary    String   @default("#1B2A6B")
+  heroHeadline      String?
+  heroSubheadline   String?
+  heroCtaLabel      String?  @default("Start with a Quote")
   showAddress         Boolean  @default(true)
   showPhone           Boolean  @default(true)
   showEmail           Boolean  @default(true)
@@ -163,6 +168,18 @@ model BusinessSettings {
   showSocialLinks     Boolean  @default(true)
   updatedAt           DateTime @updatedAt
   updatedBy           String?
+}
+
+model ContractorLicense {
+  id            String    @id @default(cuid())
+  licenseType   String
+  licenseNumber String
+  issuingState  String?   @default("NV")
+  expiresAt     DateTime?
+  showOnSite    Boolean   @default(true)
+  position      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model PinterestBoard {

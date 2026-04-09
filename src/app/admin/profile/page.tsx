@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { logoutAction } from "@/app/admin/_actions";
-import { getBusinessSettings } from "@/lib/settings";
+import { getBusinessSettings, getLicenses } from "@/lib/settings";
 import { LogOut, User } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export default async function AdminProfilePage() {
   const session = await requireAdmin("/admin/profile");
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const user = session!.user;
-  const biz = await getBusinessSettings();
+  const [biz, licenses] = await Promise.all([getBusinessSettings(), getLicenses()]);
 
   const adminEmails = (process.env.ADMIN_ALLOWED_EMAILS ?? "")
     .split(",")
@@ -76,7 +76,7 @@ export default async function AdminProfilePage() {
               <Row label="Phone" value={biz.phone} />
               <Row label="Email" value={biz.email} />
               {biz.address ? <Row label="Address" value={[biz.address, biz.city, biz.state, biz.zip].filter(Boolean).join(", ")} /> : null}
-              {(biz.licenseC3 ?? biz.licenseB2) ? <Row label="License" value={[biz.licenseC3, biz.licenseB2].filter(Boolean).join(" / ")} /> : null}
+              {licenses.length > 0 ? <Row label="License" value={licenses.map((l) => `${l.licenseType} ${l.licenseNumber}`).join(" / ")} /> : null}
               {biz.website ? <Row label="Website" value={biz.website.replace(/^https?:\/\//, "")} /> : null}
             </div>
             <div className="mt-4">

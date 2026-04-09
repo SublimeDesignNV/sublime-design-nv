@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { buildQuoteHref } from "@/lib/publicLeadCtas";
+import { getBusinessSettings } from "@/lib/settings";
 import HeroVideo from "@/components/home/HeroVideo";
 
-export default function HeroProject() {
+export default async function HeroProject() {
+  const biz = await getBusinessSettings();
+
+  const headline = biz.heroHeadline ?? "Premium Finish Carpentry for the Signature Spaces";
+  const subheadline = biz.heroSubheadline ?? "Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim upgrades designed, built, and installed in Las Vegas Valley.";
+  const ctaLabel = biz.heroCtaLabel ?? "Start with a Quote";
+
   const quoteHref = buildQuoteHref({
     sourceType: "homepage-hero",
     sourcePath: "/",
-    ctaLabel: "Start with a Quote",
+    ctaLabel,
   });
 
   return (
@@ -20,13 +27,13 @@ export default function HeroProject() {
       <div className="relative mx-auto flex min-h-[72svh] max-w-7xl items-center px-4 py-16 sm:min-h-[78svh] md:px-8">
         <div className="max-w-3xl text-white">
           <p className="font-ui text-xs uppercase tracking-[0.24em] text-red sm:text-sm">
-            Finish Carpentry • Las Vegas Valley
+            {biz.primaryTrade ?? "Finish Carpentry"} • Las Vegas Valley
           </p>
           <h1 className="mt-4 text-4xl leading-tight sm:text-5xl lg:text-6xl">
-            Premium Finish Carpentry for the Signature Spaces
+            {headline}
           </h1>
           <p className="mt-5 max-w-2xl text-sm text-white/85 sm:text-base md:text-lg">
-            Floating shelves, media walls, faux beams, barn doors, mantels, cabinets, and trim upgrades designed, built, and installed in Las Vegas Valley.
+            {subheadline}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -34,7 +41,7 @@ export default function HeroProject() {
               href={quoteHref}
               className="font-ui rounded-sm bg-red px-6 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-dark"
             >
-              Start with a Quote
+              {ctaLabel}
             </Link>
             <Link
               href="/projects"
