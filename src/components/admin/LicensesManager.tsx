@@ -13,19 +13,6 @@ type License = {
   position: number;
 };
 
-const LICENSE_TYPE_OPTIONS = [
-  "C3 Carpentry",
-  "B2 General Contractor",
-  "B General Building",
-  "C-5 Framing & Rough Carpentry",
-  "C-6 Cabinet, Millwork & Finish Carpentry",
-  "ROC (Arizona)",
-  "CSLB (California)",
-  "General Liability Insurance",
-  "Workers Comp Insurance",
-  "Bonded",
-  "Other",
-];
 
 type EditForm = {
   licenseType: string;
@@ -143,8 +130,6 @@ export default function LicensesManager({
     });
   }
 
-  const inputClass = "w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy";
-  const selectClass = `${inputClass} appearance-none`;
 
   return (
     <div className="rounded-xl border border-gray-warm bg-white p-5 space-y-4">
