@@ -54,6 +54,9 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/favicon.svg",
   },
+  other: {
+    "p:domain_verify": "6bb7e896f2f0dfde101cf90838313550",
+  },
 };
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
