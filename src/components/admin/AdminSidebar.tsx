@@ -7,6 +7,7 @@ import {
   Activity,
   Camera,
   FileText,
+  Film,
   FolderOpen,
   Image as ImageIcon,
   LayoutDashboard,
@@ -43,6 +44,7 @@ const NAV_GROUPS = [
       { href: "/admin/photos/unlinked", label: "Unlinked Photos", icon: ImageIcon },
       { href: "/admin/projects", label: "Projects", icon: FolderOpen },
       { href: "/admin/services", label: "Service Images", icon: Layers },
+      { href: "/admin/media", label: "Media Manager", icon: Film },
     ],
   },
   {

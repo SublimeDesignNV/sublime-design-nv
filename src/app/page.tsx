@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import CloudinaryImage from "@/components/CloudinaryImage";
-import HeroProject from "@/components/home/HeroProject";
+import HeroWrapper from "@/components/home/HeroWrapper";
 import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
 import TestimonialsSection from "@/components/home/TestimonialsSection";
@@ -96,7 +96,7 @@ export default async function HomePage() {
   return (
     <main className="bg-white">
       <LocalBusinessSchema />
-      <HeroProject />
+      <HeroWrapper />
       <TrustSignals />
 
       <section className="bg-cream py-20">

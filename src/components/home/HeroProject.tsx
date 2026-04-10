@@ -3,7 +3,18 @@ import { buildQuoteHref } from "@/lib/publicLeadCtas";
 import { getBusinessSettings } from "@/lib/settings";
 import HeroVideo from "@/components/home/HeroVideo";
 
-export default async function HeroProject() {
+const DEFAULT_VIDEO_URL =
+  "https://res.cloudinary.com/dueaqxh8s/video/upload/f_mp4,q_auto,vc_h264/D57CF9BD-00BC-4DDD-B5FD-E89FE30C4ABF_nhonyp.mp4";
+const DEFAULT_POSTER_URL =
+  "https://res.cloudinary.com/dueaqxh8s/video/upload/f_jpg,q_auto,so_0/D57CF9BD-00BC-4DDD-B5FD-E89FE30C4ABF_nhonyp.jpg";
+
+export default async function HeroProject({
+  videoUrl,
+  posterUrl,
+}: {
+  videoUrl?: string | null;
+  posterUrl?: string | null;
+}) {
   const biz = await getBusinessSettings();
 
   const headline = biz.heroHeadline ?? "Premium Finish Carpentry for the Signature Spaces";
@@ -19,8 +30,8 @@ export default async function HeroProject() {
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
       <HeroVideo
-        src="https://res.cloudinary.com/dueaqxh8s/video/upload/f_mp4,q_auto,vc_h264/D57CF9BD-00BC-4DDD-B5FD-E89FE30C4ABF_nhonyp.mp4"
-        poster="https://res.cloudinary.com/dueaqxh8s/video/upload/f_jpg,q_auto,so_0/D57CF9BD-00BC-4DDD-B5FD-E89FE30C4ABF_nhonyp.jpg"
+        src={videoUrl ?? DEFAULT_VIDEO_URL}
+        poster={posterUrl ?? DEFAULT_POSTER_URL}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
 
