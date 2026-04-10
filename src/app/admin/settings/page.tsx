@@ -208,29 +208,6 @@ function ToggleRow({
   );
 }
 
-function IntegrationRow({
-  label,
-  status,
-  value,
-  placeholder,
-}: {
-  label: string;
-  status: "configured" | "not-configured";
-  value?: string;
-  placeholder?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-warm bg-white px-4 py-3">
-      <div>
-        <p className="font-ui text-sm font-medium text-charcoal">{label}</p>
-        {value ? <p className="font-ui text-xs text-gray-mid">{value}</p> : placeholder ? <p className="font-ui text-xs text-gray-mid">{placeholder}</p> : null}
-      </div>
-      <span className={`shrink-0 rounded-full border px-2.5 py-0.5 font-ui text-[10px] uppercase tracking-[0.14em] ${status === "configured" ? "border-green-200 bg-green-50 text-green-700" : "border-gray-200 bg-gray-50 text-gray-400"}`}>
-        {status === "configured" ? "✓ Configured" : "Not configured"}
-      </span>
-    </div>
-  );
-}
 
 function ColorField({
   label,
