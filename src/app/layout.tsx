@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Montserrat, Raleway } from "next/font/google";
 import { headers } from "next/headers";
+import Script from "next/script";
 import Navbar from "@/components/layout/Navbar";
 import BuildDebugBadge from "@/components/layout/BuildDebugBadge";
 import Footer from "@/components/layout/Footer";
@@ -83,6 +84,7 @@ export default async function RootLayout({
         {children}
         {!isStandalone && <BuildDebugBadge />}
         {!isStandalone && <Footer />}
+        <Script src="https://upload-widget.cloudinary.com/global/all.js" strategy="lazyOnload" />
       </body>
     </html>
   );

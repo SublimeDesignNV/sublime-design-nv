@@ -327,11 +327,27 @@ async function listAssetsByServiceLookup(slug: string, limit: number) {
 
 /**
  * Returns the best preview image for a service card.
- * Priority: Cloudinary service-tagged asset → seed image → null (text placeholder).
+ * Priority: DB coverImage → Cloudinary service-tagged asset → seed image → null (text placeholder).
  */
 export async function getServiceCardPreviewAsset(
   slug: string,
 ): Promise<ServicePreviewAsset | null> {
+  // Check for admin-pinned cover image first
+  const dbService = await db.serviceType.findFirst({
+    where: { slug, tagType: "SERVICE" },
+    select: { coverImage: true },
+  }).catch(() => null);
+
+  if (dbService?.coverImage) {
+    return {
+      publicId: undefined,
+      imageUrl: dbService.coverImage,
+      secureUrl: dbService.coverImage,
+      alt: getServiceImageAlt({ serviceSlug: slug }),
+      source: "cloudinary",
+    };
+  }
+
   const publishedAssets = await getPublishedAssetsByServiceSlug(slug);
   const publishedAsset = publishedAssets[0];
 

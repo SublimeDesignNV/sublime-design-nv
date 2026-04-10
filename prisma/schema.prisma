@@ -23,13 +23,14 @@ enum ProjectStatus {
 }
 
 model ServiceType {
-  id        String     @id @default(cuid())
-  slug      String
-  title     String
-  tagType   TagType    @default(SERVICE)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  AssetTags AssetTag[]
+  id         String     @id @default(cuid())
+  slug       String
+  title      String
+  tagType    TagType    @default(SERVICE)
+  coverImage String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  AssetTags  AssetTag[]
 
   @@unique([slug, tagType])
 }

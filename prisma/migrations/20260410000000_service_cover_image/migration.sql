@@ -1,0 +1,1 @@
+ALTER TABLE "ServiceType" ADD COLUMN IF NOT EXISTS "coverImage" TEXT;
