@@ -2,20 +2,13 @@ import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import BeforeAfterSlider from "@/components/home/BeforeAfterSlider";
 import CloudinaryImage from "@/components/CloudinaryImage";
 import HeroWrapper from "@/components/home/HeroWrapper";
-import ProjectStories from "@/components/home/ProjectStories";
 import ServiceCards from "@/components/home/ServiceCards";
-import TestimonialsSection from "@/components/home/TestimonialsSection";
 import TrustSignals from "@/components/home/TrustSignals";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
-import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
-import { getPriorityProjects } from "@/content/projects";
-import { FEATURED_REVIEWS } from "@/content/reviews";
-import { FEATURED_TESTIMONIALS } from "@/content/testimonials";
 import { SITE } from "@/lib/constants";
 import {
   getHomepageFeaturedProjects,
@@ -26,7 +19,6 @@ import {
   getProjectQuoteHref,
   getValidatedProjectPrimaryCta,
 } from "@/lib/projectRecords.server";
-import { BUSINESS_PROFILE } from "@/lib/reviews.config";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
@@ -77,7 +69,6 @@ const getCachedHomepageProjects = unstable_cache(
 );
 
 export default async function HomePage() {
-  const storyProjects = getPriorityProjects(3).slice(0, 3);
   const { spotlightProjects, supportingFeaturedProjects } =
     await getCachedHomepageProjects();
   const leadSpotlightProject = spotlightProjects[0] ?? null;
@@ -238,25 +229,6 @@ export default async function HomePage() {
               Browse recent finished work, then jump into a quote when you are ready to talk through your own project.
             </p>
           ) : null}
-        </div>
-      </section>
-
-      <ProjectStories projects={storyProjects} />
-      <BeforeAfterSlider />
-
-      <TestimonialsSection testimonials={FEATURED_TESTIMONIALS} />
-      <section className="bg-cream py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <ReviewSourcePlaceholder
-            reviews={FEATURED_REVIEWS.slice(0, 3)}
-            eyebrow="Client Reviews"
-            title="Work That Earns Repeat Referrals"
-            subheading="A few recent homeowner reviews tied to real floating shelves, media wall, cabinet, and mantel work around Las Vegas, Henderson, and Summerlin."
-            ctaHref={BUSINESS_PROFILE.reviewProfileUrl || "/projects"}
-            ctaLabel={BUSINESS_PROFILE.reviewProfileUrl ? BUSINESS_PROFILE.reviewCtaLabel : "Read more proof"}
-            pageType="home"
-            eventContext="reviews_read_more_cta"
-          />
         </div>
       </section>
 
