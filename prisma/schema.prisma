@@ -186,6 +186,18 @@ model BusinessSettings {
   updatedBy           String?
 }
 
+model HeroSlide {
+  id        String   @id @default(cuid())
+  url       String
+  publicId  String
+  mediaType String
+  alt       String?
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model SiteMedia {
   id        String   @id @default(cuid())
   key       String   @unique
