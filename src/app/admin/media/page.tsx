@@ -53,7 +53,7 @@ export default function AdminMediaPage() {
     const widget = (window as unknown as { cloudinary: { createUploadWidget: (opts: Record<string, unknown>, cb: (err: unknown, result: { event: string; info: UploadResult }) => void) => { open: () => void } } }).cloudinary.createUploadWidget(
       {
         cloudName: "dueaqxh8s",
-        uploadPreset: "sublime_unsigned",
+        uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
         resourceType: "video",
         clientAllowedFormats: ["mp4", "mov", "webm"],
         maxFileSize: 200000000,
