@@ -19,7 +19,7 @@ export default async function HeroProject() {
   return (
     <section className="relative isolate min-h-[72svh] overflow-hidden bg-charcoal pt-20 sm:min-h-[78svh]">
       <HeroVideo
-        src="https://res.cloudinary.com/dueaqxh8s/video/upload/q_auto,vc_auto/Sublime/Portfolio/g0mgavsmakqgmlasdmsx.mp4"
+        src="https://res.cloudinary.com/dueaqxh8s/video/upload/q_auto,vc_h264/Sublime/Portfolio/g0mgavsmakqgmlasdmsx.mp4"
         poster="https://res.cloudinary.com/dueaqxh8s/image/upload/c_fill,w_1280,h_720,g_auto,f_auto,q_auto/v1/Sublime/Portfolio/g0mgavsmakqgmlasdmsx"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
