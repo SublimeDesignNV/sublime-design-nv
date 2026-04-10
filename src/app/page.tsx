@@ -1,27 +1,13 @@
-import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import CloudinaryImage from "@/components/CloudinaryImage";
 import HeroWrapper from "@/components/home/HeroWrapper";
+import MasonryGrid from "@/components/home/MasonryGrid";
 import ServiceCards from "@/components/home/ServiceCards";
 import TrustSignals from "@/components/home/TrustSignals";
-import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
-import ProjectSectionEmptyState from "@/components/projects/ProjectSectionEmptyState";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
 import { SITE } from "@/lib/constants";
-import {
-  getHomepageFeaturedProjects,
-  getHomepageSpotlightProjects,
-  getProjectExcerpt,
-  getPublicProjectEyebrow,
-  getPublicProjectTitle,
-  getProjectQuoteHref,
-  getValidatedProjectPrimaryCta,
-} from "@/lib/projectRecords.server";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://sublimedesignnv.com";
 
 export const metadata: Metadata = {
   title: "Sublime Design NV | Custom Woodwork Las Vegas",
@@ -53,37 +39,7 @@ const PROCESS_STEPS = [
 
 const CTA_TRUST_ITEMS = ["Free quote", "Local install", "Built to fit", "Clear next steps"] as const;
 
-export const dynamic = "force-dynamic";
-
-const getCachedHomepageProjects = unstable_cache(
-  async () => {
-    const spotlightProjects = await getHomepageSpotlightProjects(3);
-    const leadSpotlightProject = spotlightProjects[0] ?? null;
-    const supportingFeaturedProjects = await getHomepageFeaturedProjects(3, {
-      excludeSlugs: leadSpotlightProject ? [leadSpotlightProject.slug] : [],
-    });
-    return { spotlightProjects, supportingFeaturedProjects };
-  },
-  ["homepage-projects"],
-  { revalidate: 300 },
-);
-
 export default async function HomePage() {
-  const { spotlightProjects, supportingFeaturedProjects } =
-    await getCachedHomepageProjects();
-  const leadSpotlightProject = spotlightProjects[0] ?? null;
-  const homepageProjectsMode = leadSpotlightProject ? "db" : "empty";
-  const leadProjectCta = leadSpotlightProject
-    ? getValidatedProjectPrimaryCta(leadSpotlightProject)
-    : null;
-  const leadProjectQuoteHref = leadSpotlightProject
-    ? getProjectQuoteHref(leadSpotlightProject, {
-        sourceType: "homepage-spotlight",
-        sourcePath: "/",
-        ctaLabel: leadProjectCta?.label ?? "Start Your Project",
-      })
-    : "/quote";
-
   return (
     <main className="bg-white">
       <LocalBusinessSchema />
@@ -117,118 +73,25 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="font-ui text-sm uppercase tracking-widest text-red">Flagship Work</p>
-              <h2 className="mt-3 text-4xl text-charcoal md:text-5xl">Proof Pages That Show the Work</h2>
-              <p className="mt-4 max-w-3xl text-base text-gray-mid">
-                Start with the strongest case studies first. Each flagship project ties together service, location, scope, and real homeowner proof before you ask for a quote.
-              </p>
-            </div>
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-6xl px-4 md:px-8">
+          <div className="mb-8">
+            <p className="font-ui text-sm font-semibold uppercase tracking-widest text-red">
+              Our Work
+            </p>
+            <h2 className="mt-2 text-3xl text-charcoal md:text-4xl">
+              Built in Las Vegas Valley
+            </h2>
+          </div>
+          <MasonryGrid />
+          <div className="mt-8 text-center">
             <Link
               href="/projects"
-              className="font-ui text-sm font-semibold text-navy transition-colors hover:text-red"
+              className="font-ui inline-block rounded-lg bg-navy px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-navy/90"
             >
               View All Projects
             </Link>
           </div>
-
-          <div className="mt-10">
-            {homepageProjectsMode === "db" && leadSpotlightProject ? (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.35fr,0.95fr]">
-                <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                  <div className="grid grid-cols-1 lg:grid-cols-[1.2fr,0.8fr]">
-                    <div className="relative min-h-[320px] bg-cream sm:min-h-[420px]">
-                      {leadSpotlightProject.coverPublicId ? (
-                        <CloudinaryImage
-                          src={leadSpotlightProject.coverPublicId}
-                          alt={getPublicProjectTitle(leadSpotlightProject)}
-                          width={1400}
-                          height={960}
-                          sizes="(max-width: 1024px) 100vw, 60vw"
-                          crop="fill"
-                          gravity="auto:subject"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : leadSpotlightProject.coverImageUrl ? (
-                        <Image
-                          src={leadSpotlightProject.coverImageUrl}
-                          alt={getPublicProjectTitle(leadSpotlightProject)}
-                          fill
-                          sizes="(max-width: 1024px) 100vw, 60vw"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center px-6 text-center">
-                          <p className="font-ui text-xs uppercase tracking-[0.18em] text-gray-mid">
-                            Project photos coming soon
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col justify-between border-t border-gray-200 p-6 lg:border-l lg:border-t-0">
-                      <div>
-                        <p className="font-ui text-xs uppercase tracking-[0.18em] text-red">
-                          {getPublicProjectEyebrow(leadSpotlightProject) || "Homepage Spotlight"}
-                        </p>
-                        <h3 className="mt-3 text-3xl text-charcoal">
-                          {getPublicProjectTitle(leadSpotlightProject)}
-                        </h3>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {leadSpotlightProject.serviceLabel ? (
-                            <span className="rounded-full bg-cream px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-charcoal">
-                              {leadSpotlightProject.serviceLabel}
-                            </span>
-                          ) : null}
-                          {leadSpotlightProject.areaLabel ? (
-                            <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                              {leadSpotlightProject.areaLabel}
-                            </span>
-                          ) : null}
-                          {leadSpotlightProject.location ? (
-                            <span className="rounded-full border border-gray-200 px-3 py-1 font-ui text-[10px] uppercase tracking-[0.16em] text-gray-mid">
-                              {leadSpotlightProject.location}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-5 text-sm leading-7 text-gray-mid">
-                          {getProjectExcerpt(leadSpotlightProject, 220)}
-                        </p>
-                      </div>
-                      <div className="mt-6 flex flex-wrap gap-3">
-                        <Link
-                          href={`/projects/${leadSpotlightProject.slug}`}
-                          className="font-ui inline-flex items-center rounded-sm bg-red px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-                        >
-                          View Project
-                        </Link>
-                        <Link
-                          href={leadProjectCta?.href ?? leadProjectQuoteHref}
-                          className="font-ui inline-flex items-center rounded-sm border border-gray-200 px-5 py-3 text-sm font-semibold text-charcoal transition hover:border-red hover:text-red"
-                        >
-                          {leadProjectCta?.label ?? "Start Your Project"}
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-                <div className="grid grid-cols-1 gap-6">
-                  {supportingFeaturedProjects.map((project) => (
-                    <ProjectRecordCard key={project.id} project={project} pageType="home" />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <ProjectSectionEmptyState copy="Featured project photos are still being added. Start with a quote and we can share examples that fit the job." />
-            )}
-          </div>
-          {homepageProjectsMode === "db" && leadSpotlightProject ? (
-            <p className="mt-6 max-w-3xl text-sm text-gray-mid">
-              Browse recent finished work, then jump into a quote when you are ready to talk through your own project.
-            </p>
-          ) : null}
         </div>
       </section>
 
