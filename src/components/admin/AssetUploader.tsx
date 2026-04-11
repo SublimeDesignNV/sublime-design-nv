@@ -8,7 +8,8 @@ import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudin
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { AREA_NAMES } from "@/content/areas";
 import {
-  GRADE_CUT_OPTIONS,
+  CUT_OPTIONS,
+  GRADE_OPTIONS,
   MATERIAL_GRADES,
   PAINT_BRANDS,
   PAINT_GRADE_SUBSTRATES,
@@ -248,7 +249,8 @@ export default function AssetUploader() {
   const [selectedSheen, setSelectedSheen] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
   const [stainFinishType, setStainFinishType] = useState("");
-  const [selectedGradeCut, setSelectedGradeCut] = useState<string[]>([]);
+  const [selectedGrade, setSelectedGrade] = useState<string[]>([]);
+  const [selectedCut, setSelectedCut] = useState<string[]>([]);
   const [primaryWoodSpecies, setPrimaryWoodSpecies] = useState("");
   const [secondaryWoodSpecies, setSecondaryWoodSpecies] = useState<string[]>([]);
 
@@ -329,7 +331,8 @@ export default function AssetUploader() {
     selectedSheen,
     selectedBrand,
     stainFinishType,
-    ...selectedGradeCut,
+    ...selectedGrade,
+    ...selectedCut,
     primaryWoodSpecies,
     ...secondaryWoodSpecies,
     selectedPaintColor?.name,
@@ -378,12 +381,6 @@ export default function AssetUploader() {
     );
   }
 
-  function toggleGradeCut(val: string) {
-    setSelectedGradeCut((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  }
-
   // ── Effects ───────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -407,7 +404,8 @@ export default function AssetUploader() {
     setSelectedSheen("");
     setSelectedBrand("");
     setStainFinishType("");
-    setSelectedGradeCut([]);
+    setSelectedGrade([]);
+    setSelectedCut([]);
     setPrimaryWoodSpecies("");
     setSecondaryWoodSpecies([]);
     setSelectedPaintColor(null);
@@ -784,11 +782,28 @@ export default function AssetUploader() {
                 />
               </div>
               <div>
-                <CategoryLabel>Grade & Cut</CategoryLabel>
+                <CategoryLabel>Grade</CategoryLabel>
                 <SimpleChips
-                  options={GRADE_CUT_OPTIONS}
-                  selected={selectedGradeCut}
-                  onToggle={toggleGradeCut}
+                  options={GRADE_OPTIONS}
+                  selected={selectedGrade}
+                  onToggle={(val) =>
+                    setSelectedGrade((prev) =>
+                      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val],
+                    )
+                  }
+                  multi
+                />
+              </div>
+              <div>
+                <CategoryLabel>Cut</CategoryLabel>
+                <SimpleChips
+                  options={CUT_OPTIONS}
+                  selected={selectedCut}
+                  onToggle={(val) =>
+                    setSelectedCut((prev) =>
+                      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val],
+                    )
+                  }
                   multi
                 />
               </div>

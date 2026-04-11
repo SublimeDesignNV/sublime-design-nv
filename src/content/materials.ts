@@ -1,11 +1,7 @@
 export const WOOD_SPECIES: string[] = [
   "Walnut",
   "White Oak",
-  "Poplar",
-  "Birch",
-  "Baltic Birch",
   "Hard Maple",
-  "Soft Maple",
   "Maple",
   "Cherry",
   "Hickory",
@@ -100,9 +96,9 @@ export const TFL_SHEENS = [
   { name: "Gloss", value: 75 },
 ] as const;
 
-export const PAINT_GRADE_SUBSTRATES = ["MDF", "HDF", "MDF Core", "Plywood Core"];
+export const PAINT_GRADE_SUBSTRATES = ["MDF", "HDF", "MDF Core", "Plywood Core", "Solid Hardwood"];
 
-export const STAIN_GRADE_SUBSTRATES = ["Plywood Core", "Baltic Birch", "Hardwood Ply"];
+export const STAIN_GRADE_SUBSTRATES = ["Plywood Core", "Baltic Birch", "MDF Core", "Solid Hardwood", "Composite"];
 
 export const TFL_SUBSTRATES = [
   "TFL",
@@ -131,15 +127,23 @@ export const STAIN_FINISH_TYPES = [
   "Hardwax Oil",
 ];
 
-export const GRADE_CUT_OPTIONS = [
+export const GRADE_OPTIONS = [
+  "Shop Grade",
+  "A-Grade",
+  "B/C",
+  "CDX",
+  "Premium",
+  "EXT Grade",
+];
+
+export const CUT_OPTIONS = [
   "Rift Cut",
   "Qtr Sawn",
   "Plain Sliced",
   "Rotary",
+  "Book Matched",
   "IMPORT",
   "DOMESTIC",
-  "A1",
-  "Shop Grade",
 ];
 
 export const PAINT_BRANDS = [
@@ -154,7 +158,8 @@ export const PAINT_BRANDS = [
 
 export const STAIN_BRANDS = [
   "General Finishes",
-  "Sherwin-Williams ML Campbell",
+  "Sherwin-Williams",
+  "ML Campbell",
   "Rubio Monocoat",
   "Mohawk",
   "Varathane",
