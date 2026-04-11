@@ -167,3 +167,18 @@ export const TFL_BRANDS = [
   "Legano",
   "Egger - Linen - Beige Textile",
 ];
+
+export const COLOR_BRANDS = [
+  "Benjamin Moore",
+  "Sherwin-Williams",
+  "Dunn-Edwards",
+  "PPG",
+  "Behr",
+  "Valspar",
+  "Vista Paint",
+  "General Finishes",
+  "Minwax",
+  "Varathane",
+  "Mohawk",
+  "Custom / Other",
+];
