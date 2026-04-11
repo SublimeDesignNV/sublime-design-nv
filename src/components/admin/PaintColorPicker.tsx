@@ -136,8 +136,8 @@ export default function PaintColorPicker({
                     style={{ backgroundColor: color.hex }}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="font-ui text-sm font-medium text-gray-900">{color.name}</p>
-                    <p className="font-ui text-xs text-gray-400">{color.code}</p>
+                    <p className="font-ui text-sm font-bold text-gray-900">{color.code}</p>
+                    <p className="truncate font-ui text-xs text-gray-500">{color.name}</p>
                   </div>
                   <div
                     className="rounded px-2 py-0.5 font-mono text-xs"
@@ -185,8 +185,8 @@ export default function PaintColorPicker({
             style={{ backgroundColor: selected.hex }}
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-ui text-sm font-semibold text-gray-900">{selected.name}</p>
-            <p className="font-ui text-xs text-gray-500">{selected.code} · {selected.brand}</p>
+            <p className="font-ui text-sm font-bold text-gray-900">{selected.code}</p>
+            <p className="truncate font-ui text-xs text-gray-500">{selected.name} · {selected.brand}</p>
           </div>
           <button
             type="button"
