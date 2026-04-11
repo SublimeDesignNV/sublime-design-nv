@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import PaintColorPicker, { type PaintColor } from "@/components/admin/PaintColorPicker";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { AREA_NAMES } from "@/content/areas";
 import {
-  COLOR_BRANDS,
   GRADE_CUT_OPTIONS,
   MATERIAL_GRADES,
   PAINT_BRANDS,
@@ -252,13 +252,9 @@ export default function AssetUploader() {
   const [primaryWoodSpecies, setPrimaryWoodSpecies] = useState("");
   const [secondaryWoodSpecies, setSecondaryWoodSpecies] = useState<string[]>([]);
 
-  // Color spec (Paint + Stain)
-  const [paintColorBrand, setPaintColorBrand] = useState("");
-  const [paintColorName, setPaintColorName] = useState("");
-  const [paintColorCode, setPaintColorCode] = useState("");
-  const [stainColorBrand, setStainColorBrand] = useState("");
-  const [stainColorName, setStainColorName] = useState("");
-  const [stainColorCode, setStainColorCode] = useState("");
+  // Color spec (Paint + Stain) — searchable SW picker
+  const [selectedPaintColor, setSelectedPaintColor] = useState<PaintColor | null>(null);
+  const [selectedStainColor, setSelectedStainColor] = useState<PaintColor | null>(null);
 
   // File info
   const [filenameOverride, setFilenameOverride] = useState("");
@@ -336,12 +332,10 @@ export default function AssetUploader() {
     ...selectedGradeCut,
     primaryWoodSpecies,
     ...secondaryWoodSpecies,
-    paintColorBrand,
-    paintColorName,
-    paintColorCode,
-    stainColorBrand,
-    stainColorName,
-    stainColorCode,
+    selectedPaintColor?.name,
+    selectedPaintColor?.code,
+    selectedStainColor?.name,
+    selectedStainColor?.code,
   ].filter(Boolean);
 
   const canUpload =
@@ -416,12 +410,8 @@ export default function AssetUploader() {
     setSelectedGradeCut([]);
     setPrimaryWoodSpecies("");
     setSecondaryWoodSpecies([]);
-    setPaintColorBrand("");
-    setPaintColorName("");
-    setPaintColorCode("");
-    setStainColorBrand("");
-    setStainColorName("");
-    setStainColorCode("");
+    setSelectedPaintColor(null);
+    setSelectedStainColor(null);
   }, [materialGrade]);
 
   useEffect(() => {
@@ -752,39 +742,17 @@ export default function AssetUploader() {
                 />
               </div>
               {/* Paint Color Spec */}
-              <div className="space-y-4 border-t border-gray-100 pt-4">
+              <div className="space-y-3 border-t border-gray-100 pt-4">
                 <div>
-                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Paint Color Spec</p>
+                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Paint Color</p>
                   <p className="mt-0.5 font-ui text-xs text-gray-400">Document the client&apos;s chosen color — independent of which vendor mixed it.</p>
                 </div>
-                <div>
-                  <CategoryLabel>Color Brand</CategoryLabel>
-                  <SimpleChips
-                    options={COLOR_BRANDS}
-                    selected={paintColorBrand}
-                    onToggle={(val) => setPaintColorBrand(paintColorBrand === val ? "" : val)}
-                  />
-                </div>
-                <div>
-                  <CategoryLabel>Color Name</CategoryLabel>
-                  <input
-                    type="text"
-                    value={paintColorName}
-                    onChange={(e) => setPaintColorName(e.target.value)}
-                    placeholder="e.g. Alabaster, Repose Gray, Swiss Coffee"
-                    className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                  />
-                </div>
-                <div>
-                  <CategoryLabel>Color Code</CategoryLabel>
-                  <input
-                    type="text"
-                    value={paintColorCode}
-                    onChange={(e) => setPaintColorCode(e.target.value)}
-                    placeholder="e.g. SW 7012, OC-17, DE6106"
-                    className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                  />
-                </div>
+                <PaintColorPicker
+                  brand="Sherwin-Williams"
+                  selected={selectedPaintColor}
+                  onSelect={setSelectedPaintColor}
+                  placeholder="Search SW colors by name or code..."
+                />
               </div>
             </div>
           )}
@@ -854,39 +822,17 @@ export default function AssetUploader() {
                 />
               </div>
               {/* Stain Color Spec */}
-              <div className="space-y-4 border-t border-gray-100 pt-4">
+              <div className="space-y-3 border-t border-gray-100 pt-4">
                 <div>
-                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Stain Color Spec</p>
+                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Stain Color</p>
                   <p className="mt-0.5 font-ui text-xs text-gray-400">Document the client&apos;s chosen stain color so the job can be recreated exactly.</p>
                 </div>
-                <div>
-                  <CategoryLabel>Color Brand</CategoryLabel>
-                  <SimpleChips
-                    options={COLOR_BRANDS}
-                    selected={stainColorBrand}
-                    onToggle={(val) => setStainColorBrand(stainColorBrand === val ? "" : val)}
-                  />
-                </div>
-                <div>
-                  <CategoryLabel>Color Name</CategoryLabel>
-                  <input
-                    type="text"
-                    value={stainColorName}
-                    onChange={(e) => setStainColorName(e.target.value)}
-                    placeholder="e.g. Early American, Java, Classic Gray"
-                    className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                  />
-                </div>
-                <div>
-                  <CategoryLabel>Color Code</CategoryLabel>
-                  <input
-                    type="text"
-                    value={stainColorCode}
-                    onChange={(e) => setStainColorCode(e.target.value)}
-                    placeholder="e.g. 230, GF-Java, W-2141"
-                    className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                  />
-                </div>
+                <PaintColorPicker
+                  brand="Sherwin-Williams"
+                  selected={selectedStainColor}
+                  onSelect={setSelectedStainColor}
+                  placeholder="Search SW colors by name or code..."
+                />
               </div>
             </div>
           )}

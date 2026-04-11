@@ -62,6 +62,20 @@ model Asset {
   coverForProjects   Project[]      @relation("ProjectCoverAsset")
 }
 
+model PaintColor {
+  id    String @id @default(cuid())
+  brand String @default("Sherwin-Williams")
+  code  String @unique
+  name  String
+  hex   String
+  r     Int
+  g     Int
+  b     Int
+
+  @@index([name])
+  @@index([code])
+}
+
 model AssetTag {
   assetId       String
   serviceTypeId String
