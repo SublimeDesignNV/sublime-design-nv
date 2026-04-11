@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 
 export interface PaintColor {
   id: string;
@@ -34,7 +34,9 @@ export default function PaintColorPicker({
   const [results, setResults] = useState<PaintColor[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -71,6 +73,19 @@ export default function PaintColorPicker({
 
     return () => clearTimeout(debounceRef.current);
   }, [query, brand]);
+
+  useEffect(() => {
+    if (open && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [open, results]);
 
   const handleSelect = (color: PaintColor) => {
     onSelect(color);
@@ -111,6 +126,7 @@ export default function PaintColorPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => results.length > 0 && setOpen(true)}
+            ref={inputRef}
             placeholder={placeholder}
             className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 pr-8 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
           />
@@ -126,7 +142,10 @@ export default function PaintColorPicker({
       )}
 
       {open && results.length > 0 && !selected && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div
+          style={dropdownStyle}
+          className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
+        >
           {results.map((color) => (
             <button
               key={color.id}
@@ -158,7 +177,10 @@ export default function PaintColorPicker({
       )}
 
       {open && query.length >= 2 && results.length === 0 && !loading && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+        <div
+          style={dropdownStyle}
+          className="rounded-xl border border-gray-200 bg-white p-3 shadow-xl"
+        >
           <p className="text-center font-ui text-sm text-gray-500">
             No colors found for &ldquo;{query}&rdquo;
           </p>
