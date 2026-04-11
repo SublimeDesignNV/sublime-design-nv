@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
-  const brand = req.nextUrl.searchParams.get("brand") ?? "Sherwin-Williams";
+  const brand = req.nextUrl.searchParams.get("brand");
+  const limitParam = req.nextUrl.searchParams.get("limit");
+  const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 20, 100) : 20;
 
   if (!q || q.length < 2) {
     return NextResponse.json([]);
@@ -13,15 +15,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json([]);
   }
 
+  const brandFilter = brand && brand !== "All Brands" ? { brand } : {};
+
   const colors = await db.paintColor.findMany({
     where: {
-      brand,
+      ...brandFilter,
       OR: [
         { name: { contains: q, mode: "insensitive" } },
         { code: { contains: q, mode: "insensitive" } },
       ],
     },
-    take: 20,
+    take: limit,
     orderBy: { name: "asc" },
   });
 

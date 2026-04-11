@@ -27,6 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/projects`, lastModified: now },
     { url: `${siteUrl}/services`, lastModified: now },
     { url: `${siteUrl}/quote`, lastModified: now },
+    { url: `${siteUrl}/colors`, lastModified: now },
+    { url: `${siteUrl}/materials`, lastModified: now },
   ];
 
   // Canonical service routes from the content registry
@@ -203,6 +205,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   } catch { /* db unavailable at build time — skip */ }
 
+  // Type D: Material detail pages — only materials that have published assets
+  let materialDetailRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const matAssets = await db.asset.findMany({
+      where: { published: true, kind: "IMAGE" },
+      select: { materials: true },
+    });
+    const matSlugs = new Set<string>();
+    for (const asset of matAssets) {
+      for (const mat of asset.materials ?? []) {
+        const s = mat.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        if (s) matSlugs.add(s);
+      }
+    }
+    materialDetailRoutes = Array.from(matSlugs).map((slug) => ({
+      url: `${siteUrl}/materials/${slug}`,
+      lastModified: now,
+    }));
+  } catch { /* db unavailable at build time — skip */ }
+
   return [
     ...staticRoutes,
     ...areaRoutes,
@@ -216,5 +238,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...locationServiceRoutes,
     ...materialServiceRoutes,
     ...colorRoutes,
+    ...materialDetailRoutes,
   ];
 }

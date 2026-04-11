@@ -118,6 +118,12 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
             OUR WORK
           </Link>
           <Link
+            href="/colors"
+            className="font-ui text-sm font-semibold tracking-wide text-charcoal transition-colors hover:text-red"
+          >
+            COLORS
+          </Link>
+          <Link
             href="/about"
             className="font-ui text-sm font-semibold tracking-wide text-charcoal transition-colors hover:text-red"
           >
@@ -194,6 +200,13 @@ export default function Navbar({ isAdmin = false }: { isAdmin?: boolean }) {
               onClick={closeMenus}
             >
               OUR WORK
+            </Link>
+            <Link
+              href="/colors"
+              className="font-ui text-sm font-semibold tracking-wide text-charcoal"
+              onClick={closeMenus}
+            >
+              COLORS
             </Link>
             <Link
               href="/about"
