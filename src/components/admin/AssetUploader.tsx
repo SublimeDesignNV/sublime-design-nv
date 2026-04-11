@@ -6,7 +6,22 @@ import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { AREA_NAMES } from "@/content/areas";
-import { BRANDS, FINISH_TYPE, GRADE_CUT, SHEET_GOODS, WOOD_SPECIES } from "@/content/materials";
+import {
+  GRADE_CUT_OPTIONS,
+  MATERIAL_GRADES,
+  PAINT_BRANDS,
+  PAINT_GRADE_SUBSTRATES,
+  PAINT_SHEENS,
+  STAIN_BRANDS,
+  STAIN_FINISH_TYPES,
+  STAIN_GRADE_SUBSTRATES,
+  STAIN_SHEENS,
+  TFL_BRANDS,
+  TFL_SUBSTRATES,
+  TFL_SHEENS,
+  WOOD_SPECIES,
+  type MaterialGrade,
+} from "@/content/materials";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -151,6 +166,43 @@ function ChipGroup({
   );
 }
 
+// ── SimpleChips — single-select or multi-select (no primary/secondary) ─────────
+
+function SimpleChips({
+  options,
+  selected,
+  onToggle,
+  multi = false,
+}: {
+  options: string[];
+  selected: string | string[];
+  onToggle: (val: string) => void;
+  multi?: boolean;
+}) {
+  const isActive = (opt: string) =>
+    multi ? (selected as string[]).includes(opt) : selected === opt;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onToggle(opt)}
+          className="rounded-full border px-3 py-1.5 font-ui text-sm font-medium transition-colors"
+          style={{
+            backgroundColor: isActive(opt) ? "#CC2027" : "white",
+            color: isActive(opt) ? "white" : "#374151",
+            borderColor: isActive(opt) ? "#CC2027" : "#d1d5db",
+          }}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── CategoryLabel ──────────────────────────────────────────────────────────────
 
 function CategoryLabel({ children }: { children: React.ReactNode }) {
@@ -189,17 +241,15 @@ export default function AssetUploader() {
   const [primaryFeature, setPrimaryFeature] = useState("");
   const [secondaryFeatures, setSecondaryFeatures] = useState<string[]>([]);
 
-  // Materials
+  // Material — three-path system
+  const [materialGrade, setMaterialGrade] = useState<MaterialGrade | "">("");
+  const [selectedSubstrates, setSelectedSubstrates] = useState<string[]>([]);
+  const [selectedSheen, setSelectedSheen] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [stainFinishType, setStainFinishType] = useState("");
+  const [selectedGradeCut, setSelectedGradeCut] = useState<string[]>([]);
   const [primaryWoodSpecies, setPrimaryWoodSpecies] = useState("");
   const [secondaryWoodSpecies, setSecondaryWoodSpecies] = useState<string[]>([]);
-  const [primarySheetGoods, setPrimarySheetGoods] = useState("");
-  const [secondarySheetGoods, setSecondarySheetGoods] = useState<string[]>([]);
-  const [primaryGrade, setPrimaryGrade] = useState("");
-  const [secondaryGrade, setSecondaryGrade] = useState<string[]>([]);
-  const [primaryFinish, setPrimaryFinish] = useState("");
-  const [secondaryFinish, setSecondaryFinish] = useState<string[]>([]);
-  const [primaryBrand, setPrimaryBrand] = useState("");
-  const [secondaryBrands, setSecondaryBrands] = useState<string[]>([]);
 
   // File info
   const [filenameOverride, setFilenameOverride] = useState("");
@@ -234,10 +284,9 @@ export default function AssetUploader() {
   const contextBadge =
     (primaryRoom ? 1 : 0) + secondaryRooms.length +
     (primaryFeature ? 1 : 0) + secondaryFeatures.length;
-  const materialBadge =
-    [primaryWoodSpecies, primarySheetGoods, primaryGrade, primaryFinish, primaryBrand].filter(Boolean).length +
-    secondaryWoodSpecies.length + secondarySheetGoods.length + secondaryGrade.length +
-    secondaryFinish.length + secondaryBrands.length;
+  const materialBadge = materialGrade
+    ? 1 + selectedSubstrates.length + (selectedSheen ? 1 : 0) + (selectedBrand ? 1 : 0)
+    : 0;
   const metadataBadge = Object.values(serviceMetadata).filter(Boolean).length;
 
   const autoFilename = useMemo(() => {
@@ -268,13 +317,16 @@ export default function AssetUploader() {
     .map((label) => CONTEXT_TAGS.find((c) => c.label === label)?.slug)
     .filter((s): s is string => Boolean(s));
 
-  // All materials for API
+  // Flatten material selections for API (materials String[])
   const allMaterials = [
-    primaryWoodSpecies, ...secondaryWoodSpecies,
-    primarySheetGoods, ...secondarySheetGoods,
-    primaryGrade, ...secondaryGrade,
-    primaryFinish, ...secondaryFinish,
-    primaryBrand, ...secondaryBrands,
+    materialGrade,
+    ...selectedSubstrates,
+    selectedSheen,
+    selectedBrand,
+    stainFinishType,
+    ...selectedGradeCut,
+    primaryWoodSpecies,
+    ...secondaryWoodSpecies,
   ].filter(Boolean);
 
   const canUpload =
@@ -310,10 +362,18 @@ export default function AssetUploader() {
   const toggleRoom = makeToggle(primaryRoom, setPrimaryRoom, secondaryRooms, setSecondaryRooms);
   const toggleFeature = makeToggle(primaryFeature, setPrimaryFeature, secondaryFeatures, setSecondaryFeatures);
   const toggleWoodSpecies = makeToggle(primaryWoodSpecies, setPrimaryWoodSpecies, secondaryWoodSpecies, setSecondaryWoodSpecies);
-  const toggleSheetGoods = makeToggle(primarySheetGoods, setPrimarySheetGoods, secondarySheetGoods, setSecondarySheetGoods);
-  const toggleGrade = makeToggle(primaryGrade, setPrimaryGrade, secondaryGrade, setSecondaryGrade);
-  const toggleFinish = makeToggle(primaryFinish, setPrimaryFinish, secondaryFinish, setSecondaryFinish);
-  const toggleBrand = makeToggle(primaryBrand, setPrimaryBrand, secondaryBrands, setSecondaryBrands);
+
+  function toggleSubstrate(val: string) {
+    setSelectedSubstrates((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  }
+
+  function toggleGradeCut(val: string) {
+    setSelectedGradeCut((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  }
 
   // ── Effects ───────────────────────────────────────────────────────────────────
 
@@ -331,6 +391,17 @@ export default function AssetUploader() {
   useEffect(() => {
     setServiceMetadata({});
   }, [primaryService]);
+
+  // Reset all material state when grade path changes
+  useEffect(() => {
+    setSelectedSubstrates([]);
+    setSelectedSheen("");
+    setSelectedBrand("");
+    setStainFinishType("");
+    setSelectedGradeCut([]);
+    setPrimaryWoodSpecies("");
+    setSecondaryWoodSpecies([]);
+  }, [materialGrade]);
 
   useEffect(() => {
     return () => {
@@ -552,8 +623,8 @@ export default function AssetUploader() {
           )}
         </AccordionSection>
 
-        {/* 2 — Service */}
-        <AccordionSection title="Service" badge={totalServiceCount} defaultOpen>
+        {/* 2 — Service + inline Service Details */}
+        <AccordionSection title="Service" badge={totalServiceCount + metadataBadge} defaultOpen>
           <ChipGroup
             options={SERVICE_TAGS.map((s) => s.label)}
             primary={primaryServiceLabel}
@@ -565,20 +636,18 @@ export default function AssetUploader() {
               Primary: <strong>{primaryServiceLabel}</strong> · Also: {secondaryServiceLabels.join(", ")}
             </p>
           )}
+          {primaryService && (
+            <div className="mt-4 border-t border-gray-100 pt-4">
+              <ServiceMetadataFields
+                service={primaryService}
+                values={serviceMetadata}
+                onChange={(key, value) => setServiceMetadata((c) => ({ ...c, [key]: value }))}
+              />
+            </div>
+          )}
         </AccordionSection>
 
-        {/* 3 — Service Details */}
-        {primaryService && (
-          <AccordionSection title="Service Details" badge={metadataBadge}>
-            <ServiceMetadataFields
-              service={primaryService}
-              values={serviceMetadata}
-              onChange={(key, value) => setServiceMetadata((c) => ({ ...c, [key]: value }))}
-            />
-          </AccordionSection>
-        )}
-
-        {/* 4 — Project Context */}
+        {/* 3 — Project Context */}
         <AccordionSection title="Project Context" badge={contextBadge}>
           <div className="space-y-4">
             <div>
@@ -602,58 +671,170 @@ export default function AssetUploader() {
           </div>
         </AccordionSection>
 
-        {/* 5 — Material Type */}
+        {/* 4 — Material Type — three-path */}
         <AccordionSection title="Material Type" badge={materialBadge}>
-          <div className="space-y-5">
-            <div>
-              <CategoryLabel>Wood Species</CategoryLabel>
-              <ChipGroup
-                options={WOOD_SPECIES}
-                primary={primaryWoodSpecies}
-                secondary={secondaryWoodSpecies}
-                onToggle={toggleWoodSpecies}
-              />
-            </div>
-            <div>
-              <CategoryLabel>Sheet Goods & Engineered</CategoryLabel>
-              <ChipGroup
-                options={SHEET_GOODS}
-                primary={primarySheetGoods}
-                secondary={secondarySheetGoods}
-                onToggle={toggleSheetGoods}
-              />
-            </div>
-            <div>
-              <CategoryLabel>Grade & Cut</CategoryLabel>
-              <ChipGroup
-                options={GRADE_CUT}
-                primary={primaryGrade}
-                secondary={secondaryGrade}
-                onToggle={toggleGrade}
-              />
-            </div>
-            <div>
-              <CategoryLabel>Finish Type</CategoryLabel>
-              <ChipGroup
-                options={FINISH_TYPE}
-                primary={primaryFinish}
-                secondary={secondaryFinish}
-                onToggle={toggleFinish}
-              />
-            </div>
-            <div>
-              <CategoryLabel>Brands & Product Lines</CategoryLabel>
-              <ChipGroup
-                options={BRANDS}
-                primary={primaryBrand}
-                secondary={secondaryBrands}
-                onToggle={toggleBrand}
-              />
+          {/* Grade toggle */}
+          <div className="mb-5">
+            <CategoryLabel>Grade</CategoryLabel>
+            <div className="flex flex-wrap gap-2">
+              {MATERIAL_GRADES.map((grade) => (
+                <button
+                  key={grade}
+                  type="button"
+                  onClick={() => setMaterialGrade(grade === materialGrade ? "" : grade)}
+                  className="rounded-full border px-4 py-2 font-ui text-sm font-semibold transition-colors"
+                  style={{
+                    backgroundColor: materialGrade === grade ? "#1B2A6B" : "white",
+                    color: materialGrade === grade ? "white" : "#374151",
+                    borderColor: materialGrade === grade ? "#1B2A6B" : "#d1d5db",
+                  }}
+                >
+                  {grade}
+                </button>
+              ))}
             </div>
           </div>
+
+          {/* Empty state */}
+          {!materialGrade && (
+            <p className="font-ui text-sm text-gray-400">
+              Select Paint Grade, Stain Grade, or TFL / Melamine to see relevant options.
+            </p>
+          )}
+
+          {/* ── Paint Grade path ── */}
+          {materialGrade === "Paint Grade" && (
+            <div className="space-y-5">
+              <div>
+                <CategoryLabel>Substrate</CategoryLabel>
+                <SimpleChips
+                  options={PAINT_GRADE_SUBSTRATES}
+                  selected={selectedSubstrates}
+                  onToggle={toggleSubstrate}
+                  multi
+                />
+              </div>
+              <div>
+                <CategoryLabel>Sheen Level</CategoryLabel>
+                <SimpleChips
+                  options={PAINT_SHEENS.map((s) => `${s.name} — ${s.value}`)}
+                  selected={selectedSheen}
+                  onToggle={(val) => setSelectedSheen(selectedSheen === val ? "" : val)}
+                />
+              </div>
+              <div>
+                <CategoryLabel>Paint Brand</CategoryLabel>
+                <SimpleChips
+                  options={PAINT_BRANDS}
+                  selected={selectedBrand}
+                  onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Stain Grade path ── */}
+          {materialGrade === "Stain Grade" && (
+            <div className="space-y-5">
+              <div>
+                <CategoryLabel>Wood Species</CategoryLabel>
+                <ChipGroup
+                  options={WOOD_SPECIES}
+                  primary={primaryWoodSpecies}
+                  secondary={secondaryWoodSpecies}
+                  onToggle={toggleWoodSpecies}
+                />
+                {secondaryWoodSpecies.length > 0 && (
+                  <p className="mt-1 font-ui text-xs text-gray-400">
+                    Primary: <strong>{primaryWoodSpecies}</strong> · Also: {secondaryWoodSpecies.join(", ")}
+                  </p>
+                )}
+              </div>
+              <div>
+                <CategoryLabel>Substrate</CategoryLabel>
+                <SimpleChips
+                  options={STAIN_GRADE_SUBSTRATES}
+                  selected={selectedSubstrates}
+                  onToggle={toggleSubstrate}
+                  multi
+                />
+              </div>
+              <div>
+                <CategoryLabel>Grade & Cut</CategoryLabel>
+                <SimpleChips
+                  options={GRADE_CUT_OPTIONS}
+                  selected={selectedGradeCut}
+                  onToggle={toggleGradeCut}
+                  multi
+                />
+              </div>
+              <div>
+                <CategoryLabel>Finish Type</CategoryLabel>
+                <select
+                  value={stainFinishType}
+                  onChange={(e) => setStainFinishType(e.target.value)}
+                  className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                >
+                  <option value="">Select finish type...</option>
+                  {STAIN_FINISH_TYPES.map((f) => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <CategoryLabel>Sheen Level</CategoryLabel>
+                <SimpleChips
+                  options={STAIN_SHEENS.map((s) => `${s.name} — ${s.value}`)}
+                  selected={selectedSheen}
+                  onToggle={(val) => setSelectedSheen(selectedSheen === val ? "" : val)}
+                />
+              </div>
+              <div>
+                <CategoryLabel>Finish Brand</CategoryLabel>
+                <SimpleChips
+                  options={STAIN_BRANDS}
+                  selected={selectedBrand}
+                  onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── TFL / Melamine path ── */}
+          {materialGrade === "TFL / Melamine" && (
+            <div className="space-y-5">
+              <div>
+                <CategoryLabel>Surface Product</CategoryLabel>
+                <SimpleChips
+                  options={TFL_SUBSTRATES}
+                  selected={selectedSubstrates}
+                  onToggle={toggleSubstrate}
+                  multi
+                />
+              </div>
+              <div>
+                <CategoryLabel>Surface Sheen</CategoryLabel>
+                <SimpleChips
+                  options={TFL_SHEENS.map((s) =>
+                    s.value > 0 ? `${s.name} — ${s.value}` : s.name,
+                  )}
+                  selected={selectedSheen}
+                  onToggle={(val) => setSelectedSheen(selectedSheen === val ? "" : val)}
+                />
+              </div>
+              <div>
+                <CategoryLabel>Brand</CategoryLabel>
+                <SimpleChips
+                  options={TFL_BRANDS}
+                  selected={selectedBrand}
+                  onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
+                />
+              </div>
+            </div>
+          )}
         </AccordionSection>
 
-        {/* 6 — Description & Notes */}
+        {/* 5 — Description & Notes */}
         <AccordionSection title="Description & Notes">
           <textarea
             value={description}
@@ -663,10 +844,9 @@ export default function AssetUploader() {
           />
         </AccordionSection>
 
-        {/* 7 — File Info */}
+        {/* 6 — File Info */}
         <AccordionSection title="File Info">
           <div className="space-y-4">
-            {/* Auto filename */}
             <div>
               <CategoryLabel>Auto Filename</CategoryLabel>
               <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -682,8 +862,6 @@ export default function AssetUploader() {
                 Generated from your selections. Override below if needed.
               </p>
             </div>
-
-            {/* Optional override */}
             <div>
               <CategoryLabel>Override Filename <span className="font-normal normal-case">(optional)</span></CategoryLabel>
               <input
@@ -694,8 +872,6 @@ export default function AssetUploader() {
                 placeholder="Leave blank to use auto filename"
               />
             </div>
-
-            {/* Title */}
             <div>
               <CategoryLabel>Title</CategoryLabel>
               <input
