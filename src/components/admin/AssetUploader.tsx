@@ -329,6 +329,10 @@ export default function AssetUploader() {
   }, [autoTitle, titleEdited]);
 
   useEffect(() => {
+    setServiceMetadata({});
+  }, [primaryService]);
+
+  useEffect(() => {
     return () => {
       previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
     };
