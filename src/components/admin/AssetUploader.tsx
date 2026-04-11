@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
+import { AREA_NAMES } from "@/content/areas";
 
 type UploadStatus = {
   name: string;
@@ -72,10 +73,7 @@ const MATERIAL_CATEGORIES = [
   },
 ] as const;
 
-const LOCATION_PRESETS = [
-  "Summerlin", "Henderson", "Lake Las Vegas", "Anthem",
-  "Red Rock", "North Las Vegas", "Downtown Las Vegas", "Other",
-];
+const LOCATION_PRESETS = AREA_NAMES;
 
 export default function AssetUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -255,6 +255,12 @@ export const AREA_LIST: AreaDef[] = [
 
 export const ACTIVE_AREAS = AREA_LIST.filter((area) => (area.status ?? "active") === "active");
 
+/** Ordered display names for upload/project location pickers — includes "Other" at the end. */
+export const AREA_NAMES = [
+  ...ACTIVE_AREAS.map((area) => area.name),
+  "Other",
+] as const;
+
 export function findArea(slug: string) {
   return AREA_LIST.find((area) => area.slug === slug);
 }
