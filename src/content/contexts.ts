@@ -13,12 +13,19 @@ export const CONTEXTS: ContextDef[] = [
   { slug: "laundry-room", label: "Laundry Room", group: "room" },
   { slug: "bedroom", label: "Bedroom", group: "room" },
   { slug: "office", label: "Office", group: "room" },
+  { slug: "primary-bed-bath", label: "Primary Bed/Bath", group: "room" },
+  { slug: "great-room", label: "Great Room", group: "room" },
+  { slug: "loft", label: "Loft", group: "room" },
   { slug: "tv-wall", label: "TV Wall", group: "feature" },
   { slug: "fireplace-wall", label: "Fireplace Wall", group: "feature" },
   { slug: "pantry", label: "Pantry", group: "feature" },
   { slug: "closet", label: "Closet", group: "feature" },
   { slug: "garage", label: "Garage", group: "feature" },
   { slug: "entryway", label: "Entryway", group: "feature" },
+  { slug: "storage", label: "Storage", group: "feature" },
+  { slug: "organization", label: "Organization", group: "feature" },
+  { slug: "floating-vanity", label: "Floating Vanity", group: "feature" },
+  { slug: "led-lighting", label: "LED Lighting", group: "feature" },
 ];
 
 export type ContextSlug = (typeof CONTEXTS)[number]["slug"];

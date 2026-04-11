@@ -35,6 +35,43 @@ function buildAutoText(serviceLabel: string, descriptor: string, location: strin
   return parts.join(" ");
 }
 
+const MATERIAL_CATEGORIES = [
+  {
+    label: "Wood Species",
+    options: [
+      "Walnut", "White Oak", "Poplar", "Birch", "Baltic Birch",
+      "Hard Maple", "Soft Maple", "Maple", "Cherry", "Hickory", "Red Oak",
+    ],
+  },
+  {
+    label: "Sheet Goods & Engineered",
+    options: [
+      "MDF", "HDF", "MDF Core", "Plywood Core", "TFL", "HPL",
+      "PLAM", "CLEAF", "SALT", "StyleLite", "Mirulx",
+    ],
+  },
+  {
+    label: "Grade & Cut",
+    options: [
+      "Paint Grade", "Stain Grade", "Shop Grade", "A1", "Rift Cut",
+      "Qtr Sawn", "Plain Sliced", "Rotary", "EXT Grade", "IMPORT", "DOMESTIC",
+    ],
+  },
+  {
+    label: "Finish Type",
+    options: [
+      "Matte", "Suede", "Textured", "EIR", "Super Matte (SM)", "Gloss",
+      "Semi-Gloss", "Satin", "Flat", "Low Sheen", "UV1", "UV2",
+    ],
+  },
+  {
+    label: "Brands & Product Lines",
+    options: [
+      "Egger", "Stevenswood", "Artika", "Legano", "Egger - Linen - Beige Textile",
+    ],
+  },
+] as const;
+
 const LOCATION_PRESETS = [
   "Summerlin", "Henderson", "Lake Las Vegas", "Anthem",
   "Red Rock", "North Las Vegas", "Downtown Las Vegas", "Other",
@@ -62,6 +99,7 @@ export default function AssetUploader() {
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [lastCompletedBatch, setLastCompletedBatch] = useState<{
     uploadBatchId: string;
     assetIds: string[];
@@ -174,6 +212,14 @@ export default function AssetUploader() {
     );
   }
 
+  function toggleMaterial(material: string) {
+    setSelectedMaterials((prev) =>
+      prev.includes(material)
+        ? prev.filter((m) => m !== material)
+        : [...prev, material],
+    );
+  }
+
   function toggleDetails() {
     setDetailsOpen((prev) => {
       const next = !prev;
@@ -239,6 +285,7 @@ export default function AssetUploader() {
             published,
             tagSlugs,
             contextSlugs,
+            materials: selectedMaterials,
           }),
         });
 
@@ -283,7 +330,7 @@ export default function AssetUploader() {
 
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-4 shadow-sm md:p-6">
-      <h2 className="text-2xl text-charcoal">Upload Photos</h2>
+      <h2 className="text-2xl text-charcoal">Upload Media</h2>
 
       <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
 
@@ -480,7 +527,7 @@ export default function AssetUploader() {
                 if (!e.target.checked) setSecondaryServices([]);
               }}
             />
-            This photo shows multiple services
+            This photo/video shows multiple services
           </label>
           {showSecondary && (
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -530,6 +577,38 @@ export default function AssetUploader() {
                         onChange={() => toggleContext(context.slug)}
                       />
                       <span>{context.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Material Type */}
+        <fieldset>
+          <legend className="font-ui text-sm font-semibold text-charcoal">
+            Material Type <span className="font-normal text-gray-mid">(optional)</span>
+          </legend>
+          <div className="mt-3 space-y-4">
+            {MATERIAL_CATEGORIES.map((category) => (
+              <div key={category.label}>
+                <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                  {category.label}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-3">
+                  {category.options.map((option) => (
+                    <label
+                      key={option}
+                      className="flex cursor-pointer items-center gap-2"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMaterials.includes(option)}
+                        onChange={() => toggleMaterial(option)}
+                        className="rounded border-gray-300 accent-red"
+                      />
+                      <span className="font-ui text-sm text-charcoal">{option}</span>
                     </label>
                   ))}
                 </div>

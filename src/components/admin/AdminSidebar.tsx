@@ -40,7 +40,7 @@ const NAV_GROUPS = [
   {
     label: "Portfolio",
     links: [
-      { href: "/admin/uploads", label: "Upload Photos", icon: Upload },
+      { href: "/admin/uploads", label: "Upload Media", icon: Upload },
       { href: "/admin/photos/unlinked", label: "Unlinked Photos", icon: ImageIcon },
       { href: "/admin/projects", label: "Projects", icon: FolderOpen },
       { href: "/admin/services", label: "Service Images", icon: Layers },

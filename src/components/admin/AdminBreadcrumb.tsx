@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const BREADCRUMB_MAP: Record<string, string> = {
   "/admin": "Dashboard",
-  "/admin/uploads": "Upload Photos",
+  "/admin/uploads": "Upload Media",
   "/admin/photos/unlinked": "Unlinked Photos",
   "/admin/projects": "Projects",
   "/admin/leads": "Quote Leads",

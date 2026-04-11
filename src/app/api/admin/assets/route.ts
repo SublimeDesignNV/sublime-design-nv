@@ -33,6 +33,7 @@ type CreateAssetBody = {
   tagSlugs?: string[];
   contextSlugs?: string[];
   uploadBatchId?: string;
+  materials?: string[];
 };
 
 const ASSET_SELECT = {
@@ -315,6 +316,7 @@ export async function POST(request: NextRequest) {
           alt: alt || null,
           uploadBatchId,
           published: Boolean(body.published),
+          materials: Array.isArray(body.materials) ? body.materials : [],
           tags: {
             create: tagRecords.map((tag) => ({
               serviceTypeId: tag.id,
