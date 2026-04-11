@@ -530,22 +530,7 @@ export default function AssetUploader() {
 
       <form className="mt-4 space-y-2" onSubmit={handleSubmit}>
 
-        {/* 1 — Service */}
-        <AccordionSection title="Service" badge={totalServiceCount} defaultOpen>
-          <ChipGroup
-            options={SERVICE_TAGS.map((s) => s.label)}
-            primary={primaryServiceLabel}
-            secondary={secondaryServiceLabels}
-            onToggle={toggleService}
-          />
-          {secondaryServiceLabels.length > 0 && (
-            <p className="mt-2 font-ui text-xs text-gray-mid">
-              Primary: <strong>{primaryServiceLabel}</strong> · Also: {secondaryServiceLabels.join(", ")}
-            </p>
-          )}
-        </AccordionSection>
-
-        {/* 2 — Location */}
+        {/* 1 — Location */}
         <AccordionSection title="Location" badge={locationBadge} defaultOpen>
           <ChipGroup
             options={[...AREA_NAMES]}
@@ -567,52 +552,31 @@ export default function AssetUploader() {
           )}
         </AccordionSection>
 
-        {/* 3 — File Info */}
-        <AccordionSection title="File Info" defaultOpen>
-          <div className="space-y-4">
-            {/* Auto filename */}
-            <div>
-              <CategoryLabel>Auto Filename</CategoryLabel>
-              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <span className="flex-1 font-mono text-sm text-gray-700">{finalFilename}</span>
-                <span className="font-ui text-xs text-gray-400">.jpg / .mp4</span>
-              </div>
-              {previewPublicId && (
-                <p className="mt-1 rounded-sm bg-navy/5 px-3 py-1.5 font-mono text-[11px] text-navy">
-                  📁 {previewPublicId}
-                </p>
-              )}
-              <p className="mt-1 font-ui text-xs text-gray-400">
-                Generated from your selections. Override below if needed.
-              </p>
-            </div>
-
-            {/* Optional override */}
-            <div>
-              <CategoryLabel>Override Filename <span className="font-normal normal-case">(optional)</span></CategoryLabel>
-              <input
-                type="text"
-                value={filenameOverride}
-                onChange={(e) => setFilenameOverride(e.target.value)}
-                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                placeholder="Leave blank to use auto filename"
-              />
-            </div>
-
-            {/* Title */}
-            <div>
-              <CategoryLabel>Title</CategoryLabel>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
-                onBlur={() => { if (!title.trim()) setTitleEdited(false); }}
-                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                placeholder="Auto-generated from selections"
-              />
-            </div>
-          </div>
+        {/* 2 — Service */}
+        <AccordionSection title="Service" badge={totalServiceCount} defaultOpen>
+          <ChipGroup
+            options={SERVICE_TAGS.map((s) => s.label)}
+            primary={primaryServiceLabel}
+            secondary={secondaryServiceLabels}
+            onToggle={toggleService}
+          />
+          {secondaryServiceLabels.length > 0 && (
+            <p className="mt-2 font-ui text-xs text-gray-mid">
+              Primary: <strong>{primaryServiceLabel}</strong> · Also: {secondaryServiceLabels.join(", ")}
+            </p>
+          )}
         </AccordionSection>
+
+        {/* 3 — Service Details */}
+        {primaryService && (
+          <AccordionSection title="Service Details" badge={metadataBadge}>
+            <ServiceMetadataFields
+              service={primaryService}
+              values={serviceMetadata}
+              onChange={(key, value) => setServiceMetadata((c) => ({ ...c, [key]: value }))}
+            />
+          </AccordionSection>
+        )}
 
         {/* 4 — Project Context */}
         <AccordionSection title="Project Context" badge={contextBadge}>
@@ -689,18 +653,7 @@ export default function AssetUploader() {
           </div>
         </AccordionSection>
 
-        {/* 6 — Service Details */}
-        {primaryService && (
-          <AccordionSection title="Service Details" badge={metadataBadge}>
-            <ServiceMetadataFields
-              service={primaryService}
-              values={serviceMetadata}
-              onChange={(key, value) => setServiceMetadata((c) => ({ ...c, [key]: value }))}
-            />
-          </AccordionSection>
-        )}
-
-        {/* 7 — Description & Notes */}
+        {/* 6 — Description & Notes */}
         <AccordionSection title="Description & Notes">
           <textarea
             value={description}
@@ -708,6 +661,53 @@ export default function AssetUploader() {
             className="min-h-[80px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
             placeholder="Short scope summary, finish notes, or install details"
           />
+        </AccordionSection>
+
+        {/* 7 — File Info */}
+        <AccordionSection title="File Info">
+          <div className="space-y-4">
+            {/* Auto filename */}
+            <div>
+              <CategoryLabel>Auto Filename</CategoryLabel>
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <span className="flex-1 font-mono text-sm text-gray-700">{finalFilename}</span>
+                <span className="font-ui text-xs text-gray-400">.jpg / .mp4</span>
+              </div>
+              {previewPublicId && (
+                <p className="mt-1 rounded-sm bg-navy/5 px-3 py-1.5 font-mono text-[11px] text-navy">
+                  📁 {previewPublicId}
+                </p>
+              )}
+              <p className="mt-1 font-ui text-xs text-gray-400">
+                Generated from your selections. Override below if needed.
+              </p>
+            </div>
+
+            {/* Optional override */}
+            <div>
+              <CategoryLabel>Override Filename <span className="font-normal normal-case">(optional)</span></CategoryLabel>
+              <input
+                type="text"
+                value={filenameOverride}
+                onChange={(e) => setFilenameOverride(e.target.value)}
+                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Leave blank to use auto filename"
+              />
+            </div>
+
+            {/* Title */}
+            <div>
+              <CategoryLabel>Title</CategoryLabel>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
+                onBlur={() => { if (!title.trim()) setTitleEdited(false); }}
+                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Auto-generated from selections"
+              />
+            </div>
+          </div>
         </AccordionSection>
 
         {/* Review bar + upload */}
