@@ -201,7 +201,6 @@ export default function AssetUploader() {
   const [isDragging, setIsDragging] = useState(false);
   const [primaryService, setPrimaryService] = useState("");
   const [secondaryServices, setSecondaryServices] = useState<string[]>([]);
-  const [showSecondary, setShowSecondary] = useState(false);
   const [contextSlugs, setContextSlugs] = useState<string[]>([]);
   const [locationPreset, setLocationPreset] = useState("");
   const [locationOther, setLocationOther] = useState("");
@@ -243,7 +242,11 @@ export default function AssetUploader() {
 
   // Service chip helpers
   const serviceOptions = SERVICE_TAGS.map((s) => s.label);
-  const selectedServiceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label;
+  const primaryServiceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label;
+  const secondaryServiceLabels = secondaryServices
+    .map((slug) => SERVICE_TAGS.find((s) => s.slug === slug)?.label)
+    .filter((l): l is string => Boolean(l));
+  const totalServiceCount = (primaryService ? 1 : 0) + secondaryServices.length;
 
   // Badges
   const contextBadge = contextSlugs.length;
@@ -308,20 +311,30 @@ export default function AssetUploader() {
     );
   }
 
-  function handleServiceByLabel(label: string) {
+  function toggleService(label: string) {
     const service = SERVICE_TAGS.find((s) => s.label === label);
     if (!service) return;
-    const next = service.slug === primaryService ? "" : service.slug;
-    setPrimaryService(next);
-    setSecondaryServices((current) => current.filter((s) => s !== next));
-    setServiceMetadata({});
-    try { localStorage.setItem("lastUsedServiceType", next); } catch {}
-  }
+    const slug = service.slug;
 
-  function toggleSecondaryService(slug: string) {
-    setSecondaryServices((current) =>
-      current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
-    );
+    if (slug === primaryService) {
+      // Deselect primary — promote first secondary if any
+      const next = secondaryServices[0] ?? "";
+      setPrimaryService(next);
+      setSecondaryServices((prev) => prev.slice(1));
+      if (!next) setServiceMetadata({});
+      try { localStorage.setItem("lastUsedServiceType", next); } catch {}
+    } else if (secondaryServices.includes(slug)) {
+      // Deselect secondary
+      setSecondaryServices((prev) => prev.filter((s) => s !== slug));
+    } else if (!primaryService) {
+      // No primary yet — set as primary
+      setPrimaryService(slug);
+      setServiceMetadata({});
+      try { localStorage.setItem("lastUsedServiceType", slug); } catch {}
+    } else {
+      // Primary exists — add as secondary
+      setSecondaryServices((prev) => [...prev, slug]);
+    }
   }
 
   function toggleContextByLabel(label: string) {
@@ -512,13 +525,36 @@ export default function AssetUploader() {
 
       <form className="mt-4 space-y-2" onSubmit={handleSubmit}>
 
-        {/* 1 — Primary Service */}
-        <AccordionSection title="Primary Service" badge={primaryService ? 1 : 0} defaultOpen>
-          <ChipSelect
-            options={serviceOptions}
-            selected={selectedServiceLabel ? [selectedServiceLabel] : []}
-            onToggle={handleServiceByLabel}
-          />
+        {/* 1 — Service */}
+        <AccordionSection title="Service" badge={totalServiceCount} defaultOpen>
+          <div className="flex flex-wrap gap-2">
+            {serviceOptions.map((label) => {
+              const isPrimary = label === primaryServiceLabel;
+              const isSecondary = secondaryServiceLabels.includes(label);
+              const isSelected = isPrimary || isSecondary;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => toggleService(label)}
+                  className="rounded-full border px-3 py-1.5 font-ui text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: isPrimary ? "#CC2027" : "white",
+                    color: isPrimary ? "white" : isSecondary ? "#CC2027" : "#374151",
+                    borderColor: isSelected ? "#CC2027" : "#d1d5db",
+                  }}
+                >
+                  {label}
+                  {isSecondary && <span className="ml-1 text-xs opacity-70">+</span>}
+                </button>
+              );
+            })}
+          </div>
+          {secondaryServiceLabels.length > 0 && (
+            <p className="mt-2 font-ui text-xs text-gray-mid">
+              Primary: <strong>{primaryServiceLabel}</strong> · Also: {secondaryServiceLabels.join(", ")}
+            </p>
+          )}
         </AccordionSection>
 
         {/* 2 — Location */}
@@ -580,44 +616,6 @@ export default function AssetUploader() {
               />
             </label>
 
-            <div>
-              <label className="font-ui inline-flex cursor-pointer items-center gap-2 text-sm text-charcoal">
-                <input
-                  type="checkbox"
-                  checked={showSecondary}
-                  onChange={(e) => {
-                    setShowSecondary(e.target.checked);
-                    if (!e.target.checked) setSecondaryServices([]);
-                  }}
-                />
-                This photo/video shows multiple services
-              </label>
-              {showSecondary && (
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {SERVICE_TAGS.filter((s) => s.slug !== primaryService).map((service) => {
-                    const active = secondaryServices.includes(service.slug);
-                    return (
-                      <label
-                        key={service.slug}
-                        className={`font-ui flex min-h-[44px] cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-sm transition ${
-                          active
-                            ? "border-red bg-red text-white"
-                            : "border-gray-warm bg-cream/40 text-charcoal hover:border-red hover:text-red"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={active}
-                          onChange={() => toggleSecondaryService(service.slug)}
-                          className="h-4 w-4 flex-shrink-0 accent-red"
-                        />
-                        <span className="leading-5">{service.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </AccordionSection>
 
