@@ -6,6 +6,9 @@ import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { AREA_NAMES } from "@/content/areas";
+import { BRANDS, FINISH_TYPE, GRADE_CUT, SHEET_GOODS, WOOD_SPECIES } from "@/content/materials";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 type UploadStatus = {
   name: string;
@@ -20,6 +23,8 @@ type FilePreview = {
   size: number;
   isVideo: boolean;
 };
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes}B`;
@@ -36,44 +41,156 @@ function buildAutoText(serviceLabel: string, descriptor: string, location: strin
   return parts.join(" ");
 }
 
-const MATERIAL_CATEGORIES = [
-  {
-    label: "Wood Species",
-    options: [
-      "Walnut", "White Oak", "Poplar", "Birch", "Baltic Birch",
-      "Hard Maple", "Soft Maple", "Maple", "Cherry", "Hickory", "Red Oak",
-    ],
-  },
-  {
-    label: "Sheet Goods & Engineered",
-    options: [
-      "MDF", "HDF", "MDF Core", "Plywood Core", "TFL", "HPL",
-      "PLAM", "CLEAF", "SALT", "StyleLite", "Mirulx",
-    ],
-  },
-  {
-    label: "Grade & Cut",
-    options: [
-      "Paint Grade", "Stain Grade", "Shop Grade", "A1", "Rift Cut",
-      "Qtr Sawn", "Plain Sliced", "Rotary", "EXT Grade", "IMPORT", "DOMESTIC",
-    ],
-  },
-  {
-    label: "Finish Type",
-    options: [
-      "Matte", "Suede", "Textured", "EIR", "Super Matte (SM)", "Gloss",
-      "Semi-Gloss", "Satin", "Flat", "Low Sheen", "UV1", "UV2",
-    ],
-  },
-  {
-    label: "Brands & Product Lines",
-    options: [
-      "Egger", "Stevenswood", "Artika", "Legano", "Egger - Linen - Beige Textile",
-    ],
-  },
-] as const;
+// ── Accordion ──────────────────────────────────────────────────────────────────
 
-const LOCATION_PRESETS = AREA_NAMES;
+function AccordionSection({
+  title,
+  badge,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  badge?: number;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-gray-200">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-ui text-sm font-semibold text-gray-900">{title}</span>
+          {badge != null && badge > 0 && (
+            <span className="rounded-full bg-red px-2 py-0.5 font-ui text-xs font-bold text-white">
+              {badge}
+            </span>
+          )}
+        </div>
+        <svg
+          className="h-4 w-4 text-gray-400 transition-transform duration-200"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 bg-white px-4 py-4">{children}</div>
+      )}
+    </div>
+  );
+}
+
+// ── ChipSelect ─────────────────────────────────────────────────────────────────
+
+function ChipSelect({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: string[];
+  selected: string[];
+  onToggle: (val: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            className="rounded-full border px-3 py-1.5 font-ui text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: active ? "#CC2027" : "white",
+              color: active ? "white" : "#374151",
+              borderColor: active ? "#CC2027" : "#d1d5db",
+            }}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── MultiSelectDropdown ────────────────────────────────────────────────────────
+
+function MultiSelectDropdown({
+  label,
+  options,
+  selected,
+  onToggle,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 font-ui text-sm transition-colors hover:border-gray-300"
+      >
+        <span className="truncate text-gray-700">
+          {selected.length > 0 ? selected.join(", ") : label}
+        </span>
+        <div className="ml-2 flex flex-shrink-0 items-center gap-1">
+          {selected.length > 0 && (
+            <span className="rounded-full bg-red px-1.5 py-0.5 font-ui text-xs font-bold text-white">
+              {selected.length}
+            </span>
+          )}
+          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+          {options.map((opt) => (
+            <label
+              key={opt}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(opt)}
+                onChange={() => onToggle(opt)}
+                className="rounded border-gray-300 accent-red"
+              />
+              <span className="font-ui text-sm text-gray-700">{opt}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AssetUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -96,50 +213,58 @@ export default function AssetUploader() {
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [lastCompletedBatch, setLastCompletedBatch] = useState<{
     uploadBatchId: string;
     assetIds: string[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
 
+  // Derived
   const location = locationPreset === "Other" ? locationOther : locationPreset;
-
   const serviceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label ?? "";
   const autoAlt = buildAutoText(serviceLabel, descriptor, location);
   const autoTitle = toTitleCase(autoAlt);
   const hasVideo = files.some((f) => f.type.startsWith("video/"));
   const previewPublicId =
     primaryService && descriptor && location
-      ? buildPublicId({
-          serviceType: primaryService,
-          location,
-          descriptor,
-          isVideo: hasVideo && files.length === 1,
-        })
+      ? buildPublicId({ serviceType: primaryService, location, descriptor, isVideo: hasVideo && files.length === 1 })
       : null;
 
-  // Pre-select last used service from localStorage
+  // Context tag helpers
+  const roomLabels = CONTEXT_TAGS.filter((c) => c.group === "room").map((c) => c.label);
+  const featureLabels = CONTEXT_TAGS.filter((c) => c.group === "feature").map((c) => c.label);
+  const selectedRoomLabels = CONTEXT_TAGS
+    .filter((c) => c.group === "room" && contextSlugs.includes(c.slug))
+    .map((c) => c.label);
+  const selectedFeatureLabels = CONTEXT_TAGS
+    .filter((c) => c.group === "feature" && contextSlugs.includes(c.slug))
+    .map((c) => c.label);
+
+  // Service chip helpers
+  const serviceOptions = SERVICE_TAGS.map((s) => s.label);
+  const selectedServiceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label;
+
+  // Badges
+  const contextBadge = contextSlugs.length;
+  const metadataBadge = Object.values(serviceMetadata).filter(Boolean).length;
+
+  // Load saved service
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lastUsedServiceType");
       if (saved) setPrimaryService(saved);
-      const detailsSaved = localStorage.getItem("upload_details_open");
-      if (detailsSaved === "true") setDetailsOpen(true);
     } catch {
       // ignore
     }
   }, []);
 
-  // Auto-populate title from descriptor + service + location (unless manually edited)
+  // Auto-populate title
   useEffect(() => {
-    if (!titleEdited && autoTitle) {
-      setTitle(autoTitle);
-    }
+    if (!titleEdited && autoTitle) setTitle(autoTitle);
   }, [autoTitle, titleEdited]);
 
-  // Cleanup preview object URLs on unmount
+  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
       previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
@@ -183,63 +308,49 @@ export default function AssetUploader() {
     );
   }
 
-  function handleServiceChange(nextService: string) {
-    setPrimaryService(nextService);
-    setSecondaryServices((current) => current.filter((slug) => slug !== nextService));
+  function handleServiceByLabel(label: string) {
+    const service = SERVICE_TAGS.find((s) => s.label === label);
+    if (!service) return;
+    const next = service.slug === primaryService ? "" : service.slug;
+    setPrimaryService(next);
+    setSecondaryServices((current) => current.filter((s) => s !== next));
     setServiceMetadata({});
-    try { localStorage.setItem("lastUsedServiceType", nextService); } catch {}
+    try { localStorage.setItem("lastUsedServiceType", next); } catch {}
+  }
+
+  function toggleSecondaryService(slug: string) {
+    setSecondaryServices((current) =>
+      current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug],
+    );
+  }
+
+  function toggleContextByLabel(label: string) {
+    const ctx = CONTEXT_TAGS.find((c) => c.label === label);
+    if (!ctx) return;
+    setContextSlugs((current) =>
+      current.includes(ctx.slug)
+        ? current.filter((s) => s !== ctx.slug)
+        : [...current, ctx.slug],
+    );
+  }
+
+  function toggleMaterial(material: string) {
+    setSelectedMaterials((prev) =>
+      prev.includes(material) ? prev.filter((m) => m !== material) : [...prev, material],
+    );
   }
 
   function updateMetadataField(key: string, value: string | number | boolean) {
     setServiceMetadata((current) => ({ ...current, [key]: value }));
   }
 
-  function toggleSecondaryService(slug: string) {
-    setSecondaryServices((current) =>
-      current.includes(slug)
-        ? current.filter((s) => s !== slug)
-        : [...current, slug],
-    );
-  }
-
-  function toggleContext(slug: string) {
-    setContextSlugs((current) =>
-      current.includes(slug)
-        ? current.filter((s) => s !== slug)
-        : [...current, slug],
-    );
-  }
-
-  function toggleMaterial(material: string) {
-    setSelectedMaterials((prev) =>
-      prev.includes(material)
-        ? prev.filter((m) => m !== material)
-        : [...prev, material],
-    );
-  }
-
-  function toggleDetails() {
-    setDetailsOpen((prev) => {
-      const next = !prev;
-      try { localStorage.setItem("upload_details_open", String(next)); } catch {}
-      return next;
-    });
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-
     if (!canUpload) return;
 
     setIsUploading(true);
-    setStatuses(
-      files.map((file) => ({
-        name: file.name,
-        state: "pending",
-        progress: 0,
-      })),
-    );
+    setStatuses(files.map((file) => ({ name: file.name, state: "pending", progress: 0 })));
 
     const uploadBatchId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}`;
     const createdAssetIds: string[] = [];
@@ -250,13 +361,7 @@ export default function AssetUploader() {
         updateStatus(file.name, { state: "uploading", progress: 0 });
 
         const isVideo = file.type.startsWith("video/");
-        const basePublicId = buildPublicId({
-          serviceType: primaryService,
-          location,
-          descriptor,
-          isVideo,
-        });
-        // Append index suffix for files beyond the first to avoid duplicate public_ids
+        const basePublicId = buildPublicId({ serviceType: primaryService, location, descriptor, isVideo });
         const publicId = i === 0 ? basePublicId : `${basePublicId}-${i + 1}`;
 
         const uploadResult = await uploadFileToCloudinaryWithProgress(
@@ -292,14 +397,8 @@ export default function AssetUploader() {
           asset?: { id?: string };
         };
 
-        if (!saveResponse.ok) {
-          throw new Error(saveBody.error || "Failed to save photo metadata.");
-        }
-
-        if (saveBody.asset?.id) {
-          createdAssetIds.push(saveBody.asset.id);
-        }
-
+        if (!saveResponse.ok) throw new Error(saveBody.error || "Failed to save photo metadata.");
+        if (saveBody.asset?.id) createdAssetIds.push(saveBody.asset.id);
         updateStatus(file.name, { state: "success", progress: 100 });
       } catch (uploadError) {
         updateStatus(file.name, {
@@ -330,358 +429,335 @@ export default function AssetUploader() {
     <section className="rounded-lg border border-gray-warm bg-white p-4 shadow-sm md:p-6">
       <h2 className="text-2xl text-charcoal">Upload Media</h2>
 
-      <form className="mt-5 space-y-5" onSubmit={handleSubmit}>
-
-        {/* Drag and drop zone */}
-        <div>
-          <div
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragging(false);
-              const dropped = Array.from(e.dataTransfer.files);
-              if (dropped.length) handleFileSelection(dropped);
+      {/* Drop zone — always visible */}
+      <div className="mt-5">
+        <div
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const dropped = Array.from(e.dataTransfer.files);
+            if (dropped.length) handleFileSelection(dropped);
+          }}
+          onClick={() => fileInputRef.current?.click()}
+          className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+            isDragging
+              ? "border-red bg-red/5"
+              : files.length > 0
+                ? "border-navy/30 bg-navy/[0.03]"
+                : "border-gray-warm hover:border-navy/40"
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const selected = Array.from(e.target.files || []);
+              if (selected.length) handleFileSelection(selected);
             }}
-            onClick={() => fileInputRef.current?.click()}
-            className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
-              isDragging
-                ? "border-red bg-red/5"
-                : files.length > 0
-                  ? "border-navy/30 bg-navy/[0.03]"
-                  : "border-gray-warm hover:border-navy/40"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                const selected = Array.from(e.target.files || []);
-                if (selected.length) handleFileSelection(selected);
-              }}
-            />
-            {files.length === 0 ? (
-              <>
-                <svg className="mb-3 h-8 w-8 text-gray-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                </svg>
-                <p className="font-ui text-sm font-semibold text-charcoal">Drag photos or videos here, or click to browse</p>
-                <p className="mt-1 font-ui text-xs text-gray-mid">Images and videos accepted — multiple files at once</p>
-              </>
-            ) : (
-              <div className="flex flex-wrap justify-center gap-3">
-                {previews.map((p, index) => (
-                  <div key={p.name} className="group relative flex flex-col items-center gap-1">
-                    {p.isVideo ? (
-                      <span className="relative inline-flex h-16 w-16 overflow-hidden rounded-lg bg-charcoal">
-                        <video src={p.previewUrl} preload="metadata" muted className="h-full w-full object-cover" />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                        </span>
+          />
+          {files.length === 0 ? (
+            <>
+              <svg className="mb-3 h-8 w-8 text-gray-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+              <p className="font-ui text-sm font-semibold text-charcoal">Drag photos or videos here, or click to browse</p>
+              <p className="mt-1 font-ui text-xs text-gray-mid">Images and videos accepted — multiple files at once</p>
+            </>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-3">
+              {previews.map((p, index) => (
+                <div key={p.name} className="group relative flex flex-col items-center gap-1">
+                  {p.isVideo ? (
+                    <span className="relative inline-flex h-16 w-16 overflow-hidden rounded-lg bg-charcoal">
+                      <video src={p.previewUrl} preload="metadata" muted className="h-full w-full object-cover" />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                       </span>
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
-                    )}
-                    {!isUploading && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); removeFile(index); }}
-                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 font-ui text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                        aria-label="Remove file"
-                      >
-                        ✕
-                      </button>
-                    )}
-                    <span className="max-w-[64px] truncate font-ui text-[10px] text-gray-mid">{p.name}</span>
-                    <span className="font-ui text-[10px] text-gray-mid">{formatBytes(p.size)}</span>
-                  </div>
-                ))}
-                <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-warm font-ui text-lg text-gray-mid hover:border-navy/40">
-                  +
+                    </span>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
+                  )}
+                  {!isUploading && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 font-ui text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label="Remove file"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  <span className="max-w-[64px] truncate font-ui text-[10px] text-gray-mid">{p.name}</span>
+                  <span className="font-ui text-[10px] text-gray-mid">{formatBytes(p.size)}</span>
                 </div>
+              ))}
+              <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-warm font-ui text-lg text-gray-mid hover:border-navy/40">
+                +
               </div>
-            )}
-          </div>
-          {files.length > 0 && (
-            <p className="mt-1.5 font-ui text-xs text-gray-mid">
-              {files.length} file{files.length !== 1 ? "s" : ""} selected — click zone to add more
-            </p>
+            </div>
           )}
         </div>
+        {files.length > 0 && (
+          <p className="mt-1.5 font-ui text-xs text-gray-mid">
+            {files.length} file{files.length !== 1 ? "s" : ""} selected — click zone to add more
+          </p>
+        )}
+      </div>
 
-        {/* Primary Service */}
-        <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">
-            Primary Service <span className="text-red">*</span>
-          </legend>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {SERVICE_TAGS.map((service) => {
-              const active = primaryService === service.slug;
-              return (
-                <button
-                  key={service.slug}
-                  type="button"
-                  onClick={() => handleServiceChange(service.slug)}
-                  className={`font-ui rounded-sm border px-3 py-2 text-sm transition ${
-                    active
-                      ? "border-red bg-red text-white"
-                      : "border-gray-warm text-charcoal hover:border-red hover:text-red"
-                  }`}
-                >
-                  {service.label}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+      <form className="mt-4 space-y-2" onSubmit={handleSubmit}>
 
-        {/* Location — required, outside collapsible */}
-        <div>
-          <span className="font-ui text-sm font-semibold text-charcoal">
-            Location <span className="text-red">*</span>
-          </span>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {LOCATION_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => { setLocationPreset(preset === locationPreset ? "" : preset); setLocationOther(""); }}
-                className={`font-ui rounded-sm border px-3 py-1.5 text-xs transition ${
-                  locationPreset === preset
-                    ? "border-navy bg-navy text-white"
-                    : "border-gray-warm text-charcoal hover:border-navy hover:text-navy"
-                }`}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
+        {/* 1 — Primary Service */}
+        <AccordionSection title="Primary Service" badge={primaryService ? 1 : 0} defaultOpen>
+          <ChipSelect
+            options={serviceOptions}
+            selected={selectedServiceLabel ? [selectedServiceLabel] : []}
+            onToggle={handleServiceByLabel}
+          />
+        </AccordionSection>
+
+        {/* 2 — Location */}
+        <AccordionSection title="Location" badge={location ? 1 : 0} defaultOpen>
+          <ChipSelect
+            options={[...AREA_NAMES]}
+            selected={locationPreset ? [locationPreset] : []}
+            onToggle={(val) => {
+              setLocationPreset((prev) => (prev === val ? "" : val));
+              setLocationOther("");
+            }}
+          />
           {locationPreset === "Other" && (
             <input
               type="text"
               value={locationOther}
               onChange={(e) => setLocationOther(e.target.value)}
-              className="mt-2 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
+              className="mt-3 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
               placeholder="Enter location"
               autoFocus
             />
           )}
-        </div>
+        </AccordionSection>
 
-        {/* Descriptor — required, drives filename */}
-        <div>
-          <label className="block">
-            <span className="font-ui text-sm font-semibold text-charcoal">
-              What does this show? <span className="text-red">*</span>
-            </span>
-            <span className="mt-0.5 block font-ui text-xs text-gray-mid">
-              2–4 words describing the specific shot. This becomes the file name.
-            </span>
-            <input
-              type="text"
-              value={descriptor}
-              onChange={(e) => {
-                const raw = e.target.value.slice(0, 50);
-                setDescriptor(raw);
-              }}
-              className="mt-1.5 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-navy"
-              placeholder="e.g. living-room-walnut-shelves, master-bedroom-black-hardware"
-              maxLength={50}
-            />
-          </label>
-          {/* Live filename preview */}
-          {previewPublicId && (
-            <p className="mt-2 rounded-sm bg-navy/5 px-3 py-2 font-mono text-[11px] text-navy">
-              📁 {previewPublicId}
-            </p>
-          )}
-        </div>
+        {/* 3 — File Info */}
+        <AccordionSection title="File Info" badge={descriptor.trim() ? 1 : 0} defaultOpen>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="font-ui text-sm font-semibold text-charcoal">
+                What does this show? <span className="text-red">*</span>
+              </span>
+              <span className="mt-0.5 block font-ui text-xs text-gray-mid">
+                2–4 words describing the specific shot. This becomes the file name.
+              </span>
+              <input
+                type="text"
+                value={descriptor}
+                onChange={(e) => setDescriptor(e.target.value.slice(0, 50))}
+                className="mt-1.5 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="e.g. living-room-walnut-shelves, master-bedroom-black-hardware"
+                maxLength={50}
+              />
+            </label>
+            {previewPublicId && (
+              <p className="rounded-sm bg-navy/5 px-3 py-2 font-mono text-[11px] text-navy">
+                📁 {previewPublicId}
+              </p>
+            )}
 
-        {/* Title — auto-populated, still editable */}
-        <label className="block">
-          <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
-            onBlur={() => { if (!title.trim()) { setTitleEdited(false); } }}
-            className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 text-sm text-charcoal outline-none transition focus:border-navy"
-            placeholder="Auto-generated from service + descriptor + location"
-          />
-        </label>
+            <label className="block">
+              <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
+                onBlur={() => { if (!title.trim()) setTitleEdited(false); }}
+                className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Auto-generated from service + descriptor + location"
+              />
+            </label>
 
-        {/* Secondary services behind toggle */}
-        <div>
-          <label className="font-ui inline-flex cursor-pointer items-center gap-2 text-sm text-charcoal">
-            <input
-              type="checkbox"
-              checked={showSecondary}
-              onChange={(e) => {
-                setShowSecondary(e.target.checked);
-                if (!e.target.checked) setSecondaryServices([]);
-              }}
-            />
-            This photo/video shows multiple services
-          </label>
-          {showSecondary && (
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SERVICE_TAGS.filter((service) => service.slug !== primaryService).map((service) => {
-                const active = secondaryServices.includes(service.slug);
-                return (
-                  <label
-                    key={service.slug}
-                    className={`font-ui flex min-h-[44px] cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-sm transition ${
-                      active
-                        ? "border-red bg-red text-white"
-                        : "border-gray-warm bg-cream/40 text-charcoal hover:border-red hover:text-red"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={active}
-                      onChange={() => toggleSecondaryService(service.slug)}
-                      className="h-4 w-4 flex-shrink-0 accent-red"
-                    />
-                    <span className="leading-5">{service.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Project Context */}
-        <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">Project Context</legend>
-          <div className="mt-3 space-y-4">
-            {(["room", "feature"] as const).map((group) => (
-              <div key={group}>
-                <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                  {group === "room" ? "Rooms" : "Features"}
-                </p>
-                <div className="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-3">
-                  {CONTEXT_TAGS.filter((context) => context.group === group).map((context) => (
-                    <label
-                      key={context.slug}
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={contextSlugs.includes(context.slug)}
-                        onChange={() => toggleContext(context.slug)}
-                        className="rounded border-gray-300 accent-red"
-                      />
-                      <span className="font-ui text-sm text-charcoal">{context.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* Material Type */}
-        <fieldset>
-          <legend className="font-ui text-sm font-semibold text-charcoal">
-            Material Type <span className="font-normal text-gray-mid">(optional)</span>
-          </legend>
-          <div className="mt-3 space-y-4">
-            {MATERIAL_CATEGORIES.map((category) => (
-              <div key={category.label}>
-                <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                  {category.label}
-                </p>
-                <div className="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-3">
-                  {category.options.map((option) => (
-                    <label
-                      key={option}
-                      className="flex cursor-pointer items-center gap-2"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedMaterials.includes(option)}
-                        onChange={() => toggleMaterial(option)}
-                        className="rounded border-gray-300 accent-red"
-                      />
-                      <span className="font-ui text-sm text-charcoal">{option}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* Collapsible details */}
-        <div className="rounded-lg border border-gray-warm">
-          <button
-            type="button"
-            onClick={toggleDetails}
-            className="flex w-full items-center justify-between px-4 py-3 text-left"
-          >
-            <span className="font-ui text-sm font-semibold text-charcoal">
-              Add Details <span className="font-normal text-gray-mid">(optional)</span>
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="font-ui text-xs text-gray-mid">Description, service metadata</span>
-              <svg
-                className={`h-4 w-4 text-gray-mid transition-transform ${detailsOpen ? "rotate-180" : ""}`}
-                fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </span>
-          </button>
-          {detailsOpen && (
-            <div className="space-y-4 border-t border-gray-warm px-4 pb-4 pt-4">
-              <label className="block">
-                <span className="font-ui text-sm font-semibold text-charcoal">Description</span>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="mt-1 min-h-[80px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 text-sm text-charcoal outline-none transition focus:border-navy"
-                  placeholder="Short scope summary, finish notes, or install details"
+            <div>
+              <label className="font-ui inline-flex cursor-pointer items-center gap-2 text-sm text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={showSecondary}
+                  onChange={(e) => {
+                    setShowSecondary(e.target.checked);
+                    if (!e.target.checked) setSecondaryServices([]);
+                  }}
                 />
+                This photo/video shows multiple services
               </label>
-              <ServiceMetadataFields
-                service={primaryService}
-                values={serviceMetadata}
-                onChange={updateMetadataField}
+              {showSecondary && (
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {SERVICE_TAGS.filter((s) => s.slug !== primaryService).map((service) => {
+                    const active = secondaryServices.includes(service.slug);
+                    return (
+                      <label
+                        key={service.slug}
+                        className={`font-ui flex min-h-[44px] cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-sm transition ${
+                          active
+                            ? "border-red bg-red text-white"
+                            : "border-gray-warm bg-cream/40 text-charcoal hover:border-red hover:text-red"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={active}
+                          onChange={() => toggleSecondaryService(service.slug)}
+                          className="h-4 w-4 flex-shrink-0 accent-red"
+                        />
+                        <span className="leading-5">{service.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </AccordionSection>
+
+        {/* 4 — Project Context */}
+        <AccordionSection title="Project Context" badge={contextBadge}>
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Rooms
+              </p>
+              <ChipSelect
+                options={roomLabels}
+                selected={selectedRoomLabels}
+                onToggle={toggleContextByLabel}
               />
             </div>
-          )}
-        </div>
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Features
+              </p>
+              <ChipSelect
+                options={featureLabels}
+                selected={selectedFeatureLabels}
+                onToggle={toggleContextByLabel}
+              />
+            </div>
+          </div>
+        </AccordionSection>
 
-        <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
-          <input
-            type="checkbox"
-            checked={published}
-            onChange={(e) => setPublished(e.target.checked)}
+        {/* 5 — Material Type */}
+        <AccordionSection title="Material Type" badge={selectedMaterials.length}>
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Wood Species
+              </p>
+              <ChipSelect
+                options={WOOD_SPECIES}
+                selected={selectedMaterials.filter((m) => WOOD_SPECIES.includes(m))}
+                onToggle={toggleMaterial}
+              />
+            </div>
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Sheet Goods & Engineered
+              </p>
+              <MultiSelectDropdown
+                label="Select sheet goods..."
+                options={SHEET_GOODS}
+                selected={selectedMaterials.filter((m) => SHEET_GOODS.includes(m))}
+                onToggle={toggleMaterial}
+              />
+            </div>
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Grade & Cut
+              </p>
+              <MultiSelectDropdown
+                label="Select grade or cut..."
+                options={GRADE_CUT}
+                selected={selectedMaterials.filter((m) => GRADE_CUT.includes(m))}
+                onToggle={toggleMaterial}
+              />
+            </div>
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Finish Type
+              </p>
+              <MultiSelectDropdown
+                label="Select finish..."
+                options={FINISH_TYPE}
+                selected={selectedMaterials.filter((m) => FINISH_TYPE.includes(m))}
+                onToggle={toggleMaterial}
+              />
+            </div>
+            <div>
+              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+                Brands & Product Lines
+              </p>
+              <MultiSelectDropdown
+                label="Select brand..."
+                options={BRANDS}
+                selected={selectedMaterials.filter((m) => BRANDS.includes(m))}
+                onToggle={toggleMaterial}
+              />
+            </div>
+          </div>
+        </AccordionSection>
+
+        {/* 6 — Service Details */}
+        {primaryService && (
+          <AccordionSection title="Service Details" badge={metadataBadge}>
+            <ServiceMetadataFields
+              service={primaryService}
+              values={serviceMetadata}
+              onChange={updateMetadataField}
+            />
+          </AccordionSection>
+        )}
+
+        {/* 7 — Description & Notes */}
+        <AccordionSection title="Description & Notes">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="min-h-[80px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+            placeholder="Short scope summary, finish notes, or install details"
           />
-          Publish immediately
-        </label>
+        </AccordionSection>
+
+        {/* Publish + Upload — always visible */}
+        <div className="pt-2">
+          <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+            <input
+              type="checkbox"
+              checked={published}
+              onChange={(e) => setPublished(e.target.checked)}
+            />
+            Publish immediately
+          </label>
+        </div>
 
         {error ? <p className="font-ui text-sm text-red">{error}</p> : null}
 
-        {/* Sticky submit button on mobile */}
         <div className="sticky bottom-0 -mx-4 bg-white px-4 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:relative md:bottom-auto md:mx-0 md:bg-transparent md:px-0 md:pb-0 md:pt-0 md:shadow-none">
           <button
             type="submit"
             disabled={!canUpload}
             title={!canUpload && !isUploading ? "Select a service, location, and descriptor first" : undefined}
-            className="w-full rounded-sm bg-red px-4 py-3 font-ui text-sm font-semibold text-white transition-colors hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-70 md:w-auto"
+            className="w-full rounded-xl bg-red py-3 font-ui text-base font-semibold text-white transition-colors hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isUploading ? "Uploading..." : `Upload ${files.length > 0 ? files.length + " " : ""}Selected File${files.length !== 1 ? "s" : ""}`}
+            {isUploading
+              ? "Uploading..."
+              : `Upload ${files.length > 0 ? files.length + " " : ""}Selected File${files.length !== 1 ? "s" : ""}`}
           </button>
         </div>
       </form>
 
-      {/* Per-file progress and status */}
-      {statuses.length > 0 ? (
+      {/* Per-file progress */}
+      {statuses.length > 0 && (
         <div className="mt-5 space-y-2.5">
           {statuses.map((status) => (
             <div key={status.name} className="rounded-lg border border-gray-warm bg-cream/50 px-4 py-3">
@@ -707,11 +783,11 @@ export default function AssetUploader() {
             </div>
           ))}
         </div>
-      ) : null}
+      )}
 
       {/* Completed batch actions */}
       <div ref={batchSectionRef}>
-        {lastCompletedBatch ? (
+        {lastCompletedBatch && (
           <div className="mt-5 rounded-xl border border-navy/20 bg-navy/5 p-4">
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-navy">Batch Uploaded</p>
             <h3 className="mt-2 text-lg text-charcoal">Finish this project now</h3>
@@ -734,7 +810,7 @@ export default function AssetUploader() {
               </Link>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </section>
   );
