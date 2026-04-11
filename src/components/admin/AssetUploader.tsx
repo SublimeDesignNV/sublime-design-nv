@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
@@ -36,9 +36,34 @@ function toTitleCase(str: string) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function buildAutoText(serviceLabel: string, descriptor: string, location: string) {
-  const parts = ["custom", serviceLabel, descriptor, location, "Las Vegas"].filter(Boolean);
-  return parts.join(" ");
+function toSlug(str: string) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+// ── Generic primary/secondary toggle factory ───────────────────────────────────
+
+function makeToggle(
+  primary: string,
+  setPrimary: (v: string) => void,
+  secondary: string[],
+  setSecondary: (fn: (prev: string[]) => string[]) => void,
+) {
+  return (val: string) => {
+    if (val === primary) {
+      setPrimary(secondary[0] ?? "");
+      setSecondary((prev) => prev.slice(1));
+    } else if (secondary.includes(val)) {
+      setSecondary((prev) => prev.filter((s) => s !== val));
+    } else if (!primary) {
+      setPrimary(val);
+    } else {
+      setSecondary((prev) => [...prev, val]);
+    }
+  };
 }
 
 // ── Accordion ──────────────────────────────────────────────────────────────────
@@ -74,9 +99,7 @@ function AccordionSection({
         <svg
           className="h-4 w-4 text-gray-400 transition-transform duration-200"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
@@ -88,21 +111,25 @@ function AccordionSection({
   );
 }
 
-// ── ChipSelect ─────────────────────────────────────────────────────────────────
+// ── ChipGroup — primary (solid red) + secondary (red outline) ──────────────────
 
-function ChipSelect({
+function ChipGroup({
   options,
-  selected,
+  primary,
+  secondary,
   onToggle,
 }: {
   options: string[];
-  selected: string[];
+  primary: string;
+  secondary: string[];
   onToggle: (val: string) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
-        const active = selected.includes(opt);
+        const isPrimary = opt === primary;
+        const isSecondary = secondary.includes(opt);
+        const isSelected = isPrimary || isSecondary;
         return (
           <button
             key={opt}
@@ -110,12 +137,13 @@ function ChipSelect({
             onClick={() => onToggle(opt)}
             className="rounded-full border px-3 py-1.5 font-ui text-sm font-medium transition-colors"
             style={{
-              backgroundColor: active ? "#CC2027" : "white",
-              color: active ? "white" : "#374151",
-              borderColor: active ? "#CC2027" : "#d1d5db",
+              backgroundColor: isPrimary ? "#CC2027" : "white",
+              color: isPrimary ? "white" : isSecondary ? "#CC2027" : "#374151",
+              borderColor: isSelected ? "#CC2027" : "#d1d5db",
             }}
           >
             {opt}
+            {isSecondary && <span className="ml-1 text-xs opacity-70">+</span>}
           </button>
         );
       })}
@@ -123,70 +151,13 @@ function ChipSelect({
   );
 }
 
-// ── MultiSelectDropdown ────────────────────────────────────────────────────────
+// ── CategoryLabel ──────────────────────────────────────────────────────────────
 
-function MultiSelectDropdown({
-  label,
-  options,
-  selected,
-  onToggle,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onToggle: (val: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
+function CategoryLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 font-ui text-sm transition-colors hover:border-gray-300"
-      >
-        <span className="truncate text-gray-700">
-          {selected.length > 0 ? selected.join(", ") : label}
-        </span>
-        <div className="ml-2 flex flex-shrink-0 items-center gap-1">
-          {selected.length > 0 && (
-            <span className="rounded-full bg-red px-1.5 py-0.5 font-ui text-xs font-bold text-white">
-              {selected.length}
-            </span>
-          )}
-          <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-          {options.map((opt) => (
-            <label
-              key={opt}
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(opt)}
-                onChange={() => onToggle(opt)}
-                className="rounded border-gray-300 accent-red"
-              />
-              <span className="font-ui text-sm text-gray-700">{opt}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
+    <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
+      {children}
+    </p>
   );
 }
 
@@ -196,18 +167,47 @@ export default function AssetUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchSectionRef = useRef<HTMLDivElement>(null);
 
+  // Files
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<FilePreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Service
   const [primaryService, setPrimaryService] = useState("");
   const [secondaryServices, setSecondaryServices] = useState<string[]>([]);
-  const [contextSlugs, setContextSlugs] = useState<string[]>([]);
-  const [locationPreset, setLocationPreset] = useState("");
+
+  // Location
+  const [primaryLocation, setPrimaryLocation] = useState("");
+  const [secondaryLocations, setSecondaryLocations] = useState<string[]>([]);
   const [locationOther, setLocationOther] = useState("");
-  const [descriptor, setDescriptor] = useState("");
+
+  // Rooms
+  const [primaryRoom, setPrimaryRoom] = useState("");
+  const [secondaryRooms, setSecondaryRooms] = useState<string[]>([]);
+
+  // Features
+  const [primaryFeature, setPrimaryFeature] = useState("");
+  const [secondaryFeatures, setSecondaryFeatures] = useState<string[]>([]);
+
+  // Materials
+  const [primaryWoodSpecies, setPrimaryWoodSpecies] = useState("");
+  const [secondaryWoodSpecies, setSecondaryWoodSpecies] = useState<string[]>([]);
+  const [primarySheetGoods, setPrimarySheetGoods] = useState("");
+  const [secondarySheetGoods, setSecondarySheetGoods] = useState<string[]>([]);
+  const [primaryGrade, setPrimaryGrade] = useState("");
+  const [secondaryGrade, setSecondaryGrade] = useState<string[]>([]);
+  const [primaryFinish, setPrimaryFinish] = useState("");
+  const [secondaryFinish, setSecondaryFinish] = useState<string[]>([]);
+  const [primaryBrand, setPrimaryBrand] = useState("");
+  const [secondaryBrands, setSecondaryBrands] = useState<string[]>([]);
+
+  // File info
+  const [filenameOverride, setFilenameOverride] = useState("");
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
+
+  // Misc
   const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
   const [published, setPublished] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -217,57 +217,117 @@ export default function AssetUploader() {
     assetIds: string[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
 
-  // Derived
-  const location = locationPreset === "Other" ? locationOther : locationPreset;
-  const serviceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label ?? "";
-  const autoAlt = buildAutoText(serviceLabel, descriptor, location);
-  const autoTitle = toTitleCase(autoAlt);
-  const hasVideo = files.some((f) => f.type.startsWith("video/"));
-  const previewPublicId =
-    primaryService && descriptor && location
-      ? buildPublicId({ serviceType: primaryService, location, descriptor, isVideo: hasVideo && files.length === 1 })
-      : null;
+  // ── Derived ──────────────────────────────────────────────────────────────────
 
-  // Context tag helpers
-  const roomLabels = CONTEXT_TAGS.filter((c) => c.group === "room").map((c) => c.label);
-  const featureLabels = CONTEXT_TAGS.filter((c) => c.group === "feature").map((c) => c.label);
-  const selectedRoomLabels = CONTEXT_TAGS
-    .filter((c) => c.group === "room" && contextSlugs.includes(c.slug))
-    .map((c) => c.label);
-  const selectedFeatureLabels = CONTEXT_TAGS
-    .filter((c) => c.group === "feature" && contextSlugs.includes(c.slug))
-    .map((c) => c.label);
-
-  // Service chip helpers
-  const serviceOptions = SERVICE_TAGS.map((s) => s.label);
-  const primaryServiceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label;
+  const resolvedLocation = primaryLocation === "Other" ? locationOther : primaryLocation;
+  const primaryServiceLabel = SERVICE_TAGS.find((s) => s.slug === primaryService)?.label ?? "";
   const secondaryServiceLabels = secondaryServices
     .map((slug) => SERVICE_TAGS.find((s) => s.slug === slug)?.label)
     .filter((l): l is string => Boolean(l));
-  const totalServiceCount = (primaryService ? 1 : 0) + secondaryServices.length;
 
-  // Badges
-  const contextBadge = contextSlugs.length;
+  const roomLabels = CONTEXT_TAGS.filter((c) => c.group === "room").map((c) => c.label);
+  const featureLabels = CONTEXT_TAGS.filter((c) => c.group === "feature").map((c) => c.label);
+
+  const totalServiceCount = (primaryService ? 1 : 0) + secondaryServices.length;
+  const locationBadge = (primaryLocation ? 1 : 0) + secondaryLocations.length;
+  const contextBadge =
+    (primaryRoom ? 1 : 0) + secondaryRooms.length +
+    (primaryFeature ? 1 : 0) + secondaryFeatures.length;
+  const materialBadge =
+    [primaryWoodSpecies, primarySheetGoods, primaryGrade, primaryFinish, primaryBrand].filter(Boolean).length +
+    secondaryWoodSpecies.length + secondarySheetGoods.length + secondaryGrade.length +
+    secondaryFinish.length + secondaryBrands.length;
   const metadataBadge = Object.values(serviceMetadata).filter(Boolean).length;
 
-  // Load saved service
+  const autoFilename = useMemo(() => {
+    const parts: string[] = [];
+    if (primaryServiceLabel) parts.push(primaryServiceLabel);
+    if (primaryRoom) parts.push(primaryRoom);
+    else if (primaryFeature) parts.push(primaryFeature);
+    if (resolvedLocation) parts.push(resolvedLocation);
+    if (primaryWoodSpecies) parts.push(primaryWoodSpecies);
+    return toSlug(parts.join("-")).slice(0, 60) || "untitled";
+  }, [primaryServiceLabel, primaryRoom, primaryFeature, resolvedLocation, primaryWoodSpecies]);
+
+  const finalFilename = filenameOverride.trim() || autoFilename;
+
+  const autoAlt = [primaryServiceLabel, primaryRoom || primaryFeature, resolvedLocation, "Las Vegas"]
+    .filter(Boolean).join(" ");
+  const autoTitle = toTitleCase(autoAlt);
+
+  const hasVideo = files.some((f) => f.type.startsWith("video/"));
+  const previewPublicId =
+    primaryService && resolvedLocation
+      ? buildPublicId({ serviceType: primaryService, location: resolvedLocation, descriptor: finalFilename, isVideo: hasVideo && files.length === 1 })
+      : null;
+
+  // Context slugs for API
+  const allContextLabels = [primaryRoom, ...secondaryRooms, primaryFeature, ...secondaryFeatures].filter(Boolean);
+  const contextSlugs = allContextLabels
+    .map((label) => CONTEXT_TAGS.find((c) => c.label === label)?.slug)
+    .filter((s): s is string => Boolean(s));
+
+  // All materials for API
+  const allMaterials = [
+    primaryWoodSpecies, ...secondaryWoodSpecies,
+    primarySheetGoods, ...secondarySheetGoods,
+    primaryGrade, ...secondaryGrade,
+    primaryFinish, ...secondaryFinish,
+    primaryBrand, ...secondaryBrands,
+  ].filter(Boolean);
+
+  const canUpload =
+    files.length > 0 &&
+    Boolean(primaryService) &&
+    Boolean(resolvedLocation) &&
+    !isUploading;
+
+  // ── Toggles ───────────────────────────────────────────────────────────────────
+
+  function toggleService(label: string) {
+    const service = SERVICE_TAGS.find((s) => s.label === label);
+    if (!service) return;
+    const slug = service.slug;
+    if (slug === primaryService) {
+      const next = secondaryServices[0] ?? "";
+      setPrimaryService(next);
+      setSecondaryServices((prev) => prev.slice(1));
+      if (!next) setServiceMetadata({});
+      try { localStorage.setItem("lastUsedServiceType", next); } catch {}
+    } else if (secondaryServices.includes(slug)) {
+      setSecondaryServices((prev) => prev.filter((s) => s !== slug));
+    } else if (!primaryService) {
+      setPrimaryService(slug);
+      setServiceMetadata({});
+      try { localStorage.setItem("lastUsedServiceType", slug); } catch {}
+    } else {
+      setSecondaryServices((prev) => [...prev, slug]);
+    }
+  }
+
+  const toggleLocation = makeToggle(primaryLocation, setPrimaryLocation, secondaryLocations, setSecondaryLocations);
+  const toggleRoom = makeToggle(primaryRoom, setPrimaryRoom, secondaryRooms, setSecondaryRooms);
+  const toggleFeature = makeToggle(primaryFeature, setPrimaryFeature, secondaryFeatures, setSecondaryFeatures);
+  const toggleWoodSpecies = makeToggle(primaryWoodSpecies, setPrimaryWoodSpecies, secondaryWoodSpecies, setSecondaryWoodSpecies);
+  const toggleSheetGoods = makeToggle(primarySheetGoods, setPrimarySheetGoods, secondarySheetGoods, setSecondarySheetGoods);
+  const toggleGrade = makeToggle(primaryGrade, setPrimaryGrade, secondaryGrade, setSecondaryGrade);
+  const toggleFinish = makeToggle(primaryFinish, setPrimaryFinish, secondaryFinish, setSecondaryFinish);
+  const toggleBrand = makeToggle(primaryBrand, setPrimaryBrand, secondaryBrands, setSecondaryBrands);
+
+  // ── Effects ───────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("lastUsedServiceType");
       if (saved) setPrimaryService(saved);
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, []);
 
-  // Auto-populate title
   useEffect(() => {
     if (!titleEdited && autoTitle) setTitle(autoTitle);
   }, [autoTitle, titleEdited]);
 
-  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
       previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
@@ -275,12 +335,7 @@ export default function AssetUploader() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canUpload =
-    files.length > 0 &&
-    Boolean(primaryService) &&
-    Boolean(location) &&
-    Boolean(descriptor.trim()) &&
-    !isUploading;
+  // ── File helpers ──────────────────────────────────────────────────────────────
 
   function buildPreviews(selected: File[]): FilePreview[] {
     return selected.map((f) => ({
@@ -298,64 +353,16 @@ export default function AssetUploader() {
   }
 
   function removeFile(index: number) {
-    const nextFiles = files.filter((_, i) => i !== index);
-    const nextPreviews = previews.filter((_, i) => i !== index);
     if (previews[index]?.previewUrl) URL.revokeObjectURL(previews[index].previewUrl);
-    setFiles(nextFiles);
-    setPreviews(nextPreviews);
+    setFiles((f) => f.filter((_, i) => i !== index));
+    setPreviews((p) => p.filter((_, i) => i !== index));
   }
 
   function updateStatus(name: string, next: Partial<UploadStatus>) {
-    setStatuses((current) =>
-      current.map((item) => (item.name === name ? { ...item, ...next } : item)),
-    );
+    setStatuses((current) => current.map((item) => (item.name === name ? { ...item, ...next } : item)));
   }
 
-  function toggleService(label: string) {
-    const service = SERVICE_TAGS.find((s) => s.label === label);
-    if (!service) return;
-    const slug = service.slug;
-
-    if (slug === primaryService) {
-      // Deselect primary — promote first secondary if any
-      const next = secondaryServices[0] ?? "";
-      setPrimaryService(next);
-      setSecondaryServices((prev) => prev.slice(1));
-      if (!next) setServiceMetadata({});
-      try { localStorage.setItem("lastUsedServiceType", next); } catch {}
-    } else if (secondaryServices.includes(slug)) {
-      // Deselect secondary
-      setSecondaryServices((prev) => prev.filter((s) => s !== slug));
-    } else if (!primaryService) {
-      // No primary yet — set as primary
-      setPrimaryService(slug);
-      setServiceMetadata({});
-      try { localStorage.setItem("lastUsedServiceType", slug); } catch {}
-    } else {
-      // Primary exists — add as secondary
-      setSecondaryServices((prev) => [...prev, slug]);
-    }
-  }
-
-  function toggleContextByLabel(label: string) {
-    const ctx = CONTEXT_TAGS.find((c) => c.label === label);
-    if (!ctx) return;
-    setContextSlugs((current) =>
-      current.includes(ctx.slug)
-        ? current.filter((s) => s !== ctx.slug)
-        : [...current, ctx.slug],
-    );
-  }
-
-  function toggleMaterial(material: string) {
-    setSelectedMaterials((prev) =>
-      prev.includes(material) ? prev.filter((m) => m !== material) : [...prev, material],
-    );
-  }
-
-  function updateMetadataField(key: string, value: string | number | boolean) {
-    setServiceMetadata((current) => ({ ...current, [key]: value }));
-  }
+  // ── Submit ────────────────────────────────────────────────────────────────────
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -374,7 +381,12 @@ export default function AssetUploader() {
         updateStatus(file.name, { state: "uploading", progress: 0 });
 
         const isVideo = file.type.startsWith("video/");
-        const basePublicId = buildPublicId({ serviceType: primaryService, location, descriptor, isVideo });
+        const basePublicId = buildPublicId({
+          serviceType: primaryService,
+          location: resolvedLocation,
+          descriptor: finalFilename,
+          isVideo,
+        });
         const publicId = i === 0 ? basePublicId : `${basePublicId}-${i + 1}`;
 
         const uploadResult = await uploadFileToCloudinaryWithProgress(
@@ -395,13 +407,13 @@ export default function AssetUploader() {
             title: title.trim() || autoTitle,
             alt: autoAlt,
             description: description.trim() || undefined,
-            location: location.trim() || undefined,
+            location: resolvedLocation || undefined,
             primaryServiceSlug: primaryService,
             serviceMetadata,
             published,
             tagSlugs,
             contextSlugs,
-            materials: selectedMaterials,
+            materials: allMaterials,
           }),
         });
 
@@ -438,11 +450,13 @@ export default function AssetUploader() {
     }
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <section className="rounded-lg border border-gray-warm bg-white p-4 shadow-sm md:p-6">
       <h2 className="text-2xl text-charcoal">Upload Media</h2>
 
-      {/* Drop zone — always visible */}
+      {/* Drop zone */}
       <div className="mt-5">
         <div
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -455,19 +469,12 @@ export default function AssetUploader() {
           }}
           onClick={() => fileInputRef.current?.click()}
           className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
-            isDragging
-              ? "border-red bg-red/5"
-              : files.length > 0
-                ? "border-navy/30 bg-navy/[0.03]"
-                : "border-gray-warm hover:border-navy/40"
+            isDragging ? "border-red bg-red/5"
+              : files.length > 0 ? "border-navy/30 bg-navy/[0.03]"
+              : "border-gray-warm hover:border-navy/40"
           }`}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*,video/*"
-            className="hidden"
+          <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" className="hidden"
             onChange={(e) => {
               const selected = Array.from(e.target.files || []);
               if (selected.length) handleFileSelection(selected);
@@ -497,22 +504,16 @@ export default function AssetUploader() {
                     <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
                   )}
                   {!isUploading && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                    <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(index); }}
                       className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 font-ui text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                       aria-label="Remove file"
-                    >
-                      ✕
-                    </button>
+                    >✕</button>
                   )}
                   <span className="max-w-[64px] truncate font-ui text-[10px] text-gray-mid">{p.name}</span>
                   <span className="font-ui text-[10px] text-gray-mid">{formatBytes(p.size)}</span>
                 </div>
               ))}
-              <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-warm font-ui text-lg text-gray-mid hover:border-navy/40">
-                +
-              </div>
+              <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-warm font-ui text-lg text-gray-mid hover:border-navy/40">+</div>
             </div>
           )}
         </div>
@@ -527,29 +528,12 @@ export default function AssetUploader() {
 
         {/* 1 — Service */}
         <AccordionSection title="Service" badge={totalServiceCount} defaultOpen>
-          <div className="flex flex-wrap gap-2">
-            {serviceOptions.map((label) => {
-              const isPrimary = label === primaryServiceLabel;
-              const isSecondary = secondaryServiceLabels.includes(label);
-              const isSelected = isPrimary || isSecondary;
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => toggleService(label)}
-                  className="rounded-full border px-3 py-1.5 font-ui text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: isPrimary ? "#CC2027" : "white",
-                    color: isPrimary ? "white" : isSecondary ? "#CC2027" : "#374151",
-                    borderColor: isSelected ? "#CC2027" : "#d1d5db",
-                  }}
-                >
-                  {label}
-                  {isSecondary && <span className="ml-1 text-xs opacity-70">+</span>}
-                </button>
-              );
-            })}
-          </div>
+          <ChipGroup
+            options={SERVICE_TAGS.map((s) => s.label)}
+            primary={primaryServiceLabel}
+            secondary={secondaryServiceLabels}
+            onToggle={toggleService}
+          />
           {secondaryServiceLabels.length > 0 && (
             <p className="mt-2 font-ui text-xs text-gray-mid">
               Primary: <strong>{primaryServiceLabel}</strong> · Also: {secondaryServiceLabels.join(", ")}
@@ -558,64 +542,71 @@ export default function AssetUploader() {
         </AccordionSection>
 
         {/* 2 — Location */}
-        <AccordionSection title="Location" badge={location ? 1 : 0} defaultOpen>
-          <ChipSelect
+        <AccordionSection title="Location" badge={locationBadge} defaultOpen>
+          <ChipGroup
             options={[...AREA_NAMES]}
-            selected={locationPreset ? [locationPreset] : []}
+            primary={primaryLocation}
+            secondary={secondaryLocations}
             onToggle={(val) => {
-              setLocationPreset((prev) => (prev === val ? "" : val));
-              setLocationOther("");
+              if (val === "Other" && primaryLocation !== "Other") setLocationOther("");
+              toggleLocation(val);
             }}
           />
-          {locationPreset === "Other" && (
+          {(primaryLocation === "Other" || secondaryLocations.includes("Other")) && (
             <input
               type="text"
               value={locationOther}
               onChange={(e) => setLocationOther(e.target.value)}
               className="mt-3 w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
               placeholder="Enter location"
-              autoFocus
             />
           )}
         </AccordionSection>
 
         {/* 3 — File Info */}
-        <AccordionSection title="File Info" badge={descriptor.trim() ? 1 : 0} defaultOpen>
+        <AccordionSection title="File Info" defaultOpen>
           <div className="space-y-4">
-            <label className="block">
-              <span className="font-ui text-sm font-semibold text-charcoal">
-                What does this show? <span className="text-red">*</span>
-              </span>
-              <span className="mt-0.5 block font-ui text-xs text-gray-mid">
-                2–4 words describing the specific shot. This becomes the file name.
-              </span>
+            {/* Auto filename */}
+            <div>
+              <CategoryLabel>Auto Filename</CategoryLabel>
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <span className="flex-1 font-mono text-sm text-gray-700">{finalFilename}</span>
+                <span className="font-ui text-xs text-gray-400">.jpg / .mp4</span>
+              </div>
+              {previewPublicId && (
+                <p className="mt-1 rounded-sm bg-navy/5 px-3 py-1.5 font-mono text-[11px] text-navy">
+                  📁 {previewPublicId}
+                </p>
+              )}
+              <p className="mt-1 font-ui text-xs text-gray-400">
+                Generated from your selections. Override below if needed.
+              </p>
+            </div>
+
+            {/* Optional override */}
+            <div>
+              <CategoryLabel>Override Filename <span className="font-normal normal-case">(optional)</span></CategoryLabel>
               <input
                 type="text"
-                value={descriptor}
-                onChange={(e) => setDescriptor(e.target.value.slice(0, 50))}
-                className="mt-1.5 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                placeholder="e.g. living-room-walnut-shelves, master-bedroom-black-hardware"
-                maxLength={50}
+                value={filenameOverride}
+                onChange={(e) => setFilenameOverride(e.target.value)}
+                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Leave blank to use auto filename"
               />
-            </label>
-            {previewPublicId && (
-              <p className="rounded-sm bg-navy/5 px-3 py-2 font-mono text-[11px] text-navy">
-                📁 {previewPublicId}
-              </p>
-            )}
+            </div>
 
-            <label className="block">
-              <span className="font-ui text-sm font-semibold text-charcoal">Title</span>
+            {/* Title */}
+            <div>
+              <CategoryLabel>Title</CategoryLabel>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); setTitleEdited(true); }}
                 onBlur={() => { if (!title.trim()) setTitleEdited(false); }}
-                className="mt-1 w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-                placeholder="Auto-generated from service + descriptor + location"
+                className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2.5 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Auto-generated from selections"
               />
-            </label>
-
+            </div>
           </div>
         </AccordionSection>
 
@@ -623,83 +614,72 @@ export default function AssetUploader() {
         <AccordionSection title="Project Context" badge={contextBadge}>
           <div className="space-y-4">
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Rooms
-              </p>
-              <ChipSelect
+              <CategoryLabel>Rooms</CategoryLabel>
+              <ChipGroup
                 options={roomLabels}
-                selected={selectedRoomLabels}
-                onToggle={toggleContextByLabel}
+                primary={primaryRoom}
+                secondary={secondaryRooms}
+                onToggle={toggleRoom}
               />
             </div>
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Features
-              </p>
-              <ChipSelect
+              <CategoryLabel>Features</CategoryLabel>
+              <ChipGroup
                 options={featureLabels}
-                selected={selectedFeatureLabels}
-                onToggle={toggleContextByLabel}
+                primary={primaryFeature}
+                secondary={secondaryFeatures}
+                onToggle={toggleFeature}
               />
             </div>
           </div>
         </AccordionSection>
 
         {/* 5 — Material Type */}
-        <AccordionSection title="Material Type" badge={selectedMaterials.length}>
+        <AccordionSection title="Material Type" badge={materialBadge}>
           <div className="space-y-5">
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Wood Species
-              </p>
-              <ChipSelect
+              <CategoryLabel>Wood Species</CategoryLabel>
+              <ChipGroup
                 options={WOOD_SPECIES}
-                selected={selectedMaterials.filter((m) => WOOD_SPECIES.includes(m))}
-                onToggle={toggleMaterial}
+                primary={primaryWoodSpecies}
+                secondary={secondaryWoodSpecies}
+                onToggle={toggleWoodSpecies}
               />
             </div>
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Sheet Goods & Engineered
-              </p>
-              <MultiSelectDropdown
-                label="Select sheet goods..."
+              <CategoryLabel>Sheet Goods & Engineered</CategoryLabel>
+              <ChipGroup
                 options={SHEET_GOODS}
-                selected={selectedMaterials.filter((m) => SHEET_GOODS.includes(m))}
-                onToggle={toggleMaterial}
+                primary={primarySheetGoods}
+                secondary={secondarySheetGoods}
+                onToggle={toggleSheetGoods}
               />
             </div>
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Grade & Cut
-              </p>
-              <MultiSelectDropdown
-                label="Select grade or cut..."
+              <CategoryLabel>Grade & Cut</CategoryLabel>
+              <ChipGroup
                 options={GRADE_CUT}
-                selected={selectedMaterials.filter((m) => GRADE_CUT.includes(m))}
-                onToggle={toggleMaterial}
+                primary={primaryGrade}
+                secondary={secondaryGrade}
+                onToggle={toggleGrade}
               />
             </div>
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Finish Type
-              </p>
-              <MultiSelectDropdown
-                label="Select finish..."
+              <CategoryLabel>Finish Type</CategoryLabel>
+              <ChipGroup
                 options={FINISH_TYPE}
-                selected={selectedMaterials.filter((m) => FINISH_TYPE.includes(m))}
-                onToggle={toggleMaterial}
+                primary={primaryFinish}
+                secondary={secondaryFinish}
+                onToggle={toggleFinish}
               />
             </div>
             <div>
-              <p className="mb-2 font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
-                Brands & Product Lines
-              </p>
-              <MultiSelectDropdown
-                label="Select brand..."
+              <CategoryLabel>Brands & Product Lines</CategoryLabel>
+              <ChipGroup
                 options={BRANDS}
-                selected={selectedMaterials.filter((m) => BRANDS.includes(m))}
-                onToggle={toggleMaterial}
+                primary={primaryBrand}
+                secondary={secondaryBrands}
+                onToggle={toggleBrand}
               />
             </div>
           </div>
@@ -711,7 +691,7 @@ export default function AssetUploader() {
             <ServiceMetadataFields
               service={primaryService}
               values={serviceMetadata}
-              onChange={updateMetadataField}
+              onChange={(key, value) => setServiceMetadata((c) => ({ ...c, [key]: value }))}
             />
           </AccordionSection>
         )}
@@ -726,32 +706,38 @@ export default function AssetUploader() {
           />
         </AccordionSection>
 
-        {/* Publish + Upload — always visible */}
-        <div className="pt-2">
-          <label className="font-ui flex items-center gap-2 text-sm text-charcoal">
+        {/* Review bar + upload */}
+        {error && <p className="font-ui text-sm text-red">{error}</p>}
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <p className="font-ui text-sm font-semibold text-gray-900">Review Before Uploading</p>
+          <div className="grid grid-cols-2 gap-2 font-ui text-xs text-gray-600">
+            <div><span className="font-semibold">Service:</span> {primaryServiceLabel || "—"}</div>
+            <div><span className="font-semibold">Location:</span> {resolvedLocation || "—"}</div>
+            <div><span className="font-semibold">Filename:</span> <span className="font-mono">{finalFilename}</span></div>
+            <div><span className="font-semibold">Files:</span> {files.length} selected</div>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 font-ui text-sm text-charcoal">
             <input
               type="checkbox"
               checked={published}
               onChange={(e) => setPublished(e.target.checked)}
+              className="rounded border-gray-300 accent-red"
             />
             Publish immediately
           </label>
-        </div>
-
-        {error ? <p className="font-ui text-sm text-red">{error}</p> : null}
-
-        <div className="sticky bottom-0 -mx-4 bg-white px-4 pb-4 pt-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:relative md:bottom-auto md:mx-0 md:bg-transparent md:px-0 md:pb-0 md:pt-0 md:shadow-none">
           <button
             type="submit"
             disabled={!canUpload}
-            title={!canUpload && !isUploading ? "Select a service, location, and descriptor first" : undefined}
-            className="w-full rounded-xl bg-red py-3 font-ui text-base font-semibold text-white transition-colors hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-70"
+            title={!canUpload && !isUploading ? "Select a service, location, and at least one file first" : undefined}
+            className="w-full rounded-xl bg-red py-3 font-ui text-base font-semibold text-white transition-colors hover:bg-red-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploading
               ? "Uploading..."
-              : `Upload ${files.length > 0 ? files.length + " " : ""}Selected File${files.length !== 1 ? "s" : ""}`}
+              : `Upload ${files.length > 0 ? files.length + " " : ""}File${files.length !== 1 ? "s" : ""}`}
           </button>
         </div>
+
       </form>
 
       {/* Per-file progress */}
@@ -769,10 +755,7 @@ export default function AssetUploader() {
               </div>
               {(status.state === "uploading" || status.state === "saving") && (
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-warm">
-                  <div
-                    className="h-full rounded-full bg-red transition-all duration-300"
-                    style={{ width: `${status.progress}%` }}
-                  />
+                  <div className="h-full rounded-full bg-red transition-all duration-300" style={{ width: `${status.progress}%` }} />
                 </div>
               )}
               {status.state === "error" && status.message && (
@@ -790,7 +773,7 @@ export default function AssetUploader() {
             <p className="font-ui text-xs uppercase tracking-[0.18em] text-navy">Batch Uploaded</p>
             <h3 className="mt-2 text-lg text-charcoal">Finish this project now</h3>
             <p className="mt-2 text-sm text-gray-mid">
-              {lastCompletedBatch.assetIds.length} photo{lastCompletedBatch.assetIds.length === 1 ? "" : "s"} saved.
+              {lastCompletedBatch.assetIds.length} file{lastCompletedBatch.assetIds.length === 1 ? "" : "s"} saved.
               Create a project, add to an existing one, or leave as standalone.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">

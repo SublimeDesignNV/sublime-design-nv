@@ -26,6 +26,8 @@ export const CONTEXTS: ContextDef[] = [
   { slug: "organization", label: "Organization", group: "feature" },
   { slug: "floating-vanity", label: "Floating Vanity", group: "feature" },
   { slug: "led-lighting", label: "LED Lighting", group: "feature" },
+  { slug: "coffee-bar", label: "Coffee Bar", group: "feature" },
+  { slug: "casita", label: "Casita", group: "feature" },
 ];
 
 export type ContextSlug = (typeof CONTEXTS)[number]["slug"];
