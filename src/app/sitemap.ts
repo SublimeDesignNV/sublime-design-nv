@@ -6,6 +6,7 @@ import { PROJECT_LIST } from "@/content/projects";
 import { getProjectCardPreviewAsset, getServiceCardPreviewAsset } from "@/lib/portfolio.server";
 import { slugify } from "@/lib/seo";
 import { CITIES, MATERIALS, ROOMS } from "@/lib/facets.config";
+import { db } from "@/lib/db";
 
 export const revalidate = 3600;
 
@@ -151,6 +152,57 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
 
+  // ── New programmatic SEO pages ─────────────────────────────────────────────
+
+  // Type A: Location × Service
+  const locationServiceRoutes: MetadataRoute.Sitemap = ACTIVE_SERVICES.flatMap((service) =>
+    ACTIVE_AREAS.map((area) => ({
+      url: `${siteUrl}/services/${service.slug}/${area.slug}`,
+      lastModified: now,
+    })),
+  );
+
+  // Type B: Material × Service (from DB — only combos that actually have assets)
+  let materialServiceRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const materialAssets = await db.asset.findMany({
+      where: { published: true, kind: "IMAGE" },
+      select: { primaryServiceSlug: true, materials: true },
+    });
+    const materialCombos = new Set<string>();
+    for (const asset of materialAssets) {
+      if (!asset.primaryServiceSlug) continue;
+      for (const mat of asset.materials ?? []) {
+        const matSlug = mat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+        if (matSlug) materialCombos.add(`${asset.primaryServiceSlug}|${matSlug}`);
+      }
+    }
+    materialServiceRoutes = Array.from(materialCombos).map((combo) => {
+      const [service, material] = combo.split("|");
+      return { url: `${siteUrl}/gallery/${service}/${material}`, lastModified: now };
+    });
+  } catch { /* db unavailable at build time — skip */ }
+
+  // Type C: Color reference pages — popular colors seeded in DB
+  let colorRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const popularColors = await db.paintColor.findMany({
+      where: {
+        OR: [
+          { brand: "Sherwin-Williams" },
+          { brand: "Benjamin Moore" },
+        ],
+      },
+      select: { brand: true, code: true },
+      take: 200,
+    });
+    colorRoutes = popularColors.map((c) => {
+      const brandSlug = c.brand.toLowerCase().replace(/[\s/]+/g, "-");
+      const colorSlug = c.code.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      return { url: `${siteUrl}/colors/${brandSlug}/${colorSlug}`, lastModified: now };
+    });
+  } catch { /* db unavailable at build time — skip */ }
+
   return [
     ...staticRoutes,
     ...areaRoutes,
@@ -161,5 +213,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...serviceRoomFacetRoutes,
     ...cityServiceMaterialFacetRoutes,
     ...cityServiceRoomFacetRoutes,
+    ...locationServiceRoutes,
+    ...materialServiceRoutes,
+    ...colorRoutes,
   ];
 }
