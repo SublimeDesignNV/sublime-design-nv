@@ -7,6 +7,7 @@ import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectRecordCard from "@/components/projects/ProjectRecordCard";
 import BreadcrumbTrail from "@/components/seo/BreadcrumbTrail";
 import LocalBusinessSchema from "@/components/seo/LocalBusinessSchema";
+import ProjectSchema from "@/components/seo/ProjectSchema";
 import ReviewSourcePlaceholder from "@/components/reviews/ReviewSourcePlaceholder";
 import { findArea } from "@/content/areas";
 import { findProject, getProjectsByService } from "@/content/projects";
@@ -359,12 +360,10 @@ export default async function ProjectDetailPage({ params }: Props) {
     return (
       <main className="bg-white pb-24 pt-24">
         <LocalBusinessSchema />
-        <ProjectStructuredData
-          slug={linkedProject.slug}
-          title={publicTitle}
-          description={publicDescription || publicTitle}
-          city={linkedProject.areaLabel ?? linkedProject.location ?? "Las Vegas Valley"}
-          state="NV"
+        <ProjectSchema
+          project={linkedProject}
+          publicTitle={publicTitle}
+          publicDescription={publicDescription || publicTitle}
           images={images}
         />
 
