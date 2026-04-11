@@ -1,6 +1,7 @@
 "use client";
 
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface PaintColor {
   id: string;
@@ -34,7 +35,7 @@ export default function PaintColorPicker({
   const [results, setResults] = useState<PaintColor[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -76,16 +77,22 @@ export default function PaintColorPicker({
 
   useEffect(() => {
     if (open && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setDropdownStyle({
-        position: "fixed",
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 9999,
-      });
+      setDropdownRect(inputRef.current.getBoundingClientRect());
+    } else {
+      setDropdownRect(null);
     }
   }, [open, results]);
+
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      if (inputRef.current) {
+        setDropdownRect(inputRef.current.getBoundingClientRect());
+      }
+    };
+    window.addEventListener("scroll", reposition, true);
+    return () => window.removeEventListener("scroll", reposition, true);
+  }, [open]);
 
   const handleSelect = (color: PaintColor) => {
     onSelect(color);
@@ -98,6 +105,76 @@ export default function PaintColorPicker({
     onSelect(null);
     setQuery("");
   };
+
+  const dropdown =
+    open && dropdownRect && !selected ? (
+      <>
+        {results.length > 0 &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: dropdownRect.bottom + 4,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+                zIndex: 99999,
+              }}
+              className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
+            >
+              {results.map((color) => (
+                <button
+                  key={color.id}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(color);
+                  }}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+                >
+                  <div
+                    className="h-8 w-8 flex-shrink-0 rounded-lg border border-gray-200"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-ui text-sm font-medium text-gray-900">{color.name}</p>
+                    <p className="font-ui text-xs text-gray-400">{color.code}</p>
+                  </div>
+                  <div
+                    className="rounded px-2 py-0.5 font-mono text-xs"
+                    style={{
+                      backgroundColor: color.hex,
+                      color: isLight(color.hex) ? "#374151" : "#ffffff",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    {color.hex}
+                  </div>
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )}
+
+        {query.length >= 2 && results.length === 0 && !loading &&
+          createPortal(
+            <div
+              style={{
+                position: "fixed",
+                top: dropdownRect.bottom + 4,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+                zIndex: 99999,
+              }}
+              className="rounded-xl border border-gray-200 bg-white p-3 shadow-xl"
+            >
+              <p className="text-center font-ui text-sm text-gray-500">
+                No colors found for &ldquo;{query}&rdquo;
+              </p>
+            </div>,
+            document.body,
+          )}
+      </>
+    ) : null;
 
   return (
     <div ref={ref} className="relative">
@@ -141,51 +218,7 @@ export default function PaintColorPicker({
         </div>
       )}
 
-      {open && results.length > 0 && !selected && (
-        <div
-          style={dropdownStyle}
-          className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
-        >
-          {results.map((color) => (
-            <button
-              key={color.id}
-              type="button"
-              onClick={() => handleSelect(color)}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
-            >
-              <div
-                className="h-8 w-8 flex-shrink-0 rounded-lg border border-gray-200"
-                style={{ backgroundColor: color.hex }}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-ui text-sm font-medium text-gray-900">{color.name}</p>
-                <p className="font-ui text-xs text-gray-400">{color.code}</p>
-              </div>
-              <div
-                className="rounded px-2 py-0.5 font-mono text-xs"
-                style={{
-                  backgroundColor: color.hex,
-                  color: isLight(color.hex) ? "#374151" : "#ffffff",
-                  border: "1px solid rgba(0,0,0,0.08)",
-                }}
-              >
-                {color.hex}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {open && query.length >= 2 && results.length === 0 && !loading && (
-        <div
-          style={dropdownStyle}
-          className="rounded-xl border border-gray-200 bg-white p-3 shadow-xl"
-        >
-          <p className="text-center font-ui text-sm text-gray-500">
-            No colors found for &ldquo;{query}&rdquo;
-          </p>
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
