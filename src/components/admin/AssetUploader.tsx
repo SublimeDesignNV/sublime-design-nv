@@ -27,6 +27,13 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
+interface ColorEntry {
+  id: string;
+  label: string;
+  color: PaintColor | null;
+  brand: string;
+}
+
 type UploadStatus = {
   name: string;
   state: "pending" | "uploading" | "saving" | "success" | "error";
@@ -215,6 +222,68 @@ function CategoryLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── ColorEntryRow ──────────────────────────────────────────────────────────────
+
+function ColorEntryRow({
+  entry,
+  availableBrands,
+  onUpdate,
+  onRemove,
+  canRemove,
+}: {
+  entry: ColorEntry;
+  availableBrands: string[];
+  onUpdate: (id: string, updates: Partial<ColorEntry>) => void;
+  onRemove: (id: string) => void;
+  canRemove: boolean;
+}) {
+  return (
+    <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={entry.label}
+          onChange={(e) => onUpdate(entry.id, { label: e.target.value })}
+          placeholder="What is this color for? e.g. Cabinets, Island, Walls"
+          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+        />
+        {canRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(entry.id)}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {availableBrands.map((brand) => (
+          <button
+            key={brand}
+            type="button"
+            onClick={() => onUpdate(entry.id, { brand, color: null })}
+            className="rounded-full border px-2.5 py-1 font-ui text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: entry.brand === brand ? "#1B2A6B" : "white",
+              color: entry.brand === brand ? "white" : "#374151",
+              borderColor: entry.brand === brand ? "#1B2A6B" : "#d1d5db",
+            }}
+          >
+            {brand}
+          </button>
+        ))}
+      </div>
+      <PaintColorPicker
+        brand={entry.brand}
+        selected={entry.color}
+        onSelect={(color) => onUpdate(entry.id, { color })}
+        placeholder={`Search ${entry.brand} colors...`}
+      />
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AssetUploader() {
@@ -254,9 +323,10 @@ export default function AssetUploader() {
   const [primaryWoodSpecies, setPrimaryWoodSpecies] = useState("");
   const [secondaryWoodSpecies, setSecondaryWoodSpecies] = useState<string[]>([]);
 
-  // Color spec (Paint + Stain) — searchable SW picker
-  const [selectedPaintColor, setSelectedPaintColor] = useState<PaintColor | null>(null);
-  const [selectedStainColor, setSelectedStainColor] = useState<PaintColor | null>(null);
+  // Color entries — multi-color system for Paint + Stain paths
+  const [colorEntries, setColorEntries] = useState<ColorEntry[]>([
+    { id: crypto.randomUUID(), label: "", color: null, brand: "Sherwin-Williams" },
+  ]);
 
   // File info
   const [filenameOverride, setFilenameOverride] = useState("");
@@ -335,10 +405,9 @@ export default function AssetUploader() {
     ...selectedCut,
     primaryWoodSpecies,
     ...secondaryWoodSpecies,
-    selectedPaintColor?.name,
-    selectedPaintColor?.code,
-    selectedStainColor?.name,
-    selectedStainColor?.code,
+    ...colorEntries.flatMap((e) =>
+      e.color ? [e.label || "Unlabeled", e.color.name, e.color.code] : [],
+    ),
   ].filter(Boolean);
 
   const canUpload =
@@ -381,6 +450,21 @@ export default function AssetUploader() {
     );
   }
 
+  function updateColorEntry(id: string, updates: Partial<ColorEntry>) {
+    setColorEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
+  }
+
+  function removeColorEntry(id: string) {
+    setColorEntries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function addColorEntry(defaultBrand: string) {
+    setColorEntries((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), label: "", color: null, brand: defaultBrand },
+    ]);
+  }
+
   // ── Effects ───────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -408,8 +492,7 @@ export default function AssetUploader() {
     setSelectedCut([]);
     setPrimaryWoodSpecies("");
     setSecondaryWoodSpecies([]);
-    setSelectedPaintColor(null);
-    setSelectedStainColor(null);
+    setColorEntries([{ id: crypto.randomUUID(), label: "", color: null, brand: "Sherwin-Williams" }]);
   }, [materialGrade]);
 
   useEffect(() => {
@@ -739,18 +822,34 @@ export default function AssetUploader() {
                   onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
                 />
               </div>
-              {/* Paint Color Spec */}
+              {/* Paint Colors */}
               <div className="space-y-3 border-t border-gray-100 pt-4">
-                <div>
-                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Paint Color</p>
-                  <p className="mt-0.5 font-ui text-xs text-gray-400">Document the client&apos;s chosen color — independent of which vendor mixed it.</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Paint Colors</p>
+                    <p className="mt-0.5 font-ui text-xs text-gray-400">Add a color for each element. Label what it was used on.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addColorEntry("Sherwin-Williams")}
+                    className="rounded-full border px-3 py-1.5 font-ui text-xs font-semibold transition-colors"
+                    style={{ color: "#CC2027", borderColor: "#CC2027" }}
+                  >
+                    + Add Color
+                  </button>
                 </div>
-                <PaintColorPicker
-                  brand="Sherwin-Williams"
-                  selected={selectedPaintColor}
-                  onSelect={setSelectedPaintColor}
-                  placeholder="Search SW colors by name or code..."
-                />
+                <div className="space-y-2">
+                  {colorEntries.map((entry) => (
+                    <ColorEntryRow
+                      key={entry.id}
+                      entry={entry}
+                      availableBrands={PAINT_BRANDS}
+                      onUpdate={updateColorEntry}
+                      onRemove={removeColorEntry}
+                      canRemove={colorEntries.length > 1}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -836,18 +935,34 @@ export default function AssetUploader() {
                   onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
                 />
               </div>
-              {/* Stain Color Spec */}
+              {/* Stain Colors */}
               <div className="space-y-3 border-t border-gray-100 pt-4">
-                <div>
-                  <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Stain Color</p>
-                  <p className="mt-0.5 font-ui text-xs text-gray-400">Document the client&apos;s chosen stain color so the job can be recreated exactly.</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-700">Stain Colors</p>
+                    <p className="mt-0.5 font-ui text-xs text-gray-400">Add a color for each element. Label what it was used on.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addColorEntry("General Finishes")}
+                    className="rounded-full border px-3 py-1.5 font-ui text-xs font-semibold transition-colors"
+                    style={{ color: "#CC2027", borderColor: "#CC2027" }}
+                  >
+                    + Add Color
+                  </button>
                 </div>
-                <PaintColorPicker
-                  brand="Sherwin-Williams"
-                  selected={selectedStainColor}
-                  onSelect={setSelectedStainColor}
-                  placeholder="Search SW colors by name or code..."
-                />
+                <div className="space-y-2">
+                  {colorEntries.map((entry) => (
+                    <ColorEntryRow
+                      key={entry.id}
+                      entry={entry}
+                      availableBrands={STAIN_BRANDS}
+                      onUpdate={updateColorEntry}
+                      onRemove={removeColorEntry}
+                      canRemove={colorEntries.length > 1}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
