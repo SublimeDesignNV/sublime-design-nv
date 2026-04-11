@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import PostToGBPButton from "@/components/admin/PostToGBPButton";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -395,6 +396,36 @@ function ComposerTab({ accounts }: { accounts: SocialAccount[] }) {
           className="w-full rounded-lg border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none focus:border-navy resize-none"
         />
         <p className="mt-1 text-right font-ui text-xs text-gray-mid">{caption.length} chars</p>
+
+        {/* Quick publish row */}
+        {caption.trim().length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+            <p className="w-full font-ui text-xs text-gray-400">Publish to:</p>
+            <PostToGBPButton caption={caption} />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(caption).catch(() => null);
+                window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+              }}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-ui text-sm font-medium text-white"
+              style={{ background: "linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)" }}
+            >
+              📸 Copy for Instagram
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(caption).catch(() => null);
+                window.open("https://www.facebook.com/sublimedesignnv", "_blank", "noopener,noreferrer");
+              }}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-ui text-sm font-medium text-white"
+              style={{ backgroundColor: "#1877F2" }}
+            >
+              👍 Copy for Facebook
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Hashtags */}

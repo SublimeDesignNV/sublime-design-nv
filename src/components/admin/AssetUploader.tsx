@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import PaintColorPicker, { type PaintColor } from "@/components/admin/PaintColorPicker";
+import PostToGBPButton from "@/components/admin/PostToGBPButton";
+import { generateGBPCaption } from "@/lib/generateSocialCaption";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { buildPublicId, uploadFileToCloudinaryWithProgress } from "@/lib/cloudinaryUpload";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
@@ -1136,6 +1138,17 @@ export default function AssetUploader() {
               >
                 Add to Existing Project
               </Link>
+              <PostToGBPButton
+                caption={generateGBPCaption({
+                  primaryService: primaryServiceLabel || undefined,
+                  primaryLocation: resolvedLocation || undefined,
+                  primaryRoom: primaryRoom || undefined,
+                  primaryFeature: primaryFeature || undefined,
+                  secondaryServices: secondaryServices,
+                  materials: allMaterials,
+                  serviceMetadata: serviceMetadata,
+                })}
+              />
             </div>
           </div>
         )}
