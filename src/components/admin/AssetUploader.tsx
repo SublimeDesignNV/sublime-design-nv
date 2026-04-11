@@ -559,24 +559,25 @@ export default function AssetUploader() {
         {/* Project Context */}
         <fieldset>
           <legend className="font-ui text-sm font-semibold text-charcoal">Project Context</legend>
-          <div className="mt-2 space-y-3">
+          <div className="mt-3 space-y-4">
             {(["room", "feature"] as const).map((group) => (
               <div key={group}>
-                <p className="font-ui text-xs uppercase tracking-[0.16em] text-gray-mid">
+                <p className="font-ui text-xs font-semibold uppercase tracking-[0.16em] text-gray-mid">
                   {group === "room" ? "Rooms" : "Features"}
                 </p>
-                <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-3">
                   {CONTEXT_TAGS.filter((context) => context.group === group).map((context) => (
                     <label
                       key={context.slug}
-                      className="font-ui flex items-center gap-2 rounded-sm border border-gray-warm bg-cream/40 px-3 py-2 text-xs text-charcoal"
+                      className="flex cursor-pointer items-center gap-2"
                     >
                       <input
                         type="checkbox"
                         checked={contextSlugs.includes(context.slug)}
                         onChange={() => toggleContext(context.slug)}
+                        className="rounded border-gray-300 accent-red"
                       />
-                      <span>{context.label}</span>
+                      <span className="font-ui text-sm text-charcoal">{context.label}</span>
                     </label>
                   ))}
                 </div>
