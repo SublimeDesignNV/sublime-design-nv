@@ -49,6 +49,27 @@ type FilePreview = {
   previewUrl: string;
 };
 
+async function createPreviewUrl(file: File): Promise<string> {
+  const isHeic =
+    file.type === "image/heic" ||
+    file.type === "image/heif" ||
+    file.name.toLowerCase().endsWith(".heic") ||
+    file.name.toLowerCase().endsWith(".heif");
+
+  if (isHeic) {
+    try {
+      const heic2any = (await import("heic2any")).default;
+      const blob = (await heic2any({ blob: file, toType: "image/jpeg", quality: 0.5 })) as Blob;
+      return URL.createObjectURL(blob);
+    } catch (err) {
+      console.warn("HEIC conversion failed, using fallback:", err);
+      return "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNDAiIHk9IjQ0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOWNhM2FmIj5IRUlDPC90ZXh0Pjwvc3ZnPg==";
+    }
+  }
+
+  return URL.createObjectURL(file);
+}
+
 
 function toTitleCase(str: string) {
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -289,6 +310,7 @@ export default function AssetUploader() {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<FilePreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   // FM integration
 
@@ -521,13 +543,15 @@ export default function AssetUploader() {
 
   // ── File helpers ──────────────────────────────────────────────────────────────
 
-  function addFiles(selected: File[]) {
+  async function addFiles(selected: File[]) {
     if (!selected.length) return;
     setFiles((prev) => [...prev, ...selected]);
-    setPreviews((prev) => [
-      ...prev,
-      ...selected.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) })),
-    ]);
+    setConverting(true);
+    const newPreviews = await Promise.all(
+      selected.map(async (f) => ({ file: f, previewUrl: await createPreviewUrl(f) }))
+    );
+    setPreviews((prev) => [...prev, ...newPreviews]);
+    setConverting(false);
   }
 
   function removeFile(index: number) {
@@ -699,6 +723,9 @@ export default function AssetUploader() {
               {files.length > 0 ? "Click or drag to add more files" : "Drag photos or videos here, or click to browse"}
             </p>
             <p className="mt-1 font-ui text-xs text-gray-mid">Images and videos accepted — multiple files at once</p>
+            {converting && (
+              <p className="mt-2 font-ui text-xs text-gray-400">Converting HEIC files...</p>
+            )}
           </>
         </div>
         {/* Preview strip — outside the drop zone so clicks don't re-trigger file picker */}
