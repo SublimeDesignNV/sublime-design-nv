@@ -1040,7 +1040,7 @@ export async function listUploadBatchSummaries(options?: {
       draftAssetCount,
       serviceSlugs: Array.from(new Set(mapped.map((asset) => asset.primaryServiceSlug).filter(Boolean))) as string[],
       status,
-      thumbnails: mapped.map((asset) => asset.imageUrl || asset.thumbnailUrl || "").filter(Boolean).slice(0, 4),
+      thumbnails: mapped.map((asset) => asset.thumbnailUrl || asset.imageUrl || "").filter(Boolean).slice(0, 4),
       assetIds: mapped.map((asset) => asset.id),
       publicIds: mapped.map((asset) => asset.publicId).filter(Boolean) as string[],
       projectIds: Array.from(projectMap.keys()),
