@@ -1060,7 +1060,8 @@ export default function AssetUploader() {
         </AccordionSection>
 
         {/* 5 — Description & Notes */}
-        <AccordionSection title="Description & Notes">
+        <div className="overflow-hidden rounded-xl border-2" style={{ borderColor: "#1B2A6B" }}>
+        <AccordionSection title="✦ AI Description" badge={shortDescription || seoDescription ? 1 : 0}>
           <div className="space-y-3">
             {/* AI generate button */}
             <button
@@ -1126,6 +1127,7 @@ export default function AssetUploader() {
             )}
           </div>
         </AccordionSection>
+        </div>
 
         {/* 6 — File Info */}
         <AccordionSection title="File Info">

@@ -185,7 +185,7 @@ export default function PaintColorPicker({
             style={{ backgroundColor: selected.hex }}
           />
           <div className="min-w-0 flex-1">
-            <p className="font-ui text-sm font-bold text-gray-900">{selected.code}</p>
+            <p className="font-mono text-base font-bold tracking-wide text-gray-900">{selected.code}</p>
             <p className="truncate font-ui text-xs text-gray-500">{selected.name} · {selected.brand}</p>
           </div>
           <button
