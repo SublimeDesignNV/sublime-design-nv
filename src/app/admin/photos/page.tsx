@@ -1,5 +1,4 @@
-import AssetUploader from "@/components/admin/AssetUploader";
-import AssetTable from "@/components/admin/AssetTable";
+import PhotosTabs from "@/components/admin/PhotosTabs";
 import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -15,16 +14,7 @@ export default async function AdminPhotosPage() {
           Upload new photos and manage your full library — set heroes, assign to projects, and publish.
         </p>
 
-        <div className="mt-8 space-y-10">
-          <AssetUploader />
-
-          <AssetTable
-            title="Photo Library"
-            description="All uploaded photos. Use the filters to find unassigned photos or browse by status."
-            defaultFilter="all"
-            availableFilters={["all", "published", "unpublished", "orphans"]}
-          />
-        </div>
+        <PhotosTabs />
       </div>
     </main>
   );
