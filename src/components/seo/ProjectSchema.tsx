@@ -68,8 +68,22 @@ export default function ProjectSchema({ project, publicTitle, publicDescription,
       description: [project.serviceLabel, locationName, ...finishKeywords.slice(0, 3)]
         .filter(Boolean)
         .join(", "),
-      creator: { "@id": businessId },
-      copyrightHolder: { "@id": businessId },
+      creator: {
+        "@type": "Organization",
+        "@id": businessId,
+        name: "Sublime Design NV",
+        url: siteUrl,
+      },
+      copyrightHolder: {
+        "@type": "Organization",
+        "@id": businessId,
+        name: "Sublime Design NV",
+        url: siteUrl,
+      },
+      creditText: "Sublime Design NV",
+      license: "https://creativecommons.org/licenses/by-nc-nd/4.0/",
+      acquireLicensePage: `${siteUrl}/contact`,
+      copyrightNotice: "© Sublime Design NV. All rights reserved.",
       locationCreated: {
         "@type": "Place",
         name: locationFull,
