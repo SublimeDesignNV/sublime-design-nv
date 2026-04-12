@@ -6,6 +6,8 @@ import { ACTIVE_AREAS } from "@/content/areas";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
 import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { sanitizeServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
+import PostToGBPButton from "@/components/admin/PostToGBPButton";
+import { generateGBPCaption } from "@/lib/generateSocialCaption";
 
 type AdminAsset = {
   id: string;
@@ -861,6 +863,17 @@ export default function AssetTable({
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
+                      {asset.published && (
+                        <PostToGBPButton
+                          caption={generateGBPCaption({
+                            title: asset.title,
+                            primaryService: asset.primaryServiceLabel,
+                            primaryLocation: asset.location,
+                            serviceMetadata: asset.serviceMetadata,
+                          })}
+                          size="sm"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => void deleteAsset(asset)}
