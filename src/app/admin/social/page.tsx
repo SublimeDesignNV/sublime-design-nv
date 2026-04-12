@@ -404,25 +404,43 @@ function ComposerTab({ accounts }: { accounts: SocialAccount[] }) {
             <PostToGBPButton caption={caption} />
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                const imageUrl = mediaUrls[0];
+                if (imageUrl && process.env.NEXT_PUBLIC_META_CONFIGURED === "true") {
+                  const res = await fetch("/api/admin/social/post-instagram", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ imageUrl, caption }),
+                  });
+                  if (res.ok) { alert("Posted to Instagram!"); return; }
+                }
                 navigator.clipboard.writeText(caption).catch(() => null);
                 window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
               }}
               className="flex items-center gap-2 rounded-lg px-4 py-2 font-ui text-sm font-medium text-white"
               style={{ background: "linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)" }}
             >
-              📸 Copy for Instagram
+              📸 {process.env.NEXT_PUBLIC_META_CONFIGURED === "true" ? "Post to Instagram" : "Copy for Instagram"}
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                const imageUrl = mediaUrls[0];
+                if (imageUrl && process.env.NEXT_PUBLIC_META_CONFIGURED === "true") {
+                  const res = await fetch("/api/admin/social/post-facebook", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ imageUrl, caption }),
+                  });
+                  if (res.ok) { alert("Posted to Facebook!"); return; }
+                }
                 navigator.clipboard.writeText(caption).catch(() => null);
                 window.open("https://www.facebook.com/sublimedesignnv", "_blank", "noopener,noreferrer");
               }}
               className="flex items-center gap-2 rounded-lg px-4 py-2 font-ui text-sm font-medium text-white"
               style={{ backgroundColor: "#1877F2" }}
             >
-              👍 Copy for Facebook
+              👍 {process.env.NEXT_PUBLIC_META_CONFIGURED === "true" ? "Post to Facebook" : "Copy for Facebook"}
             </button>
           </div>
         )}
@@ -765,17 +783,8 @@ const PLATFORM_CONFIG: {
   { id: "youtube", label: "YouTube", description: "Upload project videos and shorts.", oauth: false, authHref: "" },
 ];
 
-function SettingsTab({ accounts, onAccountsChange }: { accounts: SocialAccount[]; onAccountsChange: () => void }) {
-  const [disconnecting, setDisconnecting] = useState<string | null>(null);
-
-  const accountMap = Object.fromEntries(accounts.map((a) => [a.platform, a]));
-
-  async function disconnect(platform: string) {
-    setDisconnecting(platform);
-    await fetch(`/api/admin/social/accounts/${platform}`, { method: "DELETE" });
-    setDisconnecting(null);
-    onAccountsChange();
-  }
+function SettingsTab({ accounts: _accounts, onAccountsChange: _onAccountsChange }: { accounts: SocialAccount[]; onAccountsChange: () => void }) {
+  const metaConfigured = process.env.NEXT_PUBLIC_META_CONFIGURED === "true";
 
   return (
     <div className="mt-6 max-w-2xl space-y-8">
@@ -783,51 +792,109 @@ function SettingsTab({ accounts, onAccountsChange }: { accounts: SocialAccount[]
       <div>
         <h2 className="mb-4 font-ui text-sm font-semibold uppercase tracking-[0.14em] text-gray-mid">Connected Accounts</h2>
         <div className="space-y-3">
-          {PLATFORM_CONFIG.map(({ id, label, description, oauth, authHref }) => {
-            const account = accountMap[id];
-            const isConnected = account?.connected;
 
-            return (
-              <div key={id} className="flex items-start justify-between gap-4 rounded-xl border border-gray-warm bg-white p-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-ui text-sm font-semibold text-charcoal">{label}</span>
-                    {isConnected && account.accountName ? (
-                      <span className="font-ui text-xs text-gray-mid">@{account.accountName}</span>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 font-ui text-xs text-gray-mid">{description}</p>
-                  {isConnected && account.connectedAt ? (
-                    <p className="mt-1 font-ui text-[10px] text-gray-mid">
-                      Connected {new Date(account.connectedAt).toLocaleDateString()}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="shrink-0">
-                  {!oauth ? (
-                    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 font-ui text-xs text-gray-400">Coming soon</span>
-                  ) : isConnected ? (
-                    <button
-                      type="button"
-                      onClick={() => void disconnect(id)}
-                      disabled={disconnecting === id}
-                      className="rounded-lg border border-gray-warm px-3 py-1.5 font-ui text-xs text-gray-mid transition hover:border-red hover:text-red disabled:opacity-50"
-                    >
-                      {disconnecting === id ? "..." : "Disconnect"}
-                    </button>
-                  ) : (
-                    <a
-                      href={authHref}
-                      className="inline-block rounded-lg bg-navy px-3 py-1.5 font-ui text-xs text-white transition hover:bg-navy/90"
-                    >
-                      Connect
-                    </a>
-                  )}
-                </div>
+          {/* Instagram */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-warm bg-white p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
               </div>
-            );
-          })}
+              <div>
+                <p className="font-ui text-sm font-semibold text-charcoal">Instagram</p>
+                <p className="font-ui text-xs text-gray-mid">
+                  {metaConfigured ? "@sublime_design_nv · Connected" : "Publish photos to your business profile"}
+                </p>
+              </div>
+            </div>
+            {metaConfigured ? (
+              <span className="rounded-full bg-green-50 px-3 py-1 font-ui text-xs font-semibold text-green-700">✓ Connected</span>
+            ) : (
+              <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2 font-ui text-sm font-semibold text-white" style={{ backgroundColor: "#1B2A6B" }}>
+                Connect →
+              </a>
+            )}
+          </div>
+
+          {/* Facebook */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-warm bg-white p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#1877F2" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-ui text-sm font-semibold text-charcoal">Facebook</p>
+                <p className="font-ui text-xs text-gray-mid">
+                  {metaConfigured ? "Sublime Design NV · Connected" : "Post to your business page feed"}
+                </p>
+              </div>
+            </div>
+            {metaConfigured ? (
+              <span className="rounded-full bg-green-50 px-3 py-1 font-ui text-xs font-semibold text-green-700">✓ Connected</span>
+            ) : (
+              <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" className="rounded-lg px-4 py-2 font-ui text-sm font-semibold text-white" style={{ backgroundColor: "#1877F2" }}>
+                Connect →
+              </a>
+            )}
+          </div>
+
+          {/* Google Business Profile */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-warm bg-white p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-ui text-sm font-semibold text-charcoal">Google Business Profile</p>
+                <p className="font-ui text-xs text-gray-mid">Copy caption + open GBP composer</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-green-50 px-3 py-1 font-ui text-xs font-semibold text-green-700">✓ Ready</span>
+          </div>
+
+          {/* Pinterest — coming soon */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-warm bg-white p-4 opacity-50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#E60023" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-ui text-sm font-semibold text-charcoal">Pinterest</p>
+                <p className="font-ui text-xs text-gray-mid">Coming soon</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-gray-100 px-3 py-1 font-ui text-xs text-gray-400">Soon</span>
+          </div>
+
         </div>
+
+        {/* Setup instructions when not configured */}
+        {!metaConfigured && (
+          <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+            <p className="font-ui text-sm font-semibold text-blue-900 mb-2">How to connect Instagram &amp; Facebook</p>
+            <ol className="list-decimal list-inside space-y-1 font-ui text-xs text-blue-800">
+              <li>Go to business.facebook.com → Settings → System Users</li>
+              <li>Create a System User with Admin role</li>
+              <li>Generate a token with <code className="font-mono">instagram_content_publish</code> + <code className="font-mono">pages_manage_posts</code> scopes</li>
+              <li>Get your Instagram Account ID and Facebook Page ID</li>
+              <li>Add <code className="font-mono">META_SYSTEM_USER_TOKEN</code>, <code className="font-mono">META_INSTAGRAM_ACCOUNT_ID</code>, <code className="font-mono">META_FACEBOOK_PAGE_ID</code> to Vercel env vars</li>
+              <li>Set <code className="font-mono">NEXT_PUBLIC_META_CONFIGURED=true</code> in Vercel</li>
+            </ol>
+            <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" className="mt-3 inline-block font-ui text-xs font-semibold text-blue-700 underline">
+              Open Meta Business Suite →
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Post defaults */}
