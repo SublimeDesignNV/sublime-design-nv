@@ -398,3 +398,93 @@ model IntakeLeadAsset {
   caption      String?
   createdAt    DateTime        @default(now())
 }
+
+// ─── Materials System ────────────────────────────────────────────────────────
+
+model MaterialCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  materials   Material[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Manufacturer {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  website     String?
+  description String?
+  logoUrl     String?
+  materials   Material[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Supplier {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  slug        String            @unique
+  website     String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  description String?
+  logoUrl     String?
+  pricing     SupplierPricing[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Material {
+  id             String            @id @default(cuid())
+  name           String
+  slug           String            @unique
+  sku            String?
+  description    String?
+  imageUrl       String?
+  isPublic       Boolean           @default(true)
+  categoryId     String
+  category       MaterialCategory  @relation(fields: [categoryId], references: [id])
+  manufacturerId String
+  manufacturer   Manufacturer      @relation(fields: [manufacturerId], references: [id])
+  services       MaterialService[]
+  pricing        SupplierPricing[]
+  grade          String?
+  sheen          String?
+  finish         String?
+  thickness      String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model SupplierPricing {
+  id          String    @id @default(cuid())
+  materialId  String
+  material    Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  supplierId  String
+  supplier    Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sheetPrice  Float?
+  cutPrice    Float?
+  cutUnit     String?
+  unit        String?   @default("sheet")
+  notes       String?
+  lastUpdated DateTime  @default(now())
+  isPreferred Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([materialId, supplierId])
+}
+
+model MaterialService {
+  id         String   @id @default(cuid())
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  serviceId  String
+
+  @@unique([materialId, serviceId])
+}

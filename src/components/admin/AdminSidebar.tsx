@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Image as ImageIcon,
   LayoutDashboard,
+  Layers,
   LogOut,
   Menu,
   Settings,
@@ -41,6 +42,12 @@ const NAV_GROUPS = [
       { href: "/admin/photos", label: "Photos", icon: ImageIcon },
       { href: "/admin/projects", label: "Projects", icon: FolderOpen },
       { href: "/admin/media", label: "Media Manager", icon: Film },
+    ],
+  },
+  {
+    label: "Materials",
+    links: [
+      { href: "/admin/materials", label: "Materials", icon: Layers },
     ],
   },
   {
