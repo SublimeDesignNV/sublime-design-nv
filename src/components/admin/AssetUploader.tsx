@@ -667,6 +667,15 @@ export default function AssetUploader() {
           if (setAsHero && i === 0) {
             await fetch(`/api/admin/assets/${assetId}/hero`, { method: "POST" }).catch(() => null);
           }
+          // Link tagged paint colors to the new asset
+          const colorIds = colorEntries.map((e) => e.color?.id).filter(Boolean) as string[];
+          for (const paintColorId of colorIds) {
+            await fetch(`/api/admin/assets/${assetId}/colors`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ paintColorId }),
+            }).catch(() => null);
+          }
         }
         updateStatus(file.name, { state: "success", progress: 100 });
       } catch (uploadError) {

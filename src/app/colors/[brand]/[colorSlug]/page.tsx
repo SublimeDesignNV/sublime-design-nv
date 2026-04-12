@@ -97,20 +97,39 @@ export default async function ColorReferencePage({ params }: Props) {
 
   if (!color) notFound();
 
-  // Find published project photos that used this color
-  const assets = await db.asset.findMany({
-    where: {
-      published: true,
-      kind: "IMAGE",
-      OR: [
-        { materials: { has: color.code } },
-        { materials: { has: color.name } },
-      ],
+  // Find published photos tagged with this color via AssetPaintColor join table
+  const taggedLinks = await db.assetPaintColor.findMany({
+    where: { paintColorId: color.id },
+    include: {
+      asset: {
+        select: { id: true, secureUrl: true, alt: true, primaryServiceSlug: true, location: true, published: true },
+      },
     },
-    select: { id: true, secureUrl: true, alt: true, primaryServiceSlug: true, location: true },
-    orderBy: { createdAt: "desc" },
-    take: 12,
+    take: 24,
   });
+  const taggedAssets = taggedLinks
+    .map((l) => l.asset)
+    .filter((a) => a.published);
+
+  // Fallback: also find photos whose materials[] string array mentions this color
+  const legacyAssets = taggedAssets.length < 12
+    ? await db.asset.findMany({
+        where: {
+          published: true,
+          kind: "IMAGE",
+          OR: [
+            { materials: { has: color.code } },
+            { materials: { has: color.name } },
+          ],
+          NOT: { id: { in: taggedAssets.map((a) => a.id) } },
+        },
+        select: { id: true, secureUrl: true, alt: true, primaryServiceSlug: true, location: true, published: true },
+        orderBy: { createdAt: "desc" },
+        take: 12 - taggedAssets.length,
+      })
+    : [];
+
+  const assets = [...taggedAssets, ...legacyAssets].slice(0, 12);
 
   // Related colors from same brand (similar hue range)
   const relatedColors = await db.paintColor.findMany({
@@ -125,6 +144,7 @@ export default async function ColorReferencePage({ params }: Props) {
 
   const textOnSwatch = isLight(color.hex) ? "#374151" : "#ffffff";
 
+  const photoUrls = assets.map((a) => a.secureUrl).filter(Boolean) as string[];
   const schema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -133,7 +153,16 @@ export default async function ColorReferencePage({ params }: Props) {
     brand: { "@type": "Brand", name: color.brand },
     color: color.hex,
     url: `${siteUrl}/colors/${params.brand}/${params.colorSlug}`,
-    ...(assets[0]?.secureUrl ? { image: assets[0].secureUrl } : {}),
+    ...(photoUrls.length > 0 ? { image: photoUrls.length === 1 ? photoUrls[0] : photoUrls } : {}),
+    offers: {
+      "@type": "Offer",
+      seller: {
+        "@type": "HomeAndConstructionBusiness",
+        "@id": `${siteUrl}/#business`,
+        name: "Sublime Design NV",
+        url: siteUrl,
+      },
+    },
   };
 
   const breadcrumbSchema = {
@@ -234,7 +263,7 @@ export default async function ColorReferencePage({ params }: Props) {
           {/* Projects using this color */}
           <section className="mt-12">
             <p className="font-ui text-xs font-semibold uppercase tracking-[0.18em] text-red">
-              Real Work
+              Real Work in Las Vegas
             </p>
             <h2 className="mt-2 text-2xl text-charcoal">
               Projects Using {color.name}

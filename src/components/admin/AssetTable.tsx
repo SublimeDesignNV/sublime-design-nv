@@ -8,6 +8,7 @@ import { CONTEXT_TAGS, SERVICE_TAGS } from "@/lib/serviceTags";
 import { sanitizeServiceAssetMetadata } from "@/lib/serviceAssetMetadata";
 import PostToGBPButton from "@/components/admin/PostToGBPButton";
 import { generateGBPCaption } from "@/lib/generateSocialCaption";
+import ColorTagModal from "@/components/admin/ColorTagModal";
 
 type AdminAsset = {
   id: string;
@@ -176,6 +177,7 @@ export default function AssetTable({
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const [heroAssetId, setHeroAssetId] = useState<string | null>(null);
   const [settingHeroId, setSettingHeroId] = useState<string | null>(null);
+  const [colorModalAsset, setColorModalAsset] = useState<AdminAsset | null>(null);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [createProjectForm, setCreateProjectForm] = useState<ProjectFormState | null>(null);
   const [linkProjectId, setLinkProjectId] = useState("");
@@ -876,6 +878,14 @@ export default function AssetTable({
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setColorModalAsset(asset)}
+                        title="Tag paint colors used in this photo"
+                        className="inline-flex items-center gap-1 rounded-sm border border-gray-warm px-3 py-1.5 font-ui text-xs text-charcoal transition hover:border-indigo-400 hover:text-indigo-700"
+                      >
+                        🎨 Colors
+                      </button>
                       {asset.kind === "IMAGE" && asset.publicId && (
                         <button
                           type="button"
@@ -930,6 +940,14 @@ export default function AssetTable({
           ) : null}
         </div>
       ) : null}
+
+      {colorModalAsset && (
+        <ColorTagModal
+          assetId={colorModalAsset.id}
+          assetTitle={colorModalAsset.title}
+          onClose={() => setColorModalAsset(null)}
+        />
+      )}
 
       {editForm ? (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-charcoal/55 p-4 md:p-8">

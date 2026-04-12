@@ -60,6 +60,7 @@ model Asset {
   tags               AssetTag[]
   projectLinks       ProjectAsset[]
   coverForProjects   Project[]      @relation("ProjectCoverAsset")
+  paintColors        AssetPaintColor[]
 }
 
 model PaintColor {
@@ -72,9 +73,21 @@ model PaintColor {
   r      Int
   g      Int
   b      Int
+  assets AssetPaintColor[]
 
   @@index([name])
   @@index([code])
+}
+
+model AssetPaintColor {
+  id           String     @id @default(cuid())
+  assetId      String
+  asset        Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  paintColorId String
+  paintColor   PaintColor @relation(fields: [paintColorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([assetId, paintColorId])
 }
 
 model AssetTag {
