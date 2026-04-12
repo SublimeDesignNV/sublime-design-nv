@@ -300,7 +300,6 @@ export default function AssetUploader() {
   const [isDragging, setIsDragging] = useState(false);
 
   // FM integration
-  const [_linkedProjectId, setLinkedProjectId] = useState("");
 
   // Service
   const [primaryService, setPrimaryService] = useState("");
@@ -491,11 +490,10 @@ export default function AssetUploader() {
   useEffect(() => {
     const service = searchParams.get("service");
     const location = searchParams.get("location");
-    const projectId = searchParams.get("projectId");
+
     const notes = searchParams.get("notes");
     if (service) setPrimaryService(service);
     if (location) setPrimaryLocation(location);
-    if (projectId) setLinkedProjectId(projectId);
     if (notes) { setDescription(notes); setShortDescription(notes); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
