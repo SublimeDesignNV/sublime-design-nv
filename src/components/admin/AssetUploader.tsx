@@ -45,10 +45,8 @@ type UploadStatus = {
 };
 
 type FilePreview = {
-  name: string;
+  file: File;
   previewUrl: string;
-  size: number;
-  isVideo: boolean;
 };
 
 // ── Utils ──────────────────────────────────────────────────────────────────────
@@ -519,28 +517,24 @@ export default function AssetUploader() {
     setColorEntries([{ id: crypto.randomUUID(), label: "", color: null, brand: "Sherwin-Williams" }]);
   }, [materialGrade]);
 
+  // Keep a ref to current previews so the unmount cleanup always has the latest list
+  const previewsRef = useRef(previews);
+  useEffect(() => { previewsRef.current = previews; }, [previews]);
   useEffect(() => {
     return () => {
-      previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+      previewsRef.current.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── File helpers ──────────────────────────────────────────────────────────────
 
-  function buildPreviews(selected: File[]): FilePreview[] {
-    return selected.map((f) => ({
-      name: f.name,
-      previewUrl: URL.createObjectURL(f),
-      size: f.size,
-      isVideo: f.type.startsWith("video/"),
-    }));
-  }
-
-  function handleFileSelection(selected: File[]) {
-    previews.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
-    setFiles(selected);
-    setPreviews(buildPreviews(selected));
+  function addFiles(selected: File[]) {
+    if (!selected.length) return;
+    setFiles((prev) => [...prev, ...selected]);
+    setPreviews((prev) => [
+      ...prev,
+      ...selected.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) })),
+    ]);
   }
 
   function removeFile(index: number) {
@@ -689,8 +683,7 @@ export default function AssetUploader() {
           onDrop={(e) => {
             e.preventDefault();
             setIsDragging(false);
-            const dropped = Array.from(e.dataTransfer.files);
-            if (dropped.length) handleFileSelection(dropped);
+            addFiles(Array.from(e.dataTransfer.files));
           }}
           onClick={() => fileInputRef.current?.click()}
           className={`flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
@@ -699,49 +692,68 @@ export default function AssetUploader() {
               : "border-gray-warm hover:border-navy/40"
           }`}
         >
-          <input ref={fileInputRef} type="file" multiple accept="image/*,video/*" className="hidden"
+          <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,.heic,.heif" className="hidden"
             onChange={(e) => {
-              const selected = Array.from(e.target.files || []);
-              if (selected.length) handleFileSelection(selected);
+              addFiles(Array.from(e.target.files || []));
+              e.target.value = "";
             }}
           />
-          {files.length === 0 ? (
-            <>
-              <svg className="mb-3 h-8 w-8 text-gray-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-              <p className="font-ui text-sm font-semibold text-charcoal">Drag photos or videos here, or click to browse</p>
-              <p className="mt-1 font-ui text-xs text-gray-mid">Images and videos accepted — multiple files at once</p>
-            </>
-          ) : (
-            <div className="flex flex-wrap justify-center gap-3">
-              {previews.map((p, index) => (
-                <div key={p.name} className="group relative flex flex-col items-center gap-1">
-                  {p.isVideo ? (
-                    <span className="relative inline-flex h-16 w-16 overflow-hidden rounded-lg bg-charcoal">
-                      <video src={p.previewUrl} preload="metadata" muted className="h-full w-full object-cover" />
-                      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      </span>
-                    </span>
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.previewUrl} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
-                  )}
-                  {!isUploading && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); removeFile(index); }}
-                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 font-ui text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      aria-label="Remove file"
-                    >✕</button>
-                  )}
-                  <span className="max-w-[64px] truncate font-ui text-[10px] text-gray-mid">{p.name}</span>
-                  <span className="font-ui text-[10px] text-gray-mid">{formatBytes(p.size)}</span>
-                </div>
-              ))}
-              <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-warm font-ui text-lg text-gray-mid hover:border-navy/40">+</div>
-            </div>
-          )}
+          <>
+            <svg className="mb-3 h-8 w-8 text-gray-mid" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
+            <p className="font-ui text-sm font-semibold text-charcoal">
+              {files.length > 0 ? "Click or drag to add more files" : "Drag photos or videos here, or click to browse"}
+            </p>
+            <p className="mt-1 font-ui text-xs text-gray-mid">Images and videos accepted — multiple files at once</p>
+          </>
         </div>
+        {/* Preview strip — outside the drop zone so clicks don't re-trigger file picker */}
+        {previews.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {previews.map((p, index) => (
+              <div
+                key={index}
+                className="relative flex-shrink-0"
+                style={{ width: 80, height: 80 }}
+              >
+                {p.file.type.startsWith("video/") ? (
+                  <video
+                    src={p.previewUrl}
+                    className="h-full w-full rounded-lg object-cover bg-gray-900"
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.previewUrl}
+                    alt={p.file.name}
+                    className="h-full w-full rounded-lg object-cover bg-gray-100"
+                    style={{ display: "block" }}
+                  />
+                )}
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-black/60 text-white"
+                  style={{ fontSize: 10, padding: "2px 4px", textAlign: "center" }}
+                >
+                  {(p.file.size / 1024 / 1024).toFixed(1)}MB
+                </div>
+                {!isUploading && (
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full text-white"
+                    style={{ backgroundColor: "rgba(0,0,0,0.7)", fontSize: 14, lineHeight: 1 }}
+                    aria-label="Remove file"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {files.length > 0 && (
           <p className="mt-1.5 font-ui text-xs text-gray-mid">
             {files.length} file{files.length !== 1 ? "s" : ""} selected — click zone to add more
