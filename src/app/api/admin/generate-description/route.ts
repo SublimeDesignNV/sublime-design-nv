@@ -91,29 +91,31 @@ Format your response as valid JSON only, no markdown:
   "seo": "..."
 }`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "gpt-4o",
       max_tokens: 500,
       messages: [{ role: "user", content: prompt }],
     }),
   });
 
   if (!response.ok) {
+    const error = await response.json();
+    console.error("OpenAI error:", error);
     return NextResponse.json({ error: "Failed to generate description" }, { status: 500 });
   }
 
-  const data = await response.json() as { content?: { text?: string }[] };
-  const text = data.content?.[0]?.text ?? "";
+  const data = await response.json() as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content ?? "";
 
   try {
-    const parsed = JSON.parse(text) as { short?: string; seo?: string };
+    const clean = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean) as { short?: string; seo?: string };
     return NextResponse.json(parsed);
   } catch {
     return NextResponse.json({ error: "Failed to parse AI response", raw: text }, { status: 500 });

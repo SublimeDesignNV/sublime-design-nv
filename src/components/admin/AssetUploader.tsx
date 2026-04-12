@@ -300,7 +300,7 @@ export default function AssetUploader() {
   const [isDragging, setIsDragging] = useState(false);
 
   // FM integration
-  const [linkedProjectId, setLinkedProjectId] = useState("");
+  const [_linkedProjectId, setLinkedProjectId] = useState("");
 
   // Service
   const [primaryService, setPrimaryService] = useState("");

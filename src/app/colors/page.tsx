@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { Metadata } from "next";
 
 interface PaintColor {
   id: string;
@@ -22,13 +21,6 @@ const PAINT_BRANDS = [
   "Valspar",
   "Vista Paint",
 ];
-
-function isLight(hex: string) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
-}
 
 function colorHref(color: PaintColor) {
   const brandSlug = color.brand.toLowerCase().replace(/[\s/]+/g, "-");
