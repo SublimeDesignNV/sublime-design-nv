@@ -63,14 +63,15 @@ model Asset {
 }
 
 model PaintColor {
-  id    String @id @default(cuid())
-  brand String @default("Sherwin-Williams")
-  code  String @unique
-  name  String
-  hex   String
-  r     Int
-  g     Int
-  b     Int
+  id     String  @id @default(cuid())
+  brand  String  @default("Sherwin-Williams")
+  code   String  @unique
+  number String?
+  name   String
+  hex    String
+  r      Int
+  g      Int
+  b      Int
 
   @@index([name])
   @@index([code])
