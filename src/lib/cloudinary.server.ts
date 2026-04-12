@@ -572,6 +572,35 @@ export async function addAssetTags(publicId: string, tags: string[]) {
   }
 }
 
+export async function removeAssetTags(publicId: string, tagsToRemove: string[]) {
+  ensureCloudinaryConfigured();
+
+  if (!tagsToRemove.length) return;
+
+  const normalizedRemove = tagsToRemove.map((t) => t.toLowerCase().trim());
+
+  try {
+    const resource = (await cloudinary.api.resource(publicId, {
+      resource_type: "image",
+      type: "upload",
+      tags: true,
+    })) as { tags?: string[] };
+
+    const filteredTags = (resource.tags ?? []).filter(
+      (tag) => !normalizedRemove.includes(tag.toLowerCase().trim()),
+    );
+
+    await cloudinary.api.update(publicId, {
+      resource_type: "image",
+      type: "upload",
+      tags: filteredTags,
+    });
+  } catch (error) {
+    const details = error instanceof Error ? error.message : "unknown error";
+    throw new Error(`Failed to remove tags for "${publicId}": ${details}`);
+  }
+}
+
 export async function getAssetByPublicId(publicId: string): Promise<CloudinaryAsset | null> {
   ensureCloudinaryConfigured();
 

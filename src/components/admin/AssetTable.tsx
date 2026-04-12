@@ -174,6 +174,8 @@ export default function AssetTable({
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [heroAssetId, setHeroAssetId] = useState<string | null>(null);
+  const [settingHeroId, setSettingHeroId] = useState<string | null>(null);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
   const [createProjectForm, setCreateProjectForm] = useState<ProjectFormState | null>(null);
   const [linkProjectId, setLinkProjectId] = useState("");
@@ -393,6 +395,17 @@ export default function AssetTable({
 
     await loadAssets();
     closeEditor();
+  }
+
+  async function setHeroImage(asset: AdminAsset) {
+    if (!asset.publicId) return;
+    setSettingHeroId(asset.id);
+    try {
+      const res = await fetch(`/api/admin/assets/${asset.id}/hero`, { method: "POST" });
+      if (res.ok) setHeroAssetId(asset.id);
+    } finally {
+      setSettingHeroId(null);
+    }
   }
 
   async function deleteAsset(asset: AdminAsset) {
@@ -863,6 +876,21 @@ export default function AssetTable({
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
                       </button>
+                      {asset.kind === "IMAGE" && asset.publicId && (
+                        <button
+                          type="button"
+                          onClick={() => void setHeroImage(asset)}
+                          disabled={settingHeroId === asset.id}
+                          title="Set as hero image for this service"
+                          className={`inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 font-ui text-xs transition disabled:opacity-60 ${
+                            heroAssetId === asset.id
+                              ? "border-amber-400 bg-amber-50 text-amber-700"
+                              : "border-gray-warm text-charcoal hover:border-amber-400 hover:text-amber-700"
+                          }`}
+                        >
+                          {heroAssetId === asset.id ? "★ Hero" : settingHeroId === asset.id ? "Setting..." : "☆ Set Hero"}
+                        </button>
+                      )}
                       {asset.published && (
                         <PostToGBPButton
                           caption={generateGBPCaption({

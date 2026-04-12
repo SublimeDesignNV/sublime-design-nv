@@ -360,6 +360,7 @@ export default function AssetUploader() {
   // Misc
   const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
   const [published, setPublished] = useState(false);
+  const [setAsHero, setSetAsHero] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [statuses, setStatuses] = useState<UploadStatus[]>([]);
   const [lastCompletedBatch, setLastCompletedBatch] = useState<{
@@ -659,7 +660,14 @@ export default function AssetUploader() {
         };
 
         if (!saveResponse.ok) throw new Error(saveBody.error || "Failed to save photo metadata.");
-        if (saveBody.asset?.id) createdAssetIds.push(saveBody.asset.id);
+        const assetId = saveBody.asset?.id;
+        if (assetId) {
+          createdAssetIds.push(assetId);
+          // Set as hero for the service if requested (first file only)
+          if (setAsHero && i === 0) {
+            await fetch(`/api/admin/assets/${assetId}/hero`, { method: "POST" }).catch(() => null);
+          }
+        }
         updateStatus(file.name, { state: "success", progress: 100 });
       } catch (uploadError) {
         updateStatus(file.name, {
@@ -1222,6 +1230,16 @@ export default function AssetUploader() {
               className="rounded border-gray-300 accent-red"
             />
             Publish immediately
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 font-ui text-sm text-charcoal">
+            <input
+              type="checkbox"
+              checked={setAsHero}
+              onChange={(e) => setSetAsHero(e.target.checked)}
+              className="rounded border-gray-300"
+              style={{ accentColor: "#D97706" }}
+            />
+            ☆ Set as hero image for this service
           </label>
           <button
             type="submit"
