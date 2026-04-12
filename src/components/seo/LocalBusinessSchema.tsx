@@ -38,16 +38,15 @@ export default async function LocalBusinessSchema() {
         },
       ],
     }),
-    ...(biz.showAddress && {
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: biz.address ?? undefined,
-        addressLocality: city,
-        postalCode: biz.zip ?? undefined,
-        addressRegion: state,
-        addressCountry: "US",
-      },
-    }),
+    address: {
+      "@type": "PostalAddress",
+      ...(biz.showAddress && biz.address ? { streetAddress: biz.address } : {}),
+      addressLocality: city,
+      ...(biz.showAddress && biz.zip ? { postalCode: biz.zip } : {}),
+      addressRegion: state,
+      addressCountry: "US",
+    },
+    image: "https://res.cloudinary.com/dueaqxh8s/image/upload/v1776011257/Sublime_Design_Logo_bxale2.png",
     geo: {
       "@type": "GeoCoordinates",
       latitude: 36.1699,
