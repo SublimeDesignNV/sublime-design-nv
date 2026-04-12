@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import PaintColorPicker, { type PaintColor } from "@/components/admin/PaintColorPicker";
 import PostToGBPButton from "@/components/admin/PostToGBPButton";
@@ -291,11 +292,15 @@ function ColorEntryRow({
 export default function AssetUploader() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchSectionRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   // Files
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<FilePreview[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // FM integration
+  const [linkedProjectId, setLinkedProjectId] = useState("");
 
   // Service
   const [primaryService, setPrimaryService] = useState("");
@@ -474,6 +479,19 @@ export default function AssetUploader() {
       const saved = localStorage.getItem("lastUsedServiceType");
       if (saved) setPrimaryService(saved);
     } catch { /* ignore */ }
+  }, []);
+
+  // Pre-populate from FM deep-link URL params
+  useEffect(() => {
+    const service = searchParams.get("service");
+    const location = searchParams.get("location");
+    const projectId = searchParams.get("projectId");
+    const notes = searchParams.get("notes");
+    if (service) setPrimaryService(service);
+    if (location) setPrimaryLocation(location);
+    if (projectId) setLinkedProjectId(projectId);
+    if (notes) setDescription(notes);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

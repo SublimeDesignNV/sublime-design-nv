@@ -112,6 +112,8 @@ model Project {
   facebookCaption    String?
   hashtagSet         String?
   socialExportedAt   DateTime?
+  externalId         String?
+  externalSource     String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   assets             ProjectAsset[]
