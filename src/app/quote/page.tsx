@@ -359,6 +359,7 @@ export default function QuotePage() {
     location: "",
     ctaLabel: "",
   });
+  const [colorPrefill, setColorPrefill] = useState<{ code: string; name: string; brand: string } | null>(null);
   const [successProjects, setSuccessProjects] = useState<QuoteSuccessProject[]>([]);
   const fieldRefs = useRef<Partial<Record<QuoteFieldName, HTMLElement | null>>>({});
 
@@ -369,9 +370,14 @@ export default function QuotePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const context = readQuotePrefill(new URLSearchParams(window.location.search));
+    const sp = new URLSearchParams(window.location.search);
+    const context = readQuotePrefill(sp);
     setQuoteContext(context);
     setForm((prev) => applyQuotePrefillToForm(prev, context));
+    const code = sp.get("color")?.trim();
+    const name = sp.get("colorName")?.trim();
+    const brand = sp.get("brand")?.trim();
+    if (code) setColorPrefill({ code, name: name ?? code, brand: brand ?? "" });
   }, []);
 
   useEffect(() => {
@@ -647,6 +653,19 @@ export default function QuotePage() {
             {visibleContext.detail ? (
               <p className="mt-1 text-sm text-gray-mid">{visibleContext.detail}</p>
             ) : null}
+          </div>
+        ) : null}
+        {colorPrefill ? (
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="font-ui text-[10px] uppercase tracking-[0.18em] text-red shrink-0">Color</p>
+            <p className="font-ui text-sm text-charcoal">
+              <span className="font-semibold">{colorPrefill.name}</span>
+              {" "}
+              <span className="text-gray-mid">{colorPrefill.code}</span>
+              {colorPrefill.brand ? (
+                <span className="text-gray-mid"> · {colorPrefill.brand}</span>
+              ) : null}
+            </p>
           </div>
         ) : null}
 

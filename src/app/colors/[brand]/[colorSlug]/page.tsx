@@ -58,19 +58,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteUrl = getSiteUrl();
   return {
     title: `${color.name} ${color.code} | ${brandLabel} | Sublime Design NV`,
-    description: `See ${color.name} (${color.code}) used in real Las Vegas custom woodwork projects. ${brandLabel} ${color.hex} — free quote for your home.`,
+    description: `${color.name} (${color.code}) by ${brandLabel}. Hex: ${color.hex}. See real Las Vegas finish carpentry projects using this color — cabinets, shelves, barn doors, and more. Get a free quote.`,
     alternates: { canonical: buildFacetCanonical(`/colors/${params.brand}/${params.colorSlug}`) },
     openGraph: {
-      title: `${color.name} ${color.code} | ${brandLabel}`,
-      description: `${color.name} (${color.code}) by ${brandLabel}. See how this color looks in real custom carpentry projects in Las Vegas, NV.`,
+      title: `${color.name} (${color.code}) | ${brandLabel}`,
+      description: `See ${color.name} used in real Las Vegas carpentry projects.`,
+      type: "website",
       url: `${siteUrl}/colors/${params.brand}/${params.colorSlug}`,
     },
     keywords: [
-      `${color.name} ${color.code}`,
-      `${color.code} cabinets Las Vegas`,
-      `${color.name} kitchen cabinets`,
+      color.name,
+      color.code,
+      brandLabel,
+      `${color.name} cabinets`,
+      `${color.name} Las Vegas`,
+      `${color.code} finish carpentry`,
       `${brandLabel} ${color.name}`,
-      `${color.code} custom woodwork`,
+      "Las Vegas custom woodwork",
+      "finish carpentry Las Vegas",
     ].join(", "),
   };
 }
@@ -131,6 +136,19 @@ export default async function ColorReferencePage({ params }: Props) {
     ...(assets[0]?.secureUrl ? { image: assets[0].secureUrl } : {}),
   };
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Colors", item: `${siteUrl}/colors` },
+      { "@type": "ListItem", position: 3, name: color.brand, item: `${siteUrl}/colors/${params.brand}` },
+      { "@type": "ListItem", position: 4, name: `${color.name} ${color.code}`, item: `${siteUrl}/colors/${params.brand}/${params.colorSlug}` },
+    ],
+  };
+
+  const ctaHref = `/quote?color=${encodeURIComponent(color.code)}&colorName=${encodeURIComponent(color.name)}&brand=${encodeURIComponent(color.brand)}`;
+
   const colorSlugFor = (c: { brand: string; code: string }) =>
     `${c.brand.toLowerCase().replace(/[\s/]+/g, "-")}/${c.code.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
@@ -139,6 +157,10 @@ export default async function ColorReferencePage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <LocalBusinessSchema />
 
@@ -178,10 +200,10 @@ export default async function ColorReferencePage({ params }: Props) {
               </div>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link
-                  href={`/quote?color=${encodeURIComponent(color.code)}&colorName=${encodeURIComponent(color.name)}`}
+                  href={ctaHref}
                   className="font-ui inline-flex rounded-sm bg-red px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
                 >
-                  Use this color in my home →
+                  Get this color in your home →
                 </Link>
               </div>
             </div>
@@ -210,14 +232,15 @@ export default async function ColorReferencePage({ params }: Props) {
           </div>
 
           {/* Projects using this color */}
-          {assets.length > 0 && (
-            <section className="mt-12">
-              <p className="font-ui text-xs font-semibold uppercase tracking-[0.18em] text-red">
-                Real Work
-              </p>
-              <h2 className="mt-2 text-2xl text-charcoal">
-                Projects Using {color.name}
-              </h2>
+          <section className="mt-12">
+            <p className="font-ui text-xs font-semibold uppercase tracking-[0.18em] text-red">
+              Real Work
+            </p>
+            <h2 className="mt-2 text-2xl text-charcoal">
+              Projects Using {color.name}
+            </h2>
+
+            {assets.length > 0 ? (
               <div className="mt-6 columns-2 gap-3 space-y-3 md:columns-3">
                 {assets.map((asset) => (
                   <div key={asset.id} className="break-inside-avoid overflow-hidden rounded-xl">
@@ -231,8 +254,53 @@ export default async function ColorReferencePage({ params }: Props) {
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="mt-6 rounded-2xl border border-dashed border-gray-200 py-12 text-center">
+                <div
+                  className="mx-auto mb-4 h-16 w-16 rounded-xl border border-gray-200"
+                  style={{ backgroundColor: color.hex }}
+                />
+                <p className="font-ui text-sm text-gray-mid">
+                  No portfolio photos with {color.name} yet.
+                </p>
+                <p className="mt-1 font-ui text-xs text-gray-300">
+                  We&apos;re always adding new projects — check back soon.
+                </p>
+                <Link
+                  href={ctaHref}
+                  className="mt-4 inline-block font-ui text-sm font-semibold underline"
+                  style={{ color: "#CC2027" }}
+                >
+                  Be the first — get a quote using {color.name} →
+                </Link>
+              </div>
+            )}
+          </section>
+
+          {/* Cross-links to service pages */}
+          <section className="mt-12">
+            <h2 className="text-xl font-semibold text-charcoal">
+              See {color.name} in Custom Projects
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                { label: "Custom Cabinetry", slug: "custom-cabinetry" },
+                { label: "Floating Shelves", slug: "floating-shelves" },
+                { label: "Built-Ins", slug: "built-ins" },
+                { label: "Pantry Pullouts", slug: "pantry-pullouts" },
+                { label: "Closet Systems", slug: "closet-systems" },
+                { label: "Mantels", slug: "mantels" },
+              ].map(({ label, slug }) => (
+                <Link
+                  key={slug}
+                  href={`/services/${slug}`}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 font-ui text-sm text-charcoal transition-colors hover:border-gray-400"
+                >
+                  {label} →
+                </Link>
+              ))}
+            </div>
+          </section>
 
           {/* Related colors */}
           {relatedColors.length > 0 && (
