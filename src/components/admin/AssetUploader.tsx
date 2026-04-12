@@ -340,6 +340,10 @@ export default function AssetUploader() {
   const [title, setTitle] = useState("");
   const [titleEdited, setTitleEdited] = useState(false);
   const [description, setDescription] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [generatingDesc, setGeneratingDesc] = useState(false);
+  const [descTab, setDescTab] = useState<"short" | "seo">("short");
 
   // Misc
   const [serviceMetadata, setServiceMetadata] = useState<Record<string, unknown>>({});
@@ -380,8 +384,10 @@ export default function AssetUploader() {
     else if (primaryFeature) parts.push(primaryFeature);
     if (resolvedLocation) parts.push(resolvedLocation);
     if (primaryWoodSpecies) parts.push(primaryWoodSpecies);
+    const firstColor = colorEntries?.find((e) => e.color !== null);
+    if (firstColor?.color?.name) parts.push(firstColor.color.name);
     return toSlug(parts.join("-")).slice(0, 60) || "untitled";
-  }, [primaryServiceLabel, primaryRoom, primaryFeature, resolvedLocation, primaryWoodSpecies]);
+  }, [primaryServiceLabel, primaryRoom, primaryFeature, resolvedLocation, primaryWoodSpecies, colorEntries]);
 
   const finalFilename = filenameOverride.trim() || autoFilename;
 
@@ -490,7 +496,7 @@ export default function AssetUploader() {
     if (service) setPrimaryService(service);
     if (location) setPrimaryLocation(location);
     if (projectId) setLinkedProjectId(projectId);
-    if (notes) setDescription(notes);
+    if (notes) { setDescription(notes); setShortDescription(notes); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -551,6 +557,38 @@ export default function AssetUploader() {
 
   // ── Submit ────────────────────────────────────────────────────────────────────
 
+  async function handleGenerateDescription() {
+    setGeneratingDesc(true);
+    try {
+      const res = await fetch("/api/admin/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          primaryService: primaryServiceLabel || undefined,
+          secondaryServices: secondaryServices.length ? secondaryServices : undefined,
+          primaryLocation: resolvedLocation || undefined,
+          primaryRoom: primaryRoom || undefined,
+          primaryFeature: primaryFeature || undefined,
+          materialGrade: materialGrade || undefined,
+          woodSpeciesPrimary: primaryWoodSpecies || undefined,
+          colorEntries,
+          serviceMetadata: Object.keys(serviceMetadata).length ? serviceMetadata : undefined,
+          sheen: selectedSheen || undefined,
+          substrate: selectedSubstrates.length ? selectedSubstrates : undefined,
+          finishType: stainFinishType || undefined,
+        }),
+      });
+      const data = await res.json() as { short?: string; seo?: string };
+      if (data.short) setShortDescription(data.short);
+      if (data.seo) setSeoDescription(data.seo);
+      setDescTab("short");
+    } catch (err) {
+      console.error("Description generation failed:", err);
+    } finally {
+      setGeneratingDesc(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -593,7 +631,9 @@ export default function AssetUploader() {
             uploadBatchId,
             title: title.trim() || autoTitle,
             alt: autoAlt,
-            description: description.trim() || undefined,
+            description: seoDescription.trim() || shortDescription.trim() || description.trim() || undefined,
+            shortDescription: shortDescription.trim() || undefined,
+            seoDescription: seoDescription.trim() || undefined,
             location: resolvedLocation || undefined,
             primaryServiceSlug: primaryService,
             serviceMetadata,
@@ -1023,12 +1063,70 @@ export default function AssetUploader() {
 
         {/* 5 — Description & Notes */}
         <AccordionSection title="Description & Notes">
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="min-h-[80px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
-            placeholder="Short scope summary, finish notes, or install details"
-          />
+          <div className="space-y-3">
+            {/* AI generate button */}
+            <button
+              type="button"
+              onClick={handleGenerateDescription}
+              disabled={generatingDesc || !primaryService}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-ui text-sm font-semibold text-white transition-colors disabled:opacity-50"
+              style={{ backgroundColor: generatingDesc ? "#9ca3af" : "#1B2A6B" }}
+            >
+              {generatingDesc ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Generating…
+                </>
+              ) : (
+                "✦ Generate from Metadata"
+              )}
+            </button>
+            {!primaryService && (
+              <p className="font-ui text-xs text-gray-400">Select a service above to generate a description.</p>
+            )}
+
+            {/* Tab view after generation */}
+            {(shortDescription || seoDescription) ? (
+              <>
+                <div className="-mb-px flex gap-1 border-b border-gray-200">
+                  {(["short", "seo"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setDescTab(tab)}
+                      className="px-3 py-1.5 font-ui text-xs font-semibold capitalize transition-colors"
+                      style={{
+                        borderBottom: `2px solid ${descTab === tab ? "#CC2027" : "transparent"}`,
+                        color: descTab === tab ? "#CC2027" : "#6b7280",
+                      }}
+                    >
+                      {tab === "short" ? "Social / Short" : "SEO / Long"}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={descTab === "short" ? shortDescription : seoDescription}
+                  onChange={(e) => {
+                    if (descTab === "short") setShortDescription(e.target.value);
+                    else setSeoDescription(e.target.value);
+                  }}
+                  rows={4}
+                  className="w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy resize-none"
+                  placeholder="Edit the generated description if needed…"
+                />
+                <p className="font-ui text-xs text-gray-400">
+                  Both versions saved. Short for social posts, SEO version for portfolio pages.
+                </p>
+              </>
+            ) : (
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="min-h-[80px] w-full rounded-sm border border-gray-warm bg-white px-3 py-2 font-ui text-sm text-charcoal outline-none transition focus:border-navy"
+                placeholder="Short scope summary, finish notes, or install details"
+              />
+            )}
+          </div>
         </AccordionSection>
 
         {/* 6 — File Info */}
