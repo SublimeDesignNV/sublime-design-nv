@@ -770,19 +770,7 @@ function AnalyticsTab({ accounts }: { accounts: SocialAccount[] }) {
 
 // ── Settings Tab ──────────────────────────────────────────────────────────
 
-const PLATFORM_CONFIG: {
-  id: string;
-  label: string;
-  description: string;
-  oauth: boolean;
-  authHref: string;
-}[] = [
-  { id: "instagram", label: "Instagram", description: "Publish photos and reels to your business profile.", oauth: true, authHref: "/api/admin/social/auth/instagram" },
-  { id: "facebook", label: "Facebook", description: "Post to your business page feed.", oauth: true, authHref: "/api/admin/social/auth/facebook" },
-  { id: "pinterest", label: "Pinterest", description: "Pin project photos to your boards.", oauth: false, authHref: "" },
-  { id: "youtube", label: "YouTube", description: "Upload project videos and shorts.", oauth: false, authHref: "" },
-];
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function SettingsTab({ accounts: _accounts, onAccountsChange: _onAccountsChange }: { accounts: SocialAccount[]; onAccountsChange: () => void }) {
   const metaConfigured = process.env.NEXT_PUBLIC_META_CONFIGURED === "true";
 
