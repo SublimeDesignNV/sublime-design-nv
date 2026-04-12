@@ -115,8 +115,8 @@ function slugify(input: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-function getPreviewImage(src?: string | null, fallback?: string | null) {
-  return src || fallback || "";
+function getPreviewImage(imageUrl?: string | null, thumbnailUrl?: string | null) {
+  return thumbnailUrl || imageUrl || "";
 }
 
 export default function RecentUploadBatches({

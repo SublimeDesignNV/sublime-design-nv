@@ -897,7 +897,7 @@ export default function ProjectTable() {
                               </span>
                             ) : (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={asset.imageUrl || asset.thumbnailUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
+                              <img src={asset.thumbnailUrl || asset.imageUrl || ""} alt={asset.title || "Photo"} className="h-16 w-16 rounded-sm bg-white object-cover" />
                             )}
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">

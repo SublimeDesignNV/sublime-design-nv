@@ -120,7 +120,7 @@ const EMPTY_PROJECT_FORM: ProjectFormState = {
 };
 
 function getAdminPhotoPreviewSrc(asset: Pick<AdminAsset, "imageUrl" | "thumbnailUrl" | "secureUrl">) {
-  return asset.imageUrl || asset.thumbnailUrl || asset.secureUrl || "";
+  return asset.thumbnailUrl || asset.imageUrl || asset.secureUrl || "";
 }
 
 function toEditForm(asset: AdminAsset): EditFormState {
