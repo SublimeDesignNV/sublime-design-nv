@@ -15,8 +15,6 @@ import {
   Menu,
   Settings,
   Share2,
-  Layers,
-  Upload,
   User,
   Users,
   X,
@@ -40,10 +38,8 @@ const NAV_GROUPS = [
   {
     label: "Portfolio",
     links: [
-      { href: "/admin/uploads", label: "Upload Media", icon: Upload },
-      { href: "/admin/photos/unlinked", label: "Unlinked Photos", icon: ImageIcon },
+      { href: "/admin/photos", label: "Photos", icon: ImageIcon },
       { href: "/admin/projects", label: "Projects", icon: FolderOpen },
-      { href: "/admin/services", label: "Service Images", icon: Layers },
       { href: "/admin/media", label: "Media Manager", icon: Film },
     ],
   },

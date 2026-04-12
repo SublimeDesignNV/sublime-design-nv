@@ -1,5 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async redirects() {
+    return [
+      { source: "/admin/uploads", destination: "/admin/photos", permanent: true },
+      { source: "/admin/photos/unlinked", destination: "/admin/photos", permanent: true },
+      { source: "/admin/upload-batches", destination: "/admin/photos", permanent: true },
+    ];
+  },
   experimental: {
     serverComponentsExternalPackages: ["pg", "@prisma/adapter-pg"],
   },
