@@ -34,6 +34,11 @@ type CreateAssetBody = {
   contextSlugs?: string[];
   uploadBatchId?: string;
   materials?: string[];
+  materialCategoryId?: string;
+  assetManufacturerId?: string;
+  assetSupplierId?: string;
+  assetMaterialId?: string;
+  materialSheen?: string;
 };
 
 const ASSET_SELECT = {
@@ -317,6 +322,11 @@ export async function POST(request: NextRequest) {
           uploadBatchId,
           published: Boolean(body.published),
           materials: Array.isArray(body.materials) ? body.materials : [],
+          materialCategoryId: body.materialCategoryId || null,
+          assetManufacturerId: body.assetManufacturerId || null,
+          assetSupplierId: body.assetSupplierId || null,
+          assetMaterialId: body.assetMaterialId || null,
+          materialSheen: body.materialSheen || null,
           tags: {
             create: tagRecords.map((tag) => ({
               serviceTypeId: tag.id,

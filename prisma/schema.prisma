@@ -59,8 +59,18 @@ model Asset {
   galleryFeature     Boolean        @default(false)
   tags               AssetTag[]
   projectLinks       ProjectAsset[]
-  coverForProjects   Project[]      @relation("ProjectCoverAsset")
+  coverForProjects   Project[]         @relation("ProjectCoverAsset")
   paintColors        AssetPaintColor[]
+  // Material FK fields (for TFL/HPL/etc. structural materials)
+  materialCategoryId String?
+  materialCategory   MaterialCategory? @relation("AssetMaterialCategory", fields: [materialCategoryId], references: [id])
+  assetManufacturerId String?
+  assetManufacturer  Manufacturer?     @relation("AssetManufacturer", fields: [assetManufacturerId], references: [id])
+  assetSupplierId    String?
+  assetSupplier      Supplier?         @relation("AssetSupplier", fields: [assetSupplierId], references: [id])
+  assetMaterialId    String?
+  assetMaterial      Material?         @relation("AssetMaterial", fields: [assetMaterialId], references: [id])
+  materialSheen      String?
 }
 
 model PaintColor {
@@ -421,6 +431,7 @@ model MaterialCategory {
   slug        String     @unique
   description String?
   materials   Material[]
+  assets      Asset[]    @relation("AssetMaterialCategory")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
@@ -433,6 +444,7 @@ model Manufacturer {
   description String?
   logoUrl     String?
   materials   Material[]
+  assets      Asset[]    @relation("AssetManufacturer")
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
@@ -449,6 +461,7 @@ model Supplier {
   description String?
   logoUrl     String?
   pricing     SupplierPricing[]
+  assets      Asset[]           @relation("AssetSupplier")
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 }
@@ -467,6 +480,7 @@ model Material {
   manufacturer   Manufacturer      @relation(fields: [manufacturerId], references: [id])
   services       MaterialService[]
   pricing        SupplierPricing[]
+  assets         Asset[]           @relation("AssetMaterial")
   grade          String?
   sheen          String?
   finish         String?

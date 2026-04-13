@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import PaintColorPicker, { type PaintColor } from "@/components/admin/PaintColorPicker";
+import MaterialTypePicker, { type MaterialSelection, EMPTY_MATERIAL_SELECTION } from "@/components/admin/MaterialTypePicker";
 import PostToGBPButton from "@/components/admin/PostToGBPButton";
 import { generateGBPCaption } from "@/lib/generateSocialCaption";
 import ServiceMetadataFields from "@/components/admin/ServiceMetadataFields";
@@ -21,9 +22,6 @@ import {
   STAIN_FINISH_TYPES,
   STAIN_GRADE_SUBSTRATES,
   STAIN_SHEENS,
-  TFL_BRANDS,
-  TFL_SUBSTRATES,
-  TFL_SHEENS,
   WOOD_SPECIES,
   type MaterialGrade,
 } from "@/content/materials";
@@ -333,6 +331,7 @@ export default function AssetUploader() {
 
   // Material — three-path system
   const [materialGrade, setMaterialGrade] = useState<MaterialGrade | "">("");
+  const [materialSelection, setMaterialSelection] = useState<MaterialSelection>(EMPTY_MATERIAL_SELECTION);
   const [selectedSubstrates, setSelectedSubstrates] = useState<string[]>([]);
   const [selectedSheen, setSelectedSheen] = useState("");
   const [selectedBrand, setSelectedBrand] = useState("");
@@ -530,6 +529,7 @@ export default function AssetUploader() {
     setSelectedCut([]);
     setPrimaryWoodSpecies("");
     setSecondaryWoodSpecies([]);
+    setMaterialSelection(EMPTY_MATERIAL_SELECTION);
     setColorEntries([{ id: crypto.randomUUID(), label: "", color: null, brand: "Sherwin-Williams" }]);
   }, [materialGrade]);
 
@@ -651,6 +651,11 @@ export default function AssetUploader() {
             tagSlugs,
             contextSlugs,
             materials: allMaterials,
+            materialCategoryId: materialSelection.categoryId || undefined,
+            assetManufacturerId: materialSelection.manufacturerId || undefined,
+            assetSupplierId: materialSelection.supplierId || undefined,
+            assetMaterialId: materialSelection.materialId || undefined,
+            materialSheen: materialSelection.sheen || undefined,
           }),
         });
 
@@ -1076,35 +1081,10 @@ export default function AssetUploader() {
 
           {/* ── TFL / Melamine path ── */}
           {materialGrade === "TFL / Melamine" && (
-            <div className="space-y-5">
-              <div>
-                <CategoryLabel>Surface Product</CategoryLabel>
-                <SimpleChips
-                  options={TFL_SUBSTRATES}
-                  selected={selectedSubstrates}
-                  onToggle={toggleSubstrate}
-                  multi
-                />
-              </div>
-              <div>
-                <CategoryLabel>Surface Sheen</CategoryLabel>
-                <SimpleChips
-                  options={TFL_SHEENS.map((s) =>
-                    s.value > 0 ? `${s.name} — ${s.value}` : s.name,
-                  )}
-                  selected={selectedSheen}
-                  onToggle={(val) => setSelectedSheen(selectedSheen === val ? "" : val)}
-                />
-              </div>
-              <div>
-                <CategoryLabel>Brand</CategoryLabel>
-                <SimpleChips
-                  options={TFL_BRANDS}
-                  selected={selectedBrand}
-                  onToggle={(val) => setSelectedBrand(selectedBrand === val ? "" : val)}
-                />
-              </div>
-            </div>
+            <MaterialTypePicker
+              value={materialSelection}
+              onChange={setMaterialSelection}
+            />
           )}
         </AccordionSection>
 
