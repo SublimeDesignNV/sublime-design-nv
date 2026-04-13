@@ -27,6 +27,15 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
   const serviceSlug = asset.primaryServiceSlug;
 
+  // Unset isHero on all assets for this service in DB, then set on this one
+  if (serviceSlug) {
+    await db.asset.updateMany({
+      where: { primaryServiceSlug: serviceSlug, isHero: true },
+      data: { isHero: false },
+    });
+  }
+  await db.asset.update({ where: { id: asset.id }, data: { isHero: true } });
+
   // Remove hero tag from all current hero images for this service in Cloudinary
   if (serviceSlug) {
     try {
@@ -44,8 +53,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
     }
   }
 
-  // Add hero tag to this asset
-  await addAssetTags(asset.publicId, ["hero"]);
+  // Add hero tag to this asset in Cloudinary
+  try {
+    await addAssetTags(asset.publicId, ["hero"]);
+  } catch {
+    // Non-fatal — DB is the source of truth now
+  }
 
   return NextResponse.json({ ok: true });
 }

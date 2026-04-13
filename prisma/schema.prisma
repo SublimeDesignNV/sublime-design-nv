@@ -57,6 +57,7 @@ model Asset {
   updatedAt          DateTime       @updatedAt
   published          Boolean        @default(false)
   galleryFeature     Boolean        @default(false)
+  isHero             Boolean        @default(false)
   tags               AssetTag[]
   projectLinks       ProjectAsset[]
   coverForProjects   Project[]         @relation("ProjectCoverAsset")

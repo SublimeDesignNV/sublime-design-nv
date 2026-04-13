@@ -59,6 +59,7 @@ const ASSET_SELECT = {
   alt: true,
   published: true,
   galleryFeature: true,
+  isHero: true,
   uploadBatchId: true,
   createdAt: true,
   projectLinks: {
@@ -146,6 +147,7 @@ function serializeAdminAsset(asset: AdminAssetRow) {
     alt: asset.alt,
     published: asset.published,
     galleryFeature: asset.galleryFeature,
+    isHero: asset.isHero,
     createdAt: asset.createdAt,
     uploadBatchId: asset.uploadBatchId,
     projectId: canonical.projectId,

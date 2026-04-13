@@ -28,6 +28,7 @@ type AdminAsset = {
   serviceMetadata: Record<string, unknown> | null;
   published: boolean;
   galleryFeature: boolean;
+  isHero: boolean;
   createdAt: string;
   uploadBatchId?: string | null;
   projectId: string | null;
@@ -175,7 +176,6 @@ export default function AssetTable({
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
-  const [heroAssetId, setHeroAssetId] = useState<string | null>(null);
   const [settingHeroId, setSettingHeroId] = useState<string | null>(null);
   const [colorModalAsset, setColorModalAsset] = useState<AdminAsset | null>(null);
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
@@ -404,7 +404,22 @@ export default function AssetTable({
     setSettingHeroId(asset.id);
     try {
       const res = await fetch(`/api/admin/assets/${asset.id}/hero`, { method: "POST" });
-      if (res.ok) setHeroAssetId(asset.id);
+      if (res.ok) {
+        // Optimistically update isHero in local state — one hero per service slug
+        setAssets((prev) =>
+          prev.map((a) => ({
+            ...a,
+            isHero:
+              a.primaryServiceSlug === asset.primaryServiceSlug
+                ? a.id === asset.id
+                : a.isHero,
+          })),
+        );
+      } else {
+        window.alert("Failed to set hero image. Please try again.");
+      }
+    } catch {
+      window.alert("Failed to set hero image. Please try again.");
     } finally {
       setSettingHeroId(null);
     }
@@ -893,12 +908,12 @@ export default function AssetTable({
                           disabled={settingHeroId === asset.id}
                           title="Set as hero image for this service"
                           className={`inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 font-ui text-xs transition disabled:opacity-60 ${
-                            heroAssetId === asset.id
+                            asset.isHero
                               ? "border-amber-400 bg-amber-50 text-amber-700"
                               : "border-gray-warm text-charcoal hover:border-amber-400 hover:text-amber-700"
                           }`}
                         >
-                          {heroAssetId === asset.id ? "★ Hero" : settingHeroId === asset.id ? "Setting..." : "☆ Set Hero"}
+                          {asset.isHero ? "★ Hero" : settingHeroId === asset.id ? "Setting..." : "☆ Set Hero"}
                         </button>
                       )}
                       {asset.published && (
