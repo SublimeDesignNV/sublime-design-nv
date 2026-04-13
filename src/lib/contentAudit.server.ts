@@ -6,6 +6,7 @@ import { FLAGSHIP_PROJECTS, FEATURED_PROJECTS, PROJECT_LIST, type ProjectDef } f
 import { getRelatedReviews, getReviewsByService } from "@/content/reviews";
 import { findTestimonial, getTestimonialsByService } from "@/content/testimonials";
 import { listAssetsByServiceTag } from "@/lib/cloudinary.server";
+import { db } from "@/lib/db";
 import {
   getContentCompletion,
   getContentCoverageStatus,
@@ -169,9 +170,6 @@ function isFeaturedAsset(asset: {
   return asset.context?.featured?.toLowerCase() === "true";
 }
 
-function hasHeroTag(asset: { tags?: string[] }) {
-  return asset.tags?.some((tag) => tag.toLowerCase() === "hero") ?? false;
-}
 
 function getReadinessStatus(score: number, maxScore: number): ReadinessStatus {
   if (maxScore <= 0) return "thin";
@@ -224,6 +222,14 @@ function getFlagshipSuggestedAction({
 }
 
 export async function getServiceContentAuditRows(): Promise<ServiceContentAuditRow[]> {
+  // Batch DB query — one round-trip for all services
+  const heroRows = await db.asset.findMany({
+    where: { isHero: true, primaryServiceSlug: { not: null } },
+    select: { primaryServiceSlug: true },
+    distinct: ["primaryServiceSlug"],
+  }).catch(() => []);
+  const heroServiceSlugs = new Set(heroRows.map((r) => r.primaryServiceSlug!));
+
   return Promise.all(
     SERVICE_LIST.map(async (service) => {
       const repoCount = getRepoImageCount(service.slug);
@@ -242,8 +248,9 @@ export async function getServiceContentAuditRows(): Promise<ServiceContentAuditR
         targetImageCount,
       );
       const hasFeaturedImage = cloudinaryAssets.some((asset) => isFeaturedAsset(asset));
+      // DB isHero is authoritative; fall back to any-content check for readiness scoring
       const hasHeroCandidate =
-        cloudinaryAssets.some((asset) => hasHeroTag(asset)) ||
+        heroServiceSlugs.has(service.slug) ||
         hasFeaturedImage ||
         cloudinaryCount > 0 ||
         seedCount > 0;
@@ -463,14 +470,20 @@ export async function getAreaContentAuditRowBySlug(slug: string) {
 }
 
 export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummary> {
-  const [serviceRows, projectRows, areaRows] = await Promise.all([
+  const [serviceRows, projectRows, areaRows, heroRows] = await Promise.all([
     getServiceContentAuditRows(),
     getProjectContentAuditRows(),
     getAreaContentAuditRows(),
+    db.asset.findMany({
+      where: { isHero: true, primaryServiceSlug: { not: null } },
+      select: { primaryServiceSlug: true },
+      distinct: ["primaryServiceSlug"],
+    }).catch(() => []),
   ]);
   const flagshipOrFeaturedProjects = new Set(
     [...FLAGSHIP_PROJECTS, ...FEATURED_PROJECTS].map((project) => project.slug),
   ).size;
+  const heroServiceSlugs = new Set(heroRows.map((r) => r.primaryServiceSlug!));
 
   return {
     activeServices: ACTIVE_SERVICES.length,
@@ -480,7 +493,7 @@ export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummar
     flagshipOrFeaturedProjects,
     activeAreas: ACTIVE_AREAS.length,
     servicesWithContent: serviceRows.filter((row) => row.actualImageCount > 0).length,
-    servicesWithHeroCandidate: serviceRows.filter((row) => row.hasHeroCandidate).length,
+    servicesWithHeroCandidate: heroServiceSlugs.size,
     healthyServices: serviceRows.filter((row) => row.coverageStatus === "healthy").length,
     promotionReadyServices: serviceRows.filter((row) => row.promotionReady).length,
     promotionReadyProjects: projectRows.filter((row) => row.promotionReady).length,
@@ -489,7 +502,7 @@ export async function getLaunchReadinessSummary(): Promise<LaunchReadinessSummar
       hasSixActiveServices: ACTIVE_SERVICES.length >= 6,
       hasSixProjects: PROJECT_LIST.length >= 6,
       hasThreeFlagshipOrFeaturedProjects: flagshipOrFeaturedProjects >= 3,
-      hasOneHeroCandidate: serviceRows.some((row) => row.hasHeroCandidate),
+      hasOneHeroCandidate: heroServiceSlugs.size > 0,
     },
   };
 }
